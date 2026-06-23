@@ -1,1 +1,1 @@
-"""Sixth Man project."""
+"""Sixth Man - Hoops Planner backend."""

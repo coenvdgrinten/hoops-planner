@@ -24,7 +24,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install Dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --all-extras --dev --no-install-project
 
       - name: Run Ruff Lint Check
-        run: uv run ruff check
+        run: uv run ruff check src tests

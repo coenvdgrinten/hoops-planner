@@ -24,7 +24,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install Dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --all-extras --dev --no-install-project
 
       - name: Run Tests
         run: uv run pytest

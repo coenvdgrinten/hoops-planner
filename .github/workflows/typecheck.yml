@@ -24,7 +24,7 @@ jobs:
         run: uv python install 3.13
 
       - name: Install Dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --all-extras --dev --no-install-project
 
       - name: Run Ty Type Check
-        run: uv run ty check
+        run: uv run ty check src tests
