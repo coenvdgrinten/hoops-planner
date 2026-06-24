@@ -1,0 +1,30 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - PYTHONPATH=/app/src
+      - DB_PATH=/data/db.sqlite3
+    volumes:
+      - ./src:/app/src          # Mount source for hot-reload
+      - db-data:/data           # Persist SQLite DB
+      - media-data:/app/media   # Persist uploaded files
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:8000
+    volumes:
+      - ./frontend/src:/app/src  # Mount source for hot-reload
+    depends_on:
+      - backend
+
+volumes:
+  db-data:
+  media-data:
