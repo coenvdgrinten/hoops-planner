@@ -70,7 +70,7 @@ This minimizes extra travel time while distributing tasks evenly over the season
 
 ## Phased Rollout
 **Phase 1 (✅ Complete):** CSV import, interactive planner, eligibility rules, candidate suggestions
-**Phase 2:** PDF export, member read-only view, statistics
+**Phase 2 (✅ Complete):** PDF export, member read-only view, statistics
 **Phase 3:** Swap requests, reminders, Sportlink/NBB API integration
 
 ---
@@ -84,6 +84,8 @@ This minimizes extra travel time while distributing tasks evenly over the season
 - ✅ CSV import (schedules + members with upsert)
 - ✅ REST API (serializers, viewsets, custom endpoints)
 - ✅ CORS configuration for React dev server
+- ✅ Statistics module (player stats, season stats, leaderboard, upcoming assignments)
+- ✅ PDF export (reportlab, per-game task tables)
 - ✅ 46 tests (21 eligibility + 13 suggestions + 11 importers + 1 placeholder)
 
 ### Frontend (React + TypeScript + Vite)
@@ -94,6 +96,9 @@ This minimizes extra travel time while distributing tasks evenly over the season
 - ✅ Planner view with sorted game list
 - ✅ GameCard with match details
 - ✅ TaskCard with assignment/unassignment + candidate suggestions
+- ✅ Statistics view (overview cards, task type breakdown, leaderboard)
+- ✅ MemberView (player selector, upcoming assignments table)
+- ✅ PDF export button
 - ✅ CSS styling
 
 ### CI/CD
