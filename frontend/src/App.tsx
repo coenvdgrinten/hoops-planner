@@ -46,6 +46,12 @@ export function App() {
             >
               Members
             </button>
+            <a
+              href={`/api/seasons/${selectedSeason.id}/export_pdf/`}
+              className="export-pdf-btn"
+            >
+              Export PDF
+            </a>
           </nav>
         )}
       </header>

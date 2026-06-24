@@ -16,6 +16,7 @@ from sixth_man.core.models import (
     TaskAssignment,
     Team,
 )
+from sixth_man.core.pdf_export import export_schedule_pdf
 from sixth_man.core.serializers import (
     GameSerializer,
     PlayerSerializer,
@@ -61,6 +62,21 @@ class SeasonViewSet(viewsets.ModelViewSet):
         top = int(request.query_params.get("top", 10))
         data = stats_logic.get_leaderboard(season, top=top)
         return Response(data)
+
+    @action(detail=True, methods=["get"])
+    def export_pdf(self, request, pk=None):
+        """Export the task schedule as a PDF."""
+        season = self.get_object()
+        pdf_bytes = export_schedule_pdf(season)
+        return Response(
+            pdf_bytes,
+            content_type="application/pdf",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="schedule_{season.name}.pdf"'
+                ),
+            },
+        )
 
 
 class TeamViewSet(viewsets.ModelViewSet):
