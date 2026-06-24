@@ -23,6 +23,7 @@ from sixth_man.core.serializers import (
     SeasonSerializer,
     TaskAssignmentSerializer,
     TaskSerializer,
+    TaskWithAssignmentsSerializer,
     TeamSerializer,
 )
 
@@ -190,6 +191,16 @@ class GameViewSet(viewsets.ModelViewSet):
     queryset = Game.objects.all()
     serializer_class = GameSerializer
     permission_classes = [permissions.AllowAny]
+
+    @action(detail=True, methods=["get"])
+    def tasks_with_assignments(self, request, pk=None):
+        """Get all tasks for this game with nested assignments."""
+        game = self.get_object()
+        tasks = Task.objects.filter(game=game).order_by(
+            "task_type", "slot_number"
+        )
+        serializer = TaskWithAssignmentsSerializer(tasks, many=True)
+        return Response(serializer.data)
 
 
 class TaskViewSet(viewsets.ModelViewSet):

@@ -40,6 +40,14 @@ export interface Task {
   slot_number: number;
 }
 
+export interface TaskWithAssignments {
+  id: number;
+  game: number;
+  task_type: string;
+  slot_number: number;
+  assignments: TaskAssignment[];
+}
+
 export interface TaskAssignment {
   id: number;
   task: number;

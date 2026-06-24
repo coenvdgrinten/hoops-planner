@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  getTasks,
-  getAssignments,
+  getTasksWithAssignments,
   createAssignment,
   deleteAssignment,
   getCandidateDetails,
@@ -20,54 +19,60 @@ const TASK_LABELS: Record<string, string> = {
 };
 
 export function TaskCard({ gameId }: Props) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [assignments, setAssignments] = useState<Record<number, TaskAssignment[]>>({});
+  const [tasks, setTasks] = useState<
+    { id: number; task_type: string; slot_number: number; assignments: TaskAssignment[] }[]
+  >([]);
   const [suggestions, setSuggestions] = useState<Record<number, CandidateDetail[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getTasks(gameId)
-      .then((tasks) => {
-        setTasks(tasks);
-        // Load assignments for each task
-        Promise.all(
-          tasks.map((t) =>
-            getAssignments(t.id).then((asgn) => [t.id, asgn] as const)
-          )
-        ).then((results) => {
-          const map: Record<number, TaskAssignment[]> = {};
-          for (const [taskId, asgn] of results) {
-            map[taskId] = asgn;
-          }
-          setAssignments(map);
-        });
-        // Load candidate details for each task
-        Promise.all(
-          tasks.map((t) =>
-            getCandidateDetails(t.id).then((det) => [t.id, det] as const)
-          )
-        ).then((results) => {
-          const map: Record<number, CandidateDetail[]> = {};
-          for (const [taskId, det] of results) {
-            map[taskId] = det;
-          }
-          setSuggestions(map);
-        });
+    setLoading(true);
+    getTasksWithAssignments(gameId)
+      .then((data) => {
+        setTasks(data);
+        // Load candidate details only for unassigned tasks
+        const unassigned = data.filter((t) => t.assignments.length === 0);
+        if (unassigned.length > 0) {
+          Promise.all(
+            unassigned.map((t) =>
+              getCandidateDetails(t.id).then((det) => [t.id, det] as const)
+            )
+          ).then((results) => {
+            const map: Record<number, CandidateDetail[]> = {};
+            for (const [taskId, det] of results) {
+              map[taskId] = det;
+            }
+            setSuggestions(map);
+          });
+        }
       })
       .finally(() => setLoading(false));
   }, [gameId]);
 
   const handleAssign = async (taskId: number, player: Player) => {
     await createAssignment(taskId, player.id);
-    // Refresh assignments
-    const asgn = await getAssignments(taskId);
-    setAssignments((prev) => ({ ...prev, [taskId]: asgn }));
+    // Refresh the full task list
+    const data = await getTasksWithAssignments(gameId);
+    setTasks(data);
+    // Remove stale suggestions for this task
+    setSuggestions((prev) => {
+      const next = { ...prev };
+      delete next[taskId];
+      return next;
+    });
   };
 
   const handleUnassign = async (assignmentId: number, taskId: number) => {
     await deleteAssignment(assignmentId);
-    const asgn = await getAssignments(taskId);
-    setAssignments((prev) => ({ ...prev, [taskId]: asgn }));
+    // Refresh the full task list
+    const data = await getTasksWithAssignments(gameId);
+    setTasks(data);
+    // Load suggestions for this task now that it might be unassigned
+    const task = data.find((t) => t.id === taskId);
+    if (task && task.assignments.length === 0) {
+      const det = await getCandidateDetails(taskId);
+      setSuggestions((prev) => ({ ...prev, [taskId]: det }));
+    }
   };
 
   if (loading) return <p>Loading tasks...</p>;
@@ -75,7 +80,7 @@ export function TaskCard({ gameId }: Props) {
   return (
     <div className="task-grid">
       {tasks.map((task) => {
-        const assigned = assignments[task.id] ?? [];
+        const assigned = task.assignments;
         const sugg = suggestions[task.id] ?? [];
         const label = TASK_LABELS[task.task_type] ?? task.task_type;
 

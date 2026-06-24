@@ -8,6 +8,7 @@ import type {
   SeasonStats,
   Task,
   TaskAssignment,
+  TaskWithAssignments,
   Team,
   UpcomingAssignment,
 } from "./types";
@@ -64,6 +65,10 @@ export function getGames(season: number) {
 // Tasks
 export function getTasks(game: number) {
   return request<Task[]>(`/tasks/?game=${game}`);
+}
+
+export function getTasksWithAssignments(game: number) {
+  return request<TaskWithAssignments[]>(`/games/${game}/tasks_with_assignments/`);
 }
 
 export function getEligiblePlayers(task: number) {

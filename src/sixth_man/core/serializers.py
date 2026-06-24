@@ -119,4 +119,22 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             "player_id",
             "assigned_at",
         ]
+
+
+class TaskWithAssignmentsSerializer(serializers.ModelSerializer):
+    """Task serializer with nested assignments for bulk endpoints."""
+    assignments = TaskAssignmentSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = Task
+        fields = [
+            "id",
+            "game",
+            "task_type",
+            "slot_number",
+            "assignments",
+        ]
         read_only_fields = ["assigned_at"]
