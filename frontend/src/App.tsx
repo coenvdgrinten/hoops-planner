@@ -26,6 +26,15 @@ export function App() {
       setSelectedTask({ task, gameId: _gameId });
       setPanelLoading(true);
       setPanelSuggestions([]);
+      const { getCandidateDetails } = await import("./api");
+      try {
+        const details = await getCandidateDetails(task.id);
+        setPanelSuggestions(details);
+      } catch {
+        setPanelSuggestions([]);
+      } finally {
+        setPanelLoading(false);
+      }
     },
     []
   );

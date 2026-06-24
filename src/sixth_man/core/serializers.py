@@ -123,6 +123,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
 
 class TaskWithAssignmentsSerializer(serializers.ModelSerializer):
     """Task serializer with nested assignments for bulk endpoints."""
+
     assignments = TaskAssignmentSerializer(
         many=True,
         read_only=True,

@@ -50,8 +50,7 @@ class SeasonViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     "detail": (
-                        "Provide a 'file' field or 'csv_text' "
-                        "field with the CSV.",
+                        "Provide a 'file' field or 'csv_text' " "field with the CSV.",
                     ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -119,8 +118,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     "detail": (
-                        "Provide a 'file' field or 'csv_text' "
-                        "field with the CSV.",
+                        "Provide a 'file' field or 'csv_text' " "field with the CSV.",
                     ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -196,9 +194,7 @@ class GameViewSet(viewsets.ModelViewSet):
     def tasks_with_assignments(self, request, pk=None):
         """Get all tasks for this game with nested assignments."""
         game = self.get_object()
-        tasks = Task.objects.filter(game=game).order_by(
-            "task_type", "slot_number"
-        )
+        tasks = Task.objects.filter(game=game).order_by("task_type", "slot_number")
         serializer = TaskWithAssignmentsSerializer(tasks, many=True)
         return Response(serializer.data)
 
