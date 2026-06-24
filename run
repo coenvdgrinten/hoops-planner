@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+echo "Starting Hoops Planner..."
+
+# Build and start containers in background
+docker compose up --build -d
+
+# Wait for backend to be ready
+echo "Waiting for backend..."
+for i in {1..30}; do
+  if curl -s http://localhost:8000/api/teams/ >/dev/null 2>&1; then
+    break
+  fi
+  sleep 1
+done
+
+# Run migrations (only needed if DB is fresh)
+docker compose exec --T backend uv run manage.py migrate --check >/dev/null 2>&1 || \
+  docker compose exec --T backend uv run manage.py migrate
+
+echo ""
+echo "✓ Ready!"
+echo "  Frontend:  http://localhost:5173"
+echo "  Backend:   http://localhost:8000"
+echo ""
+echo "Stop with:  ./stop"
