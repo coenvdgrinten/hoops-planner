@@ -55,3 +55,31 @@ export interface CandidateDetail {
   task_count: number;
   at_gym: boolean;
 }
+
+export interface UpcomingAssignment {
+  game_date: string;
+  game_time: string;
+  home_team: string;
+  away_team: string;
+  court: string;
+  task_type: string;
+  slot_number: number;
+}
+
+export interface SeasonStats {
+  total_games: number;
+  total_task_slots: number;
+  total_assignments: number;
+  fill_rate: number;
+  by_task_type: Record<string, { slots: number; filled: number }>;
+  per_team: Record<string, { games: number; assignments: number }>;
+}
+
+export interface LeaderboardEntry {
+  player_id: number;
+  player_name: string;
+  team: string;
+  total_tasks: number;
+  effective_tasks: number;
+  by_type: Record<string, number>;
+}

@@ -2,11 +2,14 @@ import type {
   CandidateDetail,
   EligiblePlayer,
   Game,
+  LeaderboardEntry,
   Player,
   Season,
+  SeasonStats,
   Task,
   TaskAssignment,
   Team,
+  UpcomingAssignment,
 } from "./types";
 
 const API = "/api";
@@ -89,4 +92,22 @@ export function createAssignment(task: number, playerId: number) {
 
 export function deleteAssignment(id: number) {
   return request<void>(`/assignments/${id}/`, { method: "DELETE" });
+}
+
+// Statistics
+export function getPlayerStats(playerId: number, seasonName?: string) {
+  const qs = seasonName ? `?season=${seasonName}` : "";
+  return request<Record<string, unknown>>(`/players/${playerId}/stats/${qs}`);
+}
+
+export function getPlayerUpcoming(playerId: number) {
+  return request<UpcomingAssignment[]>(`/players/${playerId}/upcoming/`);
+}
+
+export function getSeasonStats(seasonId: number) {
+  return request<SeasonStats>(`/seasons/${seasonId}/stats/`);
+}
+
+export function getLeaderboard(seasonId: number) {
+  return request<LeaderboardEntry[]>(`/seasons/${seasonId}/leaderboard/`);
 }

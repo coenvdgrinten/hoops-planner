@@ -4,6 +4,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from sixth_man.core import statistics as stats_logic
 from sixth_man.core import suggestions as suggestion_logic
 from sixth_man.core.eligibility import get_eligible_players_with_indicator
 from sixth_man.core.importers import import_members, import_schedule
@@ -45,6 +46,21 @@ class SeasonViewSet(viewsets.ModelViewSet):
         csv_text = csv_file.read().decode("utf-8-sig")
         result = import_schedule(csv_text, season_name)
         return Response(result, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get"])
+    def stats(self, request, pk=None):
+        """Get aggregate statistics for a season."""
+        season = self.get_object()
+        data = stats_logic.get_season_stats(season)
+        return Response(data)
+
+    @action(detail=True, methods=["get"])
+    def leaderboard(self, request, pk=None):
+        """Get leaderboard of players by effective task count."""
+        season = self.get_object()
+        top = int(request.query_params.get("top", 10))
+        data = stats_logic.get_leaderboard(season, top=top)
+        return Response(data)
 
 
 class TeamViewSet(viewsets.ModelViewSet):
@@ -103,6 +119,31 @@ class PlayerViewSet(viewsets.ModelViewSet):
             }
             for player, eligible in results
         ]
+        return Response(data)
+
+    @action(detail=True, methods=["get"])
+    def stats(self, request, pk=None):
+        """Get statistics for a specific player."""
+        player = self.get_object()
+        season_name = request.query_params.get("season")
+        season = None
+        if season_name:
+            try:
+                season = Season.objects.get(name=season_name)
+            except Season.DoesNotExist:
+                return Response(
+                    {"detail": "Season not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        data = stats_logic.get_player_stats(player, season)
+        return Response(data)
+
+    @action(detail=True, methods=["get"])
+    def upcoming(self, request, pk=None):
+        """Get upcoming assignments for a player."""
+        player = self.get_object()
+        limit = int(request.query_params.get("limit", 20))
+        data = stats_logic.get_upcoming_assignments(player, limit=limit)
         return Response(data)
 
 

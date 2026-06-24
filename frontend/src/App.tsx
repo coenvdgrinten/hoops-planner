@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { SeasonSelector } from "./components/SeasonSelector";
 import { Planner } from "./components/Planner";
+import { Statistics } from "./components/Statistics";
+import { MemberView } from "./components/MemberView";
 import { ImportModal } from "./components/ImportModal";
 import type { Season } from "./types";
 import "./App.css";
 
+type View = "planner" | "statistics" | "members";
+
 export function App() {
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [importType, setImportType] = useState<"schedule" | "members" | null>(null);
+  const [currentView, setCurrentView] = useState<View>("planner");
 
   return (
     <div className="app">
@@ -21,10 +26,36 @@ export function App() {
             selectedId={selectedSeason?.id}
           />
         </nav>
+        {selectedSeason && (
+          <nav className="view-tabs">
+            <button
+              className={currentView === "planner" ? "active" : ""}
+              onClick={() => setCurrentView("planner")}
+            >
+              Planner
+            </button>
+            <button
+              className={currentView === "statistics" ? "active" : ""}
+              onClick={() => setCurrentView("statistics")}
+            >
+              Statistics
+            </button>
+            <button
+              className={currentView === "members" ? "active" : ""}
+              onClick={() => setCurrentView("members")}
+            >
+              Members
+            </button>
+          </nav>
+        )}
       </header>
       <main>
         {selectedSeason ? (
-          <Planner season={selectedSeason} />
+          <>
+            {currentView === "planner" && <Planner season={selectedSeason} />}
+            {currentView === "statistics" && <Statistics season={selectedSeason} />}
+            {currentView === "members" && <MemberView />}
+          </>
         ) : (
           <p className="placeholder">
             Select a season to view the planner.

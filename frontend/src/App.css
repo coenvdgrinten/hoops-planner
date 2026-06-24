@@ -267,3 +267,142 @@ nav button:hover {
   font-size: 0.875rem;
   margin-top: 8px;
 }
+
+/* View Tabs */
+.view-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.view-tabs button {
+  padding: 6px 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.view-tabs button.active {
+  background: #4a90d9;
+  color: white;
+  border-color: #4a90d9;
+}
+
+/* Statistics */
+.statistics h2 {
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #4a90d9;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+.stat-section {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-section h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.stat-section table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.stat-section th,
+.stat-section td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.875rem;
+}
+
+.stat-section th {
+  font-weight: 600;
+  color: #666;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+/* Member View */
+.member-view h2 {
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+}
+
+.member-view select {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+}
+
+.member-details h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+
+.member-details table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.member-details th,
+.member-details td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.875rem;
+}
+
+.member-details th {
+  font-weight: 600;
+  color: #666;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  background: #f9f9f9;
+}
+
+.no-assignments {
+  color: #888;
+  font-style: italic;
+}
