@@ -24,8 +24,7 @@ test.describe("Planner", () => {
     await page.goto("/");
 
     // Select season from dropdown
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "2025/2026" }).click();
+    await page.getByRole("combobox").selectOption("1");
 
     // Games should appear
     await expect(page.getByText("Team A")).toBeVisible();
@@ -35,38 +34,34 @@ test.describe("Planner", () => {
   test("groups games by date", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "2025/2026" }).click();
+    await page.getByRole("combobox").selectOption("1");
 
-    // Date group label should be visible
-    await expect(page.getByText(/Oct 1/i)).toBeVisible();
+    // Date group label should be visible (Dutch locale: "vr 3 okt")
+    await expect(page.locator(".date-label")).toBeVisible();
   });
 
   test("shows age badges on game cards", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "2025/2026" }).click();
+    await page.getByRole("combobox").selectOption("1");
 
-    // Age badges should be visible (MIXED when no age category)
-    await expect(page.getByText("MIXED")).toBeVisible();
+    // Age badges should be visible (X14 for seeded teams)
+    await expect(page.locator(".age-badge")).toBeVisible();
   });
 
   test("shows task chips on game cards", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "2025/2026" }).click();
+    await page.getByRole("combobox").selectOption("1");
 
     // Task chips should appear
-    await expect(page.locator(".task-chip")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(".task-chip").first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("opens assignment panel when clicking a task chip", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "2025/2026" }).click();
+    await page.getByRole("combobox").selectOption("1");
 
     // Click on a task chip
     await page.locator(".task-chip").first().click();
@@ -79,8 +74,7 @@ test.describe("Planner", () => {
   test("shows assigned state after adding a player", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "2025/2026" }).click();
+    await page.getByRole("combobox").selectOption("1");
 
     // Click on a task chip to open panel
     await page.locator(".task-chip").first().click();

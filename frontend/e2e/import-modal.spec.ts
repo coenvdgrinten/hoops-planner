@@ -9,7 +9,7 @@ test.describe("Import Modal", () => {
     // Modal should be visible
     const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
-    await expect(modal.getByText(/schedule/i)).toBeVisible();
+    await expect(modal.getByRole("heading", { name: "Import Schedule" })).toBeVisible();
   });
 
   test("opens members import modal", async ({ page }) => {
@@ -20,7 +20,7 @@ test.describe("Import Modal", () => {
     // Modal should be visible
     const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
-    await expect(modal.getByText(/members/i)).toBeVisible();
+    await expect(modal.getByRole("heading", { name: "Import Members" })).toBeVisible();
   });
 
   test("closes modal on cancel", async ({ page }) => {

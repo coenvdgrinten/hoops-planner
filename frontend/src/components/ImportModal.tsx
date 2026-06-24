@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { importSchedule, importMembers } from "../api";
 
 interface Props {
@@ -12,6 +12,14 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
   const [seasonName, setSeasonName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +42,7 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Import {type === "schedule" ? "Schedule" : "Members"}</h2>
         {type === "schedule" && (
           <div className="form-group">

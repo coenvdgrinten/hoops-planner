@@ -6,7 +6,7 @@ test.describe("Layout", () => {
 
     // Top bar elements
     await expect(page.getByAltText("BC Vido")).toBeVisible();
-    await expect(page.getByText("Hoops Planner")).toBeVisible();
+    await expect(page.getByText("Hoops Planner")).toHaveCount(2);
     await expect(page.getByText("BC Vido")).toBeVisible();
 
     // Import buttons
@@ -26,7 +26,7 @@ test.describe("Layout", () => {
     await page.goto("/");
 
     // Should show empty state message
-    await expect(page.getByText("No games loaded")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Hoops Planner" })).toBeVisible();
   });
 
   test("navigates between views", async ({ page }) => {
@@ -36,12 +36,13 @@ test.describe("Layout", () => {
     await page.getByRole("button", { name: "Statistics" }).click();
     await expect(page.getByRole("button", { name: "Statistics" })).toHaveClass(/active/);
 
-    // Click Members
-    await page.getByRole("button", { name: "Members" }).click();
-    await expect(page.getByRole("button", { name: "Members" })).toHaveClass(/active/);
+    // Click Members nav button
+    const membersBtn = page.getByRole("navigation").getByRole("button", { name: "Member Roster" });
+    await membersBtn.click();
+    await expect(membersBtn).toHaveClass(/active/);
 
     // Click back to Planner
-    await page.getByRole("button", { name: "Schedule Planner" }).click();
-    await expect(page.getByRole("button", { name: "Schedule Planner" })).toHaveClass(/active/);
+    await page.getByRole("navigation").getByRole("button", { name: "Schedule Planner" }).click();
+    await expect(page.getByRole("navigation").getByRole("button", { name: "Schedule Planner" })).toHaveClass(/active/);
   });
 });

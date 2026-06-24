@@ -20,10 +20,5 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: "npm run dev",
-    port: 5173,
-    reuseExistingServer: true,
-    timeout: 60_000,
-  },
+  // No webServer config — assumes app is already running (Docker or manual)
 });
