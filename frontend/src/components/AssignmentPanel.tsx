@@ -119,7 +119,6 @@ export function AssignmentPanel({
           )}
           {task.assignments.map((a) => (
             <div key={a.id} className="assigned-player">
-              <div className="player-avatar">{a.player.full_name.charAt(0)}</div>
               <div className="player-info">
                 <span className="player-name">{a.player.full_name}</span>
                 <span className="player-team">
@@ -153,9 +152,6 @@ export function AssignmentPanel({
               className="candidate-row"
             >
               <div className="candidate-info">
-                <div className="player-avatar">
-                  {s.player.full_name.charAt(0)}
-                </div>
                 <div>
                   <span className="player-name">{s.player.full_name}</span>
                   <span className="player-meta">

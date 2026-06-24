@@ -447,20 +447,6 @@ body {
   background: #fef9e7;
 }
 
-.player-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #b89028;
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
 .player-info {
   flex: 1;
   display: flex;
@@ -538,10 +524,6 @@ body {
   align-items: center;
   gap: 10px;
   flex: 1;
-}
-
-.candidate-info .player-avatar {
-  flex-shrink: 0;
 }
 
 .candidate-actions {
