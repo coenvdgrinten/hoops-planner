@@ -66,8 +66,8 @@ export function AssignmentPanel({
     try {
       await createAssignment(task.id, player.id);
       await onRefresh(task, gameId);
-    } catch {
-      // Ignore errors
+    } catch (err) {
+      console.error("Failed to assign player:", err);
     } finally {
       setBusy(false);
     }
@@ -78,8 +78,8 @@ export function AssignmentPanel({
     try {
       await deleteAssignment(assignmentId);
       await onRefresh(task, gameId);
-    } catch {
-      // Ignore errors
+    } catch (err) {
+      console.error("Failed to unassign player:", err);
     } finally {
       setBusy(false);
     }

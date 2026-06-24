@@ -91,7 +91,7 @@ export function getAssignments(task: number) {
 export function createAssignment(task: number, playerId: number) {
   return request<TaskAssignment>(`/assignments/`, {
     method: "POST",
-    body: JSON.stringify({ task, player: playerId }),
+    body: JSON.stringify({ task_id: task, player_id: playerId }),
   });
 }
 
