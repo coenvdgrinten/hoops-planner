@@ -34,17 +34,28 @@ class SeasonViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def import_schedule(self, request):
-        """Import a schedule CSV for this season."""
+        """Import a schedule CSV for this season.
+
+        Accepts either a file upload ('file' field) or raw text ('csv_text' field).
+        """
         csv_file = request.FILES.get("file")
+        csv_text = request.data.get("csv_text", "")
         season_name = request.data.get("season_name", "2025-2026")
 
-        if not csv_file:
+        if csv_file:
+            csv_text = csv_file.read().decode("utf-8-sig")
+
+        if not csv_text:
             return Response(
-                {"detail": "Provide a 'file' field with the CSV."},
+                {
+                    "detail": (
+                        "Provide a 'file' field or 'csv_text' "
+                        "field with the CSV.",
+                    ),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        csv_text = csv_file.read().decode("utf-8-sig")
         result = import_schedule(csv_text, season_name)
         return Response(result, status=status.HTTP_201_CREATED)
 
@@ -92,17 +103,29 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def import_members(self, request):
-        """Import a members CSV (players and teams)."""
-        csv_file = request.FILES.get("file")
+        """Import a members CSV (players and teams).
 
-        if not csv_file:
+        Accepts either a file upload ('file' field) or raw text ('csv_text' field).
+        """
+        csv_file = request.FILES.get("file")
+        csv_text = request.data.get("csv_text", "")
+        upsert = request.data.get("upsert", True)
+
+        if csv_file:
+            csv_text = csv_file.read().decode("utf-8-sig")
+
+        if not csv_text:
             return Response(
-                {"detail": "Provide a 'file' field with the CSV."},
+                {
+                    "detail": (
+                        "Provide a 'file' field or 'csv_text' "
+                        "field with the CSV.",
+                    ),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        csv_text = csv_file.read().decode("utf-8-sig")
-        result = import_members(csv_text)
+        result = import_members(csv_text, upsert=upsert)
         return Response(result, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"])

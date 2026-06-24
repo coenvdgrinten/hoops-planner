@@ -100,13 +100,16 @@ def _game_header(game, styles: dict[str, Any]) -> Paragraph:
     match_str = f"{game.home_team.name} vs {game.away_team}"
     meta_str = f"{date_str}  •  Court {game.court}"
     title = f"{match_str}  •  {meta_str}"
-    return Paragraph(title, ParagraphStyle(
-        "GameHeader",
-        fontName="Helvetica-Bold",
-        fontSize=10,
-        leading=12,
-        spaceAfter=2,
-    ))
+    return Paragraph(
+        title,
+        ParagraphStyle(
+            "GameHeader",
+            fontName="Helvetica-Bold",
+            fontSize=10,
+            leading=12,
+            spaceAfter=2,
+        ),
+    )
 
 
 def _task_table(game, styles: dict[str, Any]) -> Table:
@@ -115,9 +118,9 @@ def _task_table(game, styles: dict[str, Any]) -> Table:
 
     # Pre-fetch all assignments for these tasks
     task_ids = [t.id for t in tasks]
-    assignments = TaskAssignment.objects.filter(
-        task__id__in=task_ids
-    ).select_related("player")
+    assignments = TaskAssignment.objects.filter(task__id__in=task_ids).select_related(
+        "player"
+    )
 
     # Build lookup: task_id -> [player_names]
     assigned: dict[int, list[str]] = {}
@@ -132,12 +135,7 @@ def _task_table(game, styles: dict[str, Any]) -> Table:
         fontSize=8,
         leading=10,
     )
-    data = [
-        [
-            Paragraph(h, header_style)
-            for h in headers
-        ]
-    ]
+    data = [[Paragraph(h, header_style) for h in headers]]
 
     for task in tasks:
         label = TASK_LABELS.get(task.task_type, task.task_type)
@@ -147,21 +145,27 @@ def _task_table(game, styles: dict[str, Any]) -> Table:
         players = assigned.get(task.id, [])
         player_text = ", ".join(players) if players else "<i>unassigned</i>"
 
-        data.append([
-            Paragraph(label, styles[STYLE_SMALL]),
-            Paragraph(player_text, styles[STYLE_SMALL]),
-        ])
+        data.append(
+            [
+                Paragraph(label, styles[STYLE_SMALL]),
+                Paragraph(player_text, styles[STYLE_SMALL]),
+            ]
+        )
 
     # Table styling
     table = Table(data, colWidths=[50 * mm, 100 * mm])
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-    ]))
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING", (0, 0), (-1, -1), 2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ]
+        )
+    )
 
     return table

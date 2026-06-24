@@ -24,7 +24,8 @@ def get_player_stats(
     """
     # Get all assignments for this player
     assignments = player.assignments.select_related(
-        "task__game", "task__game__home_team",
+        "task__game",
+        "task__game__home_team",
     )
     if season:
         assignments = assignments.filter(task__game__season=season)
@@ -136,8 +137,7 @@ def get_upcoming_assignments(
         after = date_type.today()
 
     assignments = (
-        player.assignments
-        .select_related("task__game", "task__game__home_team")
+        player.assignments.select_related("task__game", "task__game__home_team")
         .filter(task__game__date__gte=after)
         .order_by("task__game__date", "task__game__time", "task__task_type")[:limit]
     )
