@@ -69,9 +69,37 @@ This minimizes extra travel time while distributing tasks evenly over the season
 ---
 
 ## Phased Rollout
-**Phase 1:** CSV import, interactive planner, eligibility rules, candidate suggestions
+**Phase 1 (✅ Complete):** CSV import, interactive planner, eligibility rules, candidate suggestions
 **Phase 2:** PDF export, member read-only view, statistics
 **Phase 3:** Swap requests, reminders, Sportlink/NBB API integration
+
+---
+
+## Implementation Status
+
+### Backend (Django)
+- ✅ Database models (Team, Player, Season, Game, Task, TaskAssignment)
+- ✅ Eligibility logic (all disqualification rules + coach exemption)
+- ✅ Suggestion logic (at-gym priority + task counter tiebreaker)
+- ✅ CSV import (schedules + members with upsert)
+- ✅ REST API (serializers, viewsets, custom endpoints)
+- ✅ CORS configuration for React dev server
+- ✅ 46 tests (21 eligibility + 13 suggestions + 11 importers + 1 placeholder)
+
+### Frontend (React + TypeScript + Vite)
+- ✅ TypeScript types matching API
+- ✅ API layer with fetch wrappers
+- ✅ SeasonSelector component
+- ✅ ImportModal (schedule + members CSV import)
+- ✅ Planner view with sorted game list
+- ✅ GameCard with match details
+- ✅ TaskCard with assignment/unassignment + candidate suggestions
+- ✅ CSS styling
+
+### CI/CD
+- ✅ Ruff linting (GitHub Actions)
+- ✅ Ty type checking (GitHub Actions)
+- ✅ Pytest (GitHub Actions)
 
 ---
 
