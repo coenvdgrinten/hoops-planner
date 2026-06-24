@@ -132,7 +132,7 @@ export function AssignmentPanel({
                 disabled={busy}
                 title="Remove"
               >
-                REMOVE
+                ×
               </button>
             </div>
           ))}
@@ -148,23 +148,32 @@ export function AssignmentPanel({
             <p className="empty-msg">No candidates available</p>
           )}
           {availableSuggestions.slice(0, 10).map((s) => (
-            <button
+            <div
               key={s.player.id}
               className="candidate-row"
-              onClick={() => handleAssign(s.player)}
-              disabled={busy}
             >
-              <div className="player-avatar">
-                {s.player.full_name.charAt(0)}
-              </div>
               <div className="candidate-info">
-                <span className="player-name">{s.player.full_name}</span>
-                <span className="player-meta">
-                  {s.player.team_name} · Tasks: {Math.round(s.task_count)}
-                </span>
+                <div className="player-avatar">
+                  {s.player.full_name.charAt(0)}
+                </div>
+                <div>
+                  <span className="player-name">{s.player.full_name}</span>
+                  <span className="player-meta">
+                    {s.player.team_name} · Tasks: {Math.round(s.task_count)}
+                  </span>
+                </div>
               </div>
-              {s.at_gym && <span className="at-gym-badge">AT GYM</span>}
-            </button>
+              <div className="candidate-actions">
+                {s.at_gym && <span className="at-gym-badge">AT GYM</span>}
+                <button
+                  className="add-btn"
+                  onClick={() => handleAssign(s.player)}
+                  disabled={busy}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </div>
