@@ -1,0 +1,124 @@
+"""Eligibility checks for task assignments."""
+
+from sixth_man.core.models import (
+    Game,
+    Player,
+    Task,
+    TaskAssignment,
+    TaskType,
+)
+
+# Ordering of age categories for comparison (lower index = younger).
+AGE_CATEGORY_ORDER = [
+    "X10",
+    "X12",
+    "X14",
+    "X16",
+    "VSE",
+    "M16",
+    "M18",
+    "M22",
+    "MSE",
+]
+
+
+def is_eligible(player: Player, task: Task) -> bool:
+    """Check if a player is eligible for a task.
+
+    Returns False if any disqualification rule applies.
+    """
+    if _already_assigned_to_game(player, task.game):
+        return False
+    if _team_has_home_game_at_same_time(player, task.game):
+        return False
+    if _team_has_away_game_on_same_day(player, task.game):
+        return False
+    if task.task_type == TaskType.REFEREE:
+        if _player_team_is_lower_age_than_game_team(player, task.game):
+            return False
+        if _player_lacks_required_referee_certification(player, task.game):
+            return False
+    return True
+
+
+def get_eligible_players(task: Task) -> list[Player]:
+    """Return all eligible players for a task."""
+    all_players = Player.objects.filter(is_coach=False)
+    return [p for p in all_players if is_eligible(p, task)]
+
+
+def get_eligible_players_with_indicator(task: Task) -> list[tuple[Player, bool]]:
+    """Return all players with an eligibility indicator.
+
+    Each tuple is (player, is_eligible). Includes coaches for display purposes.
+    """
+    all_players = Player.objects.all()
+    return [(p, is_eligible(p, task)) for p in all_players]
+
+
+# ---------------------------------------------------------------------------
+# Internal disqualification checks
+# ---------------------------------------------------------------------------
+
+
+def _already_assigned_to_game(player: Player, game: Game) -> bool:
+    """Player is already on a task for this game."""
+    return TaskAssignment.objects.filter(
+        player=player,
+        task__game=game,
+    ).exists()
+
+
+def _team_has_home_game_at_same_time(player: Player, game: Game) -> bool:
+    """Player's team has a home game at the same time (excluding this game).
+
+    This only disqualifies the player if their team plays another game at
+    the same time (e.g., on a different court). If the player's team IS
+    the home team for this game, they are already at the gym and eligible.
+    """
+    return (
+        Game.objects.filter(
+            home_team=player.team,
+            game_type=Game.GameType.HOME,
+            date=game.date,
+            time=game.time,
+        )
+        .exclude(pk=game.pk)
+        .exists()
+    )
+
+
+def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
+    """Player's team has an away game on the same day.
+
+    If the player's team has an away game on the same day as this game,
+    they can't be available for this task.
+    """
+    return Game.objects.filter(
+        home_team=player.team,
+        game_type=Game.GameType.AWAY,
+        date=game.date,
+    ).exists()
+
+
+def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool:
+    """Player's team is a lower age category than the game's home team."""
+    player_order = _age_category_index(player.team.age_category)
+    game_order = _age_category_index(game.home_team.age_category)
+    return player_order < game_order
+
+
+def _player_lacks_required_referee_certification(player: Player, game: Game) -> bool:
+    """Player lacks the required referee certification for the game level."""
+    # For now, any certification other than NONE qualifies.
+    # The game's required_referees field can be extended later to encode
+    # a minimum certification tier.
+    return player.referee_certification == Player.RefereeCertification.NONE
+
+
+def _age_category_index(category: str) -> int:
+    """Return the index of an age category in the ordering."""
+    try:
+        return AGE_CATEGORY_ORDER.index(category)
+    except ValueError:
+        return 0
