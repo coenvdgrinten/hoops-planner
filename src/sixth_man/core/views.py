@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from sixth_man.core import suggestions as suggestion_logic
 from sixth_man.core.eligibility import get_eligible_players_with_indicator
+from sixth_man.core.importers import import_members, import_schedule
 from sixth_man.core.models import (
     Game,
     Player,
@@ -29,6 +30,22 @@ class SeasonViewSet(viewsets.ModelViewSet):
     serializer_class = SeasonSerializer
     permission_classes = [permissions.AllowAny]
 
+    @action(detail=False, methods=["post"])
+    def import_schedule(self, request):
+        """Import a schedule CSV for this season."""
+        csv_file = request.FILES.get("file")
+        season_name = request.data.get("season_name", "2025-2026")
+
+        if not csv_file:
+            return Response(
+                {"detail": "Provide a 'file' field with the CSV."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        csv_text = csv_file.read().decode("utf-8-sig")
+        result = import_schedule(csv_text, season_name)
+        return Response(result, status=status.HTTP_201_CREATED)
+
 
 class TeamViewSet(viewsets.ModelViewSet):
     queryset = Team.objects.all()
@@ -40,6 +57,21 @@ class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
     permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=["post"])
+    def import_members(self, request):
+        """Import a members CSV (players and teams)."""
+        csv_file = request.FILES.get("file")
+
+        if not csv_file:
+            return Response(
+                {"detail": "Provide a 'file' field with the CSV."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        csv_text = csv_file.read().decode("utf-8-sig")
+        result = import_members(csv_text)
+        return Response(result, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"])
     def eligible(self, request):
