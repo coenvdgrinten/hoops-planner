@@ -222,7 +222,8 @@ class TestAlreadyAtGymPriority:
         results = suggest_candidates(task)
         assert results[0] == player_at_gym
 
-    def test_player_not_at_gym_when_no_adjacent_game(self, season):
+    def test_player_not_at_gym_when_outside_window(self, season):
+        """Player's team plays at 10:00 — outside the 2-hour window of 14:00."""
         team_a = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -241,7 +242,7 @@ class TestAlreadyAtGymPriority:
             last_name="Doe",
             team=team_b,
         )
-        # Team A plays at 10:00 (not adjacent to 14:00, there's a 12:00 slot)
+        # Team A plays at 10:00 — 4 hours before the task game at 14:00
         Game.objects.create(
             season=season,
             home_team=team_a,
@@ -250,16 +251,6 @@ class TestAlreadyAtGymPriority:
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
             court=Game.Court.COURT_1,
-        )
-        # 12:00 slot exists
-        Game.objects.create(
-            season=season,
-            home_team=team_b,
-            away_team="Opponent B",
-            game_type=Game.GameType.HOME,
-            date=dt.date(2025, 10, 1),
-            time=dt.time(12, 0),
-            court=Game.Court.COURT_2,
         )
         # Task game at 14:00
         game = Game.objects.create(
@@ -277,9 +268,67 @@ class TestAlreadyAtGymPriority:
             slot_number=1,
         )
         results = suggest_candidates(task)
-        # Player A should NOT be first since 10:00 is not adjacent to 14:00
-        # (12:00 is between them)
+        # Player A is not at gym (10:00 is 4 hours before 14:00, outside 2h window)
         assert results[0] != player_a
+
+    def test_staggered_times_still_work(self, season):
+        """Staggered game times don't break the time window."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        player_at_gym = Player.objects.create(
+            first_name="AtGym",
+            last_name="Player",
+            team=team_a,
+        )
+        Player.objects.create(
+            first_name="NotAtGym",
+            last_name="Player",
+            team=team_b,
+        )
+        # Team A plays at 12:00 on Court 1
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Opponent A",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(12, 0),
+            court=Game.Court.COURT_1,
+        )
+        # Some other team plays at 14:30 on Court 2 (staggered)
+        Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent B",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 30),
+            court=Game.Court.COURT_2,
+        )
+        # Task game at 14:00 on Court 1
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent C",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        results = suggest_candidates(task)
+        # Player at gym (12:00 is within 2h of 14:00), staggered 14:30 doesn't matter
+        assert results[0] == player_at_gym
 
 
 @pytest.mark.django_db
@@ -400,7 +449,7 @@ class TestGetCandidateDetails:
         found = [d for d in details if d[0] == player]
         assert len(found) == 1
         assert found[0][1] == 0.0  # task count
-        assert found[0][2] is False  # not at gym (no adjacent game for player's team)
+        assert found[0][2] is True  # at gym (player's team IS playing this game)
 
     def test_at_gym_flag_correct(self, season):
         team_a = Team.objects.create(

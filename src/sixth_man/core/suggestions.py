@@ -2,13 +2,20 @@
 
 The suggestion algorithm ranks eligible players by:
 1. Already at the gym (strong priority) — the player's team has a home
-   game in the time slot immediately before or after the task's slot.
+   game within the adjacent time window (default 2 hours) before or
+   after the task's game.
 2. Lowest effective task counter (tie-breaker) — among eligible players,
    those with the lowest personal task counter are suggested first.
 """
 
+import datetime as dt
+
 from sixth_man.core.eligibility import get_eligible_players
 from sixth_man.core.models import Game, Player, Task
+
+# Players whose team has a home game within this window are considered
+# "already at the gym".
+ADJACENT_TIME_WINDOW = dt.timedelta(hours=2)
 
 
 def suggest_candidates(
@@ -77,41 +84,22 @@ def get_candidate_details(
 
 
 def _player_already_at_gym(player: Player, game: Game) -> bool:
-    """Check if the player's team has a home game in an adjacent time slot.
+    """Check if the player's team has a home game within the adjacent time window.
 
-    Adjacent means the same date with the time slot immediately before or
-    after the given game's time slot.
+    A player is considered "already at the gym" if their team has a home
+    game on the same date within ADJACENT_TIME_WINDOW (default 2 hours)
+    before or after the task's game time.
     """
-    games_on_date = Game.objects.filter(
-        date=game.date,
-        game_type=Game.GameType.HOME,
-    )
-
-    # Get all unique times on this date.
-    times = sorted(set(g.time for g in games_on_date))
-    if not times:
-        return False
-
-    try:
-        current_index = times.index(game.time)
-    except ValueError:
-        return False
-
-    # Find adjacent times (one before or one after).
-    adjacent_times = []
-    if current_index > 0:
-        adjacent_times.append(times[current_index - 1])
-    if current_index < len(times) - 1:
-        adjacent_times.append(times[current_index + 1])
-
-    if not adjacent_times:
-        return False
+    game_dt = dt.datetime.combine(game.date, game.time)
+    time_start = game_dt - ADJACENT_TIME_WINDOW
+    time_end = game_dt + ADJACENT_TIME_WINDOW
 
     return Game.objects.filter(
         home_team=player.team,
         game_type=Game.GameType.HOME,
         date=game.date,
-        time__in=adjacent_times,
+        time__gte=time_start.time(),
+        time__lte=time_end.time(),
     ).exists()
 
 
