@@ -20,6 +20,7 @@ export function App() {
   >(null);
   const [panelSuggestions, setPanelSuggestions] = useState<CandidateDetail[]>([]);
   const [panelLoading, setPanelLoading] = useState(false);
+  const [gameRefreshKey, setGameRefreshKey] = useState(0);
 
   const handleSelectTask = useCallback(
     async (task: TaskWithAssignments, _gameId: number) => {
@@ -73,6 +74,7 @@ export function App() {
       }
       const details = await getCandidateDetails(task.id);
       setPanelSuggestions(details);
+      setGameRefreshKey((k) => k + 1);
     },
     []
   );
@@ -150,6 +152,7 @@ export function App() {
                 <Planner
                   season={selectedSeason}
                   onSelectTask={handleSelectTask}
+                  gameRefreshKey={gameRefreshKey}
                 />
               )}
               {currentView === "statistics" && <Statistics season={selectedSeason} />}

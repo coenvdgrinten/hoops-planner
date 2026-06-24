@@ -7,9 +7,10 @@ import { GameCard } from "./GameCard";
 interface Props {
   season: Season;
   onSelectTask: (task: TaskWithAssignments, gameId: number) => void;
+  gameRefreshKey?: number;
 }
 
-export function Planner({ season, onSelectTask }: Props) {
+export function Planner({ season, onSelectTask, gameRefreshKey }: Props) {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export function Planner({ season, onSelectTask }: Props) {
               <div className="games-list">
                 {dayGames.map((game) => (
                   <GameCard
-                    key={game.id}
+                    key={`${game.id}-${gameRefreshKey ?? 0}`}
                     id={game.id}
                     homeTeam={game.home_team}
                     awayTeam={game.away_team}
