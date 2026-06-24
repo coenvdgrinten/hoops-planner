@@ -27,4 +27,4 @@ jobs:
         run: uv sync --all-extras --dev --no-install-project
 
       - name: Run Tests
-        run: uv run pytest
+        run: PYTHONPATH=src uv run pytest
