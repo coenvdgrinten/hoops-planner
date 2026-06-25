@@ -15,8 +15,7 @@ export interface Player {
   first_name: string;
   last_name: string;
   full_name: string;
-  team: number;
-  team_name: string;
+  team: Team;
   is_coach: boolean;
   referee_certification: string;
 }
@@ -52,16 +51,39 @@ export interface TaskAssignment {
   id: number;
   task: number;
   player: Player;
+  assigned_at: string;
 }
 
 export interface EligiblePlayer {
-  player: Player;
+  id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  is_coach: boolean;
+  team: string;
+  eligible: boolean;
 }
 
 export interface CandidateDetail {
   player: Player;
   task_count: number;
-  at_gym: boolean;
+  at_gym: "before" | "after" | null;
+  suggestion_reason: string;
+}
+
+export interface TeamPlayerEligibility {
+  player: Player;
+  eligible: boolean;
+  ineligible_reason: string | null;
+  task_count: number;
+  at_gym: "before" | "after" | null;
+}
+
+export interface TeamEligibility {
+  team: Team;
+  players: TeamPlayerEligibility[];
+  eligible_count: number;
+  at_gym_day: boolean;
 }
 
 export interface UpcomingAssignment {

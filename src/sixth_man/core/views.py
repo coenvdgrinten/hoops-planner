@@ -186,9 +186,15 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
 
 class GameViewSet(viewsets.ModelViewSet):
-    queryset = Game.objects.all()
     serializer_class = GameSerializer
     permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = Game.objects.all()
+        season = self.request.query_params.get("season")
+        if season:
+            qs = qs.filter(season_id=season)
+        return qs
 
     @action(detail=True, methods=["get"])
     def tasks_with_assignments(self, request, pk=None):
@@ -223,10 +229,37 @@ class TaskViewSet(viewsets.ModelViewSet):
             {
                 "player": PlayerSerializer(player).data,
                 "task_count": task_count,
-                "at_gym": at_gym,
+                "at_gym": position,
+                "suggestion_reason": reason,
             }
-            for player, task_count, at_gym in details
+            for player, task_count, position, reason in details
         ]
+        return Response(data)
+
+    @action(detail=True, methods=["get"])
+    def team_eligibility(self, request, pk=None):
+        """Get all teams with their members, eligibility, and task counts."""
+        task = self.get_object()
+        results = suggestion_logic.get_team_eligibility(task)
+        data = []
+        for team_result in results:
+            data.append(
+                {
+                    "team": TeamSerializer(team_result["team"]).data,
+                    "players": [
+                        {
+                            "player": PlayerSerializer(p["player"]).data,
+                            "eligible": p["eligible"],
+                            "ineligible_reason": p.get("ineligible_reason"),
+                            "task_count": p["task_count"],
+                            "at_gym": p["at_gym"],
+                        }
+                        for p in team_result["players"]
+                    ],
+                    "eligible_count": team_result["eligible_count"],
+                    "at_gym_day": team_result["at_gym_day"],
+                }
+            )
         return Response(data)
 
 

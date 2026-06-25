@@ -25,9 +25,9 @@ TASK_LABELS: dict[str, str] = {
 }
 
 # Styles
-STYLE_HEADER = "Header"
-STYLE_NORMAL = "Normal"
-STYLE_SMALL = "Small"
+STYLE_HEADER = "ScheduleHeader"
+STYLE_NORMAL = "ScheduleNormal"
+STYLE_SMALL = "ScheduleSmall"
 
 STYLES = {
     STYLE_HEADER: {
@@ -86,14 +86,14 @@ def _build_elements(season: Season, styles: dict[str, Any]) -> list[Any]:
     games = list(season.games.all().order_by("date", "time", "court"))
 
     for game in games:
-        elements.append(_game_header(game, styles))
-        elements.append(_task_table(game, styles))
+        elements.append(_game_header(game))
+        elements.append(_task_table(game, base_styles))
         elements.append(Spacer(1, 4 * mm))
 
     return elements
 
 
-def _game_header(game, styles: dict[str, Any]) -> Paragraph:
+def _game_header(game) -> Paragraph:
     from datetime import datetime
 
     date_str = datetime.combine(game.date, game.time).strftime("%a %d %b %H:%M")
@@ -112,7 +112,7 @@ def _game_header(game, styles: dict[str, Any]) -> Paragraph:
     )
 
 
-def _task_table(game, styles: dict[str, Any]) -> Table:
+def _task_table(game, base_styles) -> Table:
     """Create a table of tasks and assigned players for a game."""
     tasks = Task.objects.filter(game=game).order_by("task_type", "slot_number")
 
@@ -147,8 +147,8 @@ def _task_table(game, styles: dict[str, Any]) -> Table:
 
         data.append(
             [
-                Paragraph(label, styles[STYLE_SMALL]),
-                Paragraph(player_text, styles[STYLE_SMALL]),
+                Paragraph(label, base_styles[STYLE_SMALL]),
+                Paragraph(player_text, base_styles[STYLE_SMALL]),
             ]
         )
 

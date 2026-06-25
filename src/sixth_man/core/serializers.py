@@ -8,6 +8,7 @@ from sixth_man.core.models import (
     Season,
     Task,
     TaskAssignment,
+    TaskType,
     Team,
 )
 
@@ -119,6 +120,49 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             "player_id",
             "assigned_at",
         ]
+
+    def create(self, validated_data):
+        task = validated_data["task"]
+        player = validated_data["player"]
+
+        if task.assignments.exists():
+            raise serializers.ValidationError(
+                "This task already has an assignment. Remove it first."
+            )
+
+        # Player must not already be assigned to another task in the same game
+        if TaskAssignment.objects.filter(
+            player=player,
+            task__game=task.game,
+        ).exists():
+            raise serializers.ValidationError(
+                "This player is already assigned to another task in this game."
+            )
+
+        # Player must not be assigned to another task at the same date/time
+        if TaskAssignment.objects.filter(
+            player=player,
+            task__game__date=task.game.date,
+            task__game__time=task.game.time,
+        ).exclude(
+            task__game=task.game,
+        ).exists():
+            raise serializers.ValidationError(
+                "This player is already assigned to another task at this time."
+            )
+
+        # Players must not be assigned to their own team's games
+        game = task.game
+        if game.home_team == player.team:
+            raise serializers.ValidationError(
+                "A player cannot be assigned to their own team's game."
+            )
+        if game.away_team == player.team.name:
+            raise serializers.ValidationError(
+                "A player cannot be assigned to their own team's game."
+            )
+
+        return super().create(validated_data)
 
 
 class TaskWithAssignmentsSerializer(serializers.ModelSerializer):

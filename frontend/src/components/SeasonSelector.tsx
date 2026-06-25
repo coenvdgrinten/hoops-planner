@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getSeasons } from "../api";
 import type { Season } from "../types";
 
@@ -8,19 +8,13 @@ interface Props {
 }
 
 export function SeasonSelector({ onSelect, selectedId }: Props) {
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: seasons = [], isLoading, error } = useQuery({
+    queryKey: ["seasons"],
+    queryFn: getSeasons,
+  });
 
-  useEffect(() => {
-    getSeasons()
-      .then(setSeasons)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <p>Loading seasons...</p>;
-  if (error) return <p className="error">Error: {error}</p>;
+  if (isLoading) return <p>Loading seasons...</p>;
+  if (error) return <p className="error">Error: {error.message}</p>;
   if (seasons.length === 0)
     return <p>No seasons yet. Import a schedule to get started.</p>;
 

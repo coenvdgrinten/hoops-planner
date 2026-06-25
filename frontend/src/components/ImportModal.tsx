@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { importSchedule, importMembers } from "../api";
 
 interface Props {
@@ -10,8 +11,8 @@ interface Props {
 export function ImportModal({ type, onClose, onSuccess }: Props) {
   const [csvText, setCsvText] = useState("");
   const [seasonName, setSeasonName] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -21,42 +22,46 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
+  const importMutation = useMutation({
+    mutationFn: () => {
       if (type === "schedule") {
-        await importSchedule(seasonName, csvText);
-      } else {
-        await importMembers(csvText);
+        return importSchedule(seasonName, csvText);
       }
+      return importMembers(csvText);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["seasons"] });
+      queryClient.invalidateQueries({ queryKey: ["players"] });
       onSuccess();
-    } catch (err) {
+    },
+    onError: (err) => {
       setError(err instanceof Error ? err.message : "Import failed");
-    } finally {
-      setLoading(false);
-    }
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    importMutation.mutate();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div role="dialog" className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>Import {type === "schedule" ? "Schedule" : "Members"}</h2>
-        {type === "schedule" && (
-          <div className="form-group">
-            <label>Season name:</label>
-            <input
-              type="text"
-              value={seasonName}
-              onChange={(e) => setSeasonName(e.target.value)}
-              placeholder="e.g. 2025-2026"
-              required
-            />
-          </div>
-        )}
         <form onSubmit={handleSubmit}>
+          {type === "schedule" && (
+            <div className="form-group">
+              <label>Season name:</label>
+              <input
+                type="text"
+                value={seasonName}
+                onChange={(e) => setSeasonName(e.target.value)}
+                placeholder="e.g. 2025-2026"
+                required
+              />
+            </div>
+          )}
           <div className="form-group">
             <label>CSV content:</label>
             <textarea
@@ -73,11 +78,11 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
           </div>
           {error && <p className="error">{error}</p>}
           <div className="modal-actions">
-            <button type="button" onClick={onClose} disabled={loading}>
+            <button type="button" onClick={onClose} disabled={importMutation.isPending}>
               Cancel
             </button>
-            <button type="submit" disabled={loading || !csvText.trim()}>
-              {loading ? "Importing..." : `Import ${type}`}
+            <button type="submit" disabled={importMutation.isPending || !csvText.trim()}>
+              {importMutation.isPending ? "Importing..." : `Import ${type}`}
             </button>
           </div>
         </form>

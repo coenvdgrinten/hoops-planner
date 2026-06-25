@@ -23,12 +23,13 @@ def get_player_stats(
         }
     """
     # Get all assignments for this player
-    assignments = player.assignments.select_related(
-        "task__game",
-        "task__game__home_team",
-    )
+    assignments = player.assignments.select_related("task__game")
     if season:
         assignments = assignments.filter(task__game__season=season)
+
+    # Pre-fetch all dates the player's team has a home game (single query)
+    player_team = player.team
+    team_game_dates = set(player_team.home_games.values_list("date", flat=True))
 
     total = 0
     effective = 0.0
@@ -43,8 +44,7 @@ def get_player_stats(
         by_type[task.task_type] += 1
 
         # Check if player's team has a game on this day
-        player_team = player.team
-        has_own_game = player_team.home_games.filter(date=game.date).exists()
+        has_own_game = game.date in team_game_dates
 
         if has_own_game:
             games_with_own_team += 1

@@ -27,18 +27,27 @@ def is_eligible(player: Player, task: Task) -> bool:
 
     Returns False if any disqualification rule applies.
     """
+    return not get_ineligibility_reason(player, task)
+
+
+def get_ineligibility_reason(player: Player, task: Task) -> str | None:
+    """Return the reason a player is ineligible, or None if eligible."""
     if _already_assigned_to_game(player, task.game):
-        return False
+        return "Already assigned to this game"
+    if _already_assigned_at_same_time(player, task.game):
+        return "Already assigned to another task at this time"
     if _team_has_home_game_at_same_time(player, task.game):
-        return False
+        return "Team has a home game at the same time"
     if _team_has_away_game_on_same_day(player, task.game):
-        return False
+        return "Team has an away game on the same day"
+    if _player_team_involved_in_game(player, task.game):
+        return "Cannot be assigned to own team's game"
     if task.task_type == TaskType.REFEREE:
         if _player_team_is_lower_age_than_game_team(player, task.game):
-            return False
+            return "Player's team is younger than game team"
         if _player_lacks_required_referee_certification(player, task.game):
-            return False
-    return True
+            return "Missing required referee certification"
+    return None
 
 
 def get_eligible_players(task: Task) -> list[Player]:
@@ -65,6 +74,21 @@ def _already_assigned_to_game(player: Player, game: Game) -> bool:
     """Player is already on a task for this game."""
     return TaskAssignment.objects.filter(
         player=player,
+        task__game=game,
+    ).exists()
+
+
+def _already_assigned_at_same_time(player: Player, game: Game) -> bool:
+    """Player is already assigned to a task at the same date and time.
+
+    Checks if the player has any task assignment for a game that plays at
+    the exact same date/time (different game, same slot).
+    """
+    return TaskAssignment.objects.filter(
+        player=player,
+        task__game__date=game.date,
+        task__game__time=game.time,
+    ).exclude(
         task__game=game,
     ).exists()
 
@@ -99,6 +123,19 @@ def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
         game_type=Game.GameType.AWAY,
         date=game.date,
     ).exists()
+
+
+def _player_team_involved_in_game(player: Player, game: Game) -> bool:
+    """Player's team is the home team or the away opponent in this game.
+
+    Players should not be assigned to any task on a game where their own
+    team is playing.
+    """
+    if game.home_team == player.team:
+        return True
+    if game.away_team == player.team.name:
+        return True
+    return False
 
 
 def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool:

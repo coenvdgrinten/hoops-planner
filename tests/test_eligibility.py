@@ -29,9 +29,13 @@ class TestAlreadyAssignedToGame:
         assert is_eligible(player, task) is False
 
     def test_eligible_for_different_game(self, player, season):
+        home_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
         game1 = Game.objects.create(
             season=season,
-            home_team=player.team,
+            home_team=home_team,
             away_team="Team A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
@@ -40,7 +44,7 @@ class TestAlreadyAssignedToGame:
         )
         game2 = Game.objects.create(
             season=season,
-            home_team=player.team,
+            home_team=home_team,
             away_team="Team B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
@@ -51,6 +55,73 @@ class TestAlreadyAssignedToGame:
         task2 = Task.objects.create(game=game2, task_type=TaskType.SCORER)
         TaskAssignment.objects.create(player=player, task=task1)
         assert is_eligible(player, task2) is True
+
+
+@pytest.mark.django_db
+class TestAlreadyAssignedAtSameTime:
+    def test_not_eligible_when_assigned_at_same_time(self, referee, season):
+        """Player cannot be assigned to multiple tasks at the same date/time."""
+        home_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game1 = Game.objects.create(
+            season=season,
+            home_team=home_team,
+            away_team="Team A",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        game2 = Game.objects.create(
+            season=season,
+            home_team=home_team,
+            away_team="Team B",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_2,
+        )
+        task1 = Task.objects.create(game=game1, task_type=TaskType.REFEREE)
+        task2 = Task.objects.create(game=game2, task_type=TaskType.REFEREE)
+        TaskAssignment.objects.create(player=referee, task=task1)
+        # Player cannot be assigned to task2 because it's at the same time as task1
+        assert is_eligible(referee, task2) is False
+
+    def test_eligible_when_assigned_at_different_time(self, referee, season):
+        """Player can be assigned to multiple tasks on same day if at different times."""
+        home_team1 = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        home_team2 = Team.objects.create(
+            name="Vido X10-2",
+            age_category=Team.AgeCategory.X10,
+        )
+        game1 = Game.objects.create(
+            season=season,
+            home_team=home_team1,
+            away_team="Team A",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        game2 = Game.objects.create(
+            season=season,
+            home_team=home_team2,
+            away_team="Team B",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(16, 0),
+            court=Game.Court.COURT_2,
+        )
+        task1 = Task.objects.create(game=game1, task_type=TaskType.REFEREE)
+        task2 = Task.objects.create(game=game2, task_type=TaskType.REFEREE)
+        TaskAssignment.objects.create(player=referee, task=task1)
+        # Player can be assigned to task2 because it's at a different time
+        assert is_eligible(referee, task2) is True
 
 
 @pytest.mark.django_db
@@ -105,8 +176,8 @@ class TestTeamHasHomeGameAtSameTime:
             court=Game.Court.COURT_2,
         )
         task = Task.objects.create(game=game, task_type=TaskType.SCORER)
-        # Player is eligible for scorer on own team's game (no conflict)
-        assert is_eligible(player, task) is True
+        # Player cannot be assigned to own team's game (any task type)
+        assert is_eligible(player, task) is False
 
 
 @pytest.mark.django_db
@@ -146,9 +217,13 @@ class TestTeamHasAwayGameOnSameDay:
             time=dt.time(10, 0),
             court=Game.Court.COURT_1,
         )
+        home_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
+            home_team=home_team,
             away_team="Home Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
@@ -176,7 +251,8 @@ class TestRefereeAgeCategoryRule:
             task_type=TaskType.REFEREE,
             slot_number=1,
         )
-        assert is_eligible(referee, task) is True
+        # Referees cannot officiate their own team's games
+        assert is_eligible(referee, task) is False
 
     def test_eligible_when_player_team_higher_age(self, season):
         team = Team.objects.create(
@@ -281,7 +357,20 @@ class TestRefereeCertificationRule:
         )
         assert is_eligible(player, task) is False
 
-    def test_eligible_referee_with_certification(self, referee, game):
+    def test_eligible_referee_with_certification(self, referee, season):
+        game_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=game_team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(18, 0),
+            court=Game.Court.COURT_1,
+        )
         task = Task.objects.create(
             game=game,
             task_type=TaskType.REFEREE,

@@ -2,6 +2,7 @@
 
 import csv
 import io
+import re
 
 from sixth_man.core.models import (
     Game,
@@ -25,6 +26,11 @@ def import_schedule(
     Returns a summary dict with counts of created objects.
     """
     season, _ = Season.objects.get_or_create(name=season_name)
+    
+    # Delete existing games for this season to allow re-importing.
+    # Tasks and assignments are CASCADE-deleted through foreign keys.
+    Game.objects.filter(season=season).delete()
+    
     created = {"games": 0, "tasks": 0}
 
     reader = csv.DictReader(io.StringIO(csv_text))
@@ -37,6 +43,11 @@ def import_schedule(
                 "age_category": _infer_age_category(row["home_team"].strip()),
             },
         )
+        # Fix age_category if it was wrong on first import
+        expected_category = _infer_age_category(row["home_team"].strip())
+        if home_team.age_category != expected_category:
+            home_team.age_category = expected_category
+            home_team.save(update_fields=["age_category"])
 
         game, is_new = Game.objects.get_or_create(
             season=season,
@@ -93,10 +104,22 @@ def _ensure_task_slots(game: Game) -> int:
 
 
 def _infer_age_category(team_name: str) -> str:
-    """Infer the age category from a team name like 'Vido X14-1'."""
+    """Infer the age category from a team name like 'Vido X14-1'.
+
+    Handles team names with trailing digits (e.g., 'VSE1', 'MSE1') by allowing
+    optional digits after non-numeric category codes.
+    """
     for category in Team.AgeCategory.values:
-        if category in team_name:
-            return category
+        if category[-1].isdigit():
+            # Numeric categories (X10, X14, M16, etc.): use word boundary
+            # to prevent X10 from matching X100.
+            if re.search(rf"\b{re.escape(category)}\b", team_name, re.IGNORECASE):
+                return category
+        else:
+            # Non-numeric categories (VSE, MSE): allow optional trailing digits
+            # (e.g., 'VSE1'), but not letters.
+            if re.search(rf"\b{re.escape(category)}\d*(?![a-zA-Z])", team_name, re.IGNORECASE):
+                return category
     return Team.AgeCategory.X14  # sensible default
 
 

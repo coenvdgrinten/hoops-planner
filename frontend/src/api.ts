@@ -10,6 +10,7 @@ import type {
   TaskAssignment,
   TaskWithAssignments,
   Team,
+  TeamEligibility,
   UpcomingAssignment,
 } from "./types";
 
@@ -22,8 +23,21 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Request failed (${res.status}): ${text}`);
+    let message = text;
+    try {
+      const json = JSON.parse(text);
+      if (Array.isArray(json) && json.length > 0) {
+        message = json[0];
+      } else if (typeof json === "object" && json.detail) {
+        message = json.detail;
+      }
+    } catch {
+      // Not JSON, keep raw text
+    }
+    throw new Error(message);
   }
+  // 204 No Content has no body to parse
+  if (res.status === 204) return undefined as T;
   const json = await res.json();
   return json as T;
 }
@@ -48,6 +62,13 @@ export function getTeams() {
 // Players
 export function getPlayers() {
   return request<Player[]>("/players/");
+}
+
+export function updatePlayerCert(playerId: number, cert: string) {
+  return request<Player>(`/players/${playerId}/`, {
+    method: "PATCH",
+    body: JSON.stringify({ referee_certification: cert }),
+  });
 }
 
 export function importMembers(csvText: string) {
@@ -81,6 +102,10 @@ export function getSuggestions(task: number) {
 
 export function getCandidateDetails(task: number) {
   return request<CandidateDetail[]>(`/tasks/${task}/candidate_details/`);
+}
+
+export function getTeamEligibility(task: number) {
+  return request<TeamEligibility[]>(`/tasks/${task}/team_eligibility/`);
 }
 
 // Task Assignments

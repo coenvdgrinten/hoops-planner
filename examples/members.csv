@@ -2,25 +2,65 @@ first_name,last_name,team,is_coach,referee_certification
 Jan,Janssens,Vido X10-1,False,NONE
 Pieter,Van Damme,Vido X10-1,False,NONE
 Luc,Delaere,Vido X10-1,True,NONE
+Louis,Van Wijnendaele,Vido X10-1,False,NONE
+Mathis,Demeyer,Vido X10-1,False,NONE
+Elias,Peeters,Vido X10-1,False,NONE
+Noah,Janssen,Vido X10-1,False,NONE
+Sem,Hendrickx,Vido X10-1,False,NONE
+Liam,Vermeulen,Vido X10-1,False,NONE
+Finn,De Smet,Vido X10-1,False,NONE
+Thomas,Baert,Vido X10-1,False,NONE
+Julien,Van Den Berg,Vido X10-1,False,NONE
 Koen,Peeters,Vido X14-1,False,T1
 Tim,Van den Berg,Vido X14-1,False,T2
 Sven,De Smet,Vido X14-1,False,T1
 Bart,Huybrechts,Vido X14-1,True,NONE
+Sem,Van Hoof,Vido X14-1,False,NONE
+Jelle,Van Looy,Vido X14-1,False,T1
+Thijs,D'Hondt,Vido X14-1,False,NONE
+Maxime,Clercx,Vido X14-1,False,NONE
+Daan,Verstraete,Vido X14-1,False,NONE
+Ruben,Peeters,Vido X14-1,False,T2
+Lars,De Boeck,Vido X14-1,False,NONE
 Dries,Van Looy,Vido X14-2,False,T3
 Mathias,Clercx,Vido X14-2,False,NONE
 Wouter,De Clercq,Vido X14-2,True,NONE
+Noah,De Vries,Vido X14-2,False,NONE
+Stan,Van Damme,Vido X14-2,False,T1
+Jordi,Peeters,Vido X14-2,False,NONE
+Bram,Hendrickx,Vido X14-2,False,NONE
+Sem,Vermeulen,Vido X14-2,False,T1
+Lukas,De Smet,Vido X14-2,False,NONE
+Finn,Baert,Vido X14-2,False,NONE
 Thomas,Van Hulle,Vido X16-1,False,T2
 Jens,Broos,Vido X16-1,False,NONE
 Niels,Van Gucht,Vido X16-1,True,NONE
+Liam,Van Acker,Vido X16-1,False,NONE
+Victor,Demeyer,Vido X16-1,False,T1
+Jasper,Peeters,Vido X16-1,False,NONE
+Sem,Huybrechts,Vido X16-1,False,NONE
+Daan,Vermeulen,Vido X16-1,False,T2
+Lars,De Clercq,Vido X16-1,False,NONE
+Max,Verstraete,Vido X16-1,False,NONE
 Ruben,Mertens,Vido VSE1,False,T1
 Kris,Vermoes,Vido VSE1,False,T1
 Tom,De Boeck,Vido VSE1,False,NONE
 Dirk,Verstraete,Vido VSE1,True,NONE
+Arthur,Coppens,Vido VSE1,False,NONE
+Stijn,Peeters,Vido VSE1,False,T2
+Bart,Van Damme,Vido VSE1,False,NONE
+Koen,Vermeulen,Vido VSE1,False,NONE
+Johan,D'Hondt,Vido VSE1,False,T1
+Tim,De Smet,Vido VSE1,False,NONE
+Peter,Clercx,Vido VSE1,False,NONE
 Stefan,Van Roy,Vido MSE1,False,T2
 Bram,D'Hondt,Vido MSE1,False,NONE
 Johan,Peeters,Vido MSE1,True,NONE
-Louis,Van Wijnendaele,Vido X10-1,False,NONE
-Sem,Van Hoof,Vido X14-1,False,NONE
-Noah,De Vries,Vido X14-2,False,NONE
-Liam,Van Acker,Vido X16-1,False,NONE
-Arthur,Coppens,Vido VSE1,False,NONE
+Marc,Van den Berg,Vido MSE1,False,T1
+Wim,Hendrickx,Vido MSE1,False,NONE
+Frank,Vermeulen,Vido MSE1,False,NONE
+Paul,De Smet,Vido MSE1,False,T1
+Erik,Baert,Vido MSE1,False,NONE
+Hugo,Verstraete,Vido MSE1,False,NONE
+Rik,Peeters,Vido MSE1,False,T2
+Kurt,Demeyer,Vido MSE1,False,NONE

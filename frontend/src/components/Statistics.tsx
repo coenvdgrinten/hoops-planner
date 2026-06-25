@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getSeasonStats, getLeaderboard } from "../api";
 import type { Season, SeasonStats, LeaderboardEntry } from "../types";
 
@@ -14,26 +14,21 @@ const TASK_LABELS: Record<string, string> = {
 };
 
 export function Statistics({ season }: Props) {
-  const [stats, setStats] = useState<SeasonStats | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
+    queryKey: ["season-stats", season.id],
+    queryFn: () => getSeasonStats(season.id),
+  });
 
-  useEffect(() => {
-    Promise.all([
-      getSeasonStats(season.id),
-      getLeaderboard(season.id),
-    ])
-      .then(([s, lb]) => {
-        setStats(s);
-        setLeaderboard(lb);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [season.id]);
+  const { data: leaderboard = [], isLoading: lbLoading, error: lbError } = useQuery({
+    queryKey: ["leaderboard", season.id],
+    queryFn: () => getLeaderboard(season.id),
+  });
+
+  const loading = statsLoading || lbLoading;
+  const error = statsError ?? lbError;
 
   if (loading) return <p>Loading statistics...</p>;
-  if (error) return <p className="error">Error: {error}</p>;
+  if (error) return <p className="error">Error: {error.message}</p>;
   if (!stats) return <p>No statistics available.</p>;
 
   return (

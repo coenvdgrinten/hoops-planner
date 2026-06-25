@@ -123,8 +123,8 @@ class Game(models.Model):
 
     class Meta:
         ordering = ["date", "time", "court"]
-        # Prevent games on the same court at the same time
-        unique_together = ["date", "time", "court"]
+        # Prevent games on the same court at the same time within a season
+        unique_together = ["season", "date", "time", "court"]
 
     def __str__(self) -> str:
         return f"{self.home_team} vs {self.away_team} ({self.date})"

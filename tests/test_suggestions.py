@@ -74,9 +74,13 @@ class TestSuggestCandidates:
                 team=team,
             )
             players.append(p)
+        home_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
         game = Game.objects.create(
             season=season,
-            home_team=team,
+            home_team=home_team,
             away_team="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
@@ -232,6 +236,10 @@ class TestAlreadyAtGymPriority:
             name="Vido X14-2",
             age_category=Team.AgeCategory.X14,
         )
+        team_c = Team.objects.create(
+            name="Vido X14-3",
+            age_category=Team.AgeCategory.X14,
+        )
         player_a = Player.objects.create(
             first_name="PlayerA",
             last_name="Doe",
@@ -252,10 +260,10 @@ class TestAlreadyAtGymPriority:
             time=dt.time(10, 0),
             court=Game.Court.COURT_1,
         )
-        # Task game at 14:00
+        # Task game at 14:00 — team_c is the home team (not team_a or team_b)
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
+            home_team=team_c,
             away_team="Opponent C",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
@@ -267,9 +275,14 @@ class TestAlreadyAtGymPriority:
             task_type=TaskType.SCORER,
             slot_number=1,
         )
-        results = suggest_candidates(task)
         # Player A is not at gym (10:00 is 4 hours before 14:00, outside 2h window)
-        assert results[0] != player_a
+        # So player_a should NOT have an adjacent game position — check via details.
+        from sixth_man.core.suggestions import get_candidate_details
+
+        details = get_candidate_details(task)
+        player_a_details = [d for d in details if d[0] == player_a]
+        assert len(player_a_details) == 1
+        assert player_a_details[0][2] is None  # no adjacent game position
 
     def test_staggered_times_still_work(self, season):
         """Staggered game times don't break the time window."""
@@ -424,9 +437,13 @@ class TestTaskCounterTiebreaker:
         # No game for player_high's team on Sept 1 — multiplier applies
         # Effective count = 2.0 for player_high, 0.0 for player_low
 
+        home_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
         game = Game.objects.create(
             season=season,
-            home_team=team,
+            home_team=home_team,
             away_team="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
@@ -449,7 +466,7 @@ class TestGetCandidateDetails:
         found = [d for d in details if d[0] == player]
         assert len(found) == 1
         assert found[0][1] == 0.0  # task count
-        assert found[0][2] is True  # at gym (player's team IS playing this game)
+        assert found[0][2] is None  # no adjacent game (player's team not involved)
 
     def test_at_gym_flag_correct(self, season):
         team_a = Team.objects.create(
@@ -491,4 +508,6 @@ class TestGetCandidateDetails:
         )
         details = get_candidate_details(task)
         found = [d for d in details if d[0] == player]
-        assert found[0][2] is True  # at gym
+        assert (
+            found[0][2] == "before"
+        )  # at gym (player's game is before the task's game)

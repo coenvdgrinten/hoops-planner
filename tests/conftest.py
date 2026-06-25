@@ -81,9 +81,18 @@ def coach(team_x14):
 
 @pytest.fixture
 def game(season, team_x14):
+    """Create a game where the player's team is NOT involved.
+
+    This ensures the base fixture doesn't trigger the
+    `_player_team_involved_in_game` disqualification.
+    """
+    home_team = Team.objects.create(
+        name="Vido X10-1",
+        age_category=Team.AgeCategory.X10,
+    )
     return Game.objects.create(
         season=season,
-        home_team=team_x14,
+        home_team=home_team,
         away_team="Achilles '71",
         game_type=Game.GameType.HOME,
         date=dt.date(2025, 10, 1),

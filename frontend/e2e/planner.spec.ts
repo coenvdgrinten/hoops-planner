@@ -46,7 +46,7 @@ test.describe("Planner", () => {
     await page.getByRole("combobox").selectOption("1");
 
     // Age badges should be visible (X14 for seeded teams)
-    await expect(page.locator(".age-badge")).toBeVisible();
+    await expect(page.locator(".age-badge").first()).toBeVisible();
   });
 
   test("shows task chips on game cards", async ({ page }) => {

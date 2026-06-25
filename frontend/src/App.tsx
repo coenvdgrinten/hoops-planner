@@ -6,7 +6,7 @@ import { MemberView } from "./components/MemberView";
 import { ImportModal } from "./components/ImportModal";
 import { AssignmentPanel } from "./components/AssignmentPanel";
 import type { Season } from "./types";
-import type { TaskWithAssignments, CandidateDetail } from "./types";
+import type { TaskWithAssignments } from "./types";
 import "./App.css";
 
 type View = "planner" | "statistics" | "members" | "settings";
@@ -18,66 +18,17 @@ export function App() {
   const [selectedTask, setSelectedTask] = useState<
     { task: TaskWithAssignments; gameId: number } | null
   >(null);
-  const [panelSuggestions, setPanelSuggestions] = useState<CandidateDetail[]>([]);
-  const [panelLoading, setPanelLoading] = useState(false);
-  const [gameRefreshKey, setGameRefreshKey] = useState(0);
 
   const handleSelectTask = useCallback(
-    async (task: TaskWithAssignments, _gameId: number) => {
-      setSelectedTask({ task, gameId: _gameId });
-      setPanelLoading(true);
-      setPanelSuggestions([]);
-      const { getCandidateDetails } = await import("./api");
-      try {
-        const details = await getCandidateDetails(task.id);
-        setPanelSuggestions(details);
-      } catch {
-        setPanelSuggestions([]);
-      } finally {
-        setPanelLoading(false);
-      }
+    (task: TaskWithAssignments, gameId: number) => {
+      setSelectedTask({ task, gameId });
     },
     []
   );
 
   const handleClosePanel = useCallback(() => {
     setSelectedTask(null);
-    setPanelSuggestions([]);
   }, []);
-
-  const handlePanelReady = useCallback(
-    async (task: TaskWithAssignments, gameId: number) => {
-      const { getCandidateDetails } = await import("./api");
-      try {
-        const details = await getCandidateDetails(task.id);
-        setPanelSuggestions(details);
-      } catch {
-        setPanelSuggestions([]);
-      } finally {
-        setPanelLoading(false);
-      }
-    },
-    []
-  );
-
-  const handlePanelRefresh = useCallback(
-    async (task: TaskWithAssignments, gameId: number) => {
-      const { getTasksWithAssignments, getCandidateDetails } = await import("./api");
-      const data = await getTasksWithAssignments(gameId);
-      const updated = data.find((t) => t.id === task.id);
-      if (updated) {
-        const taskWithGame: TaskWithAssignments = {
-          ...updated,
-          game: gameId,
-        };
-        setSelectedTask({ task: taskWithGame, gameId });
-      }
-      const details = await getCandidateDetails(task.id);
-      setPanelSuggestions(details);
-      setGameRefreshKey((k) => k + 1);
-    },
-    []
-  );
 
   return (
     <div className="app">
@@ -134,13 +85,6 @@ export function App() {
               <span className="nav-icon">📊</span>
               Statistics
             </button>
-            <button
-              className={currentView === "settings" ? "active" : ""}
-              onClick={() => setCurrentView("settings")}
-            >
-              <span className="nav-icon">⚙️</span>
-              Settings
-            </button>
           </nav>
         </aside>
 
@@ -152,18 +96,13 @@ export function App() {
                 <Planner
                   season={selectedSeason}
                   onSelectTask={handleSelectTask}
-                  gameRefreshKey={gameRefreshKey}
                 />
               )}
               {currentView === "statistics" && <Statistics season={selectedSeason} />}
               {currentView === "members" && <MemberView />}
-              {currentView === "settings" && (
-                <div className="settings-view">
-                  <h2>Settings</h2>
-                  <p className="placeholder">Settings coming soon.</p>
-                </div>
-              )}
             </>
+          ) : currentView === "members" ? (
+            <MemberView />
           ) : (
             <div className="empty-state">
               <h2>Welcome to Hoops Planner</h2>
@@ -178,11 +117,7 @@ export function App() {
           <AssignmentPanel
             task={selectedTask.task}
             gameId={selectedTask.gameId}
-            suggestions={panelSuggestions}
-            loading={panelLoading}
             onClose={handleClosePanel}
-            onReady={handlePanelReady}
-            onRefresh={handlePanelRefresh}
           />
         )}
       </div>
@@ -193,7 +128,7 @@ export function App() {
           onClose={() => setImportType(null)}
           onSuccess={() => {
             setImportType(null);
-            setSelectedSeason(null);
+            // Keep the current season selected so the user sees their data immediately
           }}
         />
       )}

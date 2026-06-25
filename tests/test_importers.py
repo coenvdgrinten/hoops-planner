@@ -48,6 +48,26 @@ class TestImportSchedule:
         team10 = Team.objects.get(name="Vido X10-1")
         assert team10.age_category == Team.AgeCategory.X10
 
+    def test_infers_vse_with_trailing_digit(self):
+        """Team names like 'Vido VSE1' should infer VSE category."""
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido VSE1,Opponent\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        team = Team.objects.get(name="Vido VSE1")
+        assert team.age_category == Team.AgeCategory.VSE
+
+    def test_infers_mse_with_trailing_digit(self):
+        """Team names like 'Vido MSE1' should infer MSE category."""
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido MSE1,Opponent\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        team = Team.objects.get(name="Vido MSE1")
+        assert team.age_category == Team.AgeCategory.MSE
+
     def test_creates_task_slots(self):
         result = import_schedule(SCHEDULE_CSV, "2025-2026")
         # 3 games, each needs scorer + timer + 2 referees = 5 tasks
@@ -61,8 +81,8 @@ class TestImportSchedule:
     def test_idempotent_same_schedule(self):
         import_schedule(SCHEDULE_CSV, "2025-2026")
         result = import_schedule(SCHEDULE_CSV, "2025-2026")
-        # No new games created on second import
-        assert result["games"] == 0
+        # Second import deletes old games then re-creates them
+        assert result["games"] == 3
         assert Game.objects.count() == 3
 
 

@@ -1,11 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { getTasksWithAssignments } from "../api";
-import type { TaskWithAssignments, TaskAssignment } from "../types";
-import type { Player } from "../types";
-import {
-  createAssignment,
-  deleteAssignment,
-} from "../api";
+import type { TaskWithAssignments } from "../types";
 
 interface Team {
   name: string;
@@ -38,15 +34,10 @@ export function GameCard({
   court,
   onSelectTask,
 }: Props) {
-  const [tasks, setTasks] = useState<TaskWithAssignments[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    getTasksWithAssignments(id)
-      .then(setTasks)
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ["tasks-with-assignments", id],
+    queryFn: () => getTasksWithAssignments(id),
+  });
 
   // Check if all tasks are assigned
   const allAssigned =
@@ -59,18 +50,6 @@ export function GameCard({
     [onSelectTask, id]
   );
 
-  const handleQuickAssign = async (taskId: number, player: Player) => {
-    await createAssignment(taskId, player.id);
-    const data = await getTasksWithAssignments(id);
-    setTasks(data);
-  };
-
-  const handleQuickUnassign = async (assignmentId: number, taskId: number) => {
-    await deleteAssignment(assignmentId);
-    const data = await getTasksWithAssignments(id);
-    setTasks(data);
-  };
-
   const dateObj = new Date(`${date}T${time}`);
   const formattedTime = dateObj.toLocaleTimeString("nl-BE", {
     hour: "2-digit",
@@ -80,7 +59,7 @@ export function GameCard({
   // Extract age category from team
   const ageBadge = homeTeam.age_category || "MIXED";
 
-  if (loading) return <p>Loading tasks...</p>;
+  if (isLoading) return <p>Loading tasks...</p>;
 
   return (
     <div className="game-card">
@@ -107,6 +86,7 @@ export function GameCard({
         {tasks.map((task) => {
           const assigned = task.assignments;
           const label = TASK_LABELS[task.task_type] ?? task.task_type;
+          const displayLabel = task.slot_number > 1 ? `${label} #${task.slot_number}` : label;
 
           return (
             <div
@@ -114,10 +94,11 @@ export function GameCard({
               className={`task-chip ${assigned.length === 0 ? "unfilled" : "filled"}`}
               onClick={() => handleSelectTask(task)}
             >
-              <span className="chip-label">{label}</span>
+              <span className="chip-label">{displayLabel}</span>
               {assigned.length > 0 ? (
                 <span className="chip-player">
                   {assigned[0].player.full_name}
+                  {assigned.length > 1 && <span className="chip-more"> +{assigned.length - 1}</span>}
                 </span>
               ) : (
                 <span className="chip-empty">Click to assign</span>
