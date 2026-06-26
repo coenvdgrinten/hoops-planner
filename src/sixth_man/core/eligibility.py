@@ -146,10 +146,12 @@ def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool
 
 
 def _player_lacks_required_referee_certification(player: Player, game: Game) -> bool:
-    """Player lacks the required referee certification for the game level."""
-    # For now, any certification other than NONE qualifies.
-    # The game's required_referees field can be extended later to encode
-    # a minimum certification tier.
+    """Player lacks the required referee certification for the game level.
+    
+    Rules:
+    - Must have at least an F-diploma to referee
+    - SENIOR certification qualifies for any game
+    """
     return player.referee_certification == Player.RefereeCertification.NONE
 
 

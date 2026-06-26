@@ -263,7 +263,7 @@ class TestRefereeAgeCategoryRule:
             first_name="Older",
             last_name="Player",
             team=team,
-            referee_certification=Player.RefereeCertification.T1,
+            referee_certification=Player.RefereeCertification.F,
         )
         game_team = Team.objects.create(
             name="Vido X14-1",
@@ -294,7 +294,7 @@ class TestRefereeAgeCategoryRule:
             first_name="Young",
             last_name="Player",
             team=team,
-            referee_certification=Player.RefereeCertification.T1,
+            referee_certification=Player.RefereeCertification.F,
         )
         game_team = Team.objects.create(
             name="Vido X14-1",
@@ -357,7 +357,7 @@ class TestRefereeCertificationRule:
         )
         assert is_eligible(player, task) is False
 
-    def test_eligible_referee_with_certification(self, referee, season):
+    def test_eligible_referee_with_f_certification(self, referee, season):
         game_team = Team.objects.create(
             name="Vido X10-1",
             age_category=Team.AgeCategory.X10,
@@ -377,6 +377,37 @@ class TestRefereeCertificationRule:
             slot_number=1,
         )
         assert is_eligible(referee, task) is True
+
+    def test_eligible_referee_with_senior_certification(self, season):
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        senior_referee = Player.objects.create(
+            first_name="Senior",
+            last_name="Ref",
+            team=team,
+            referee_certification=Player.RefereeCertification.SENIOR,
+        )
+        game_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=game_team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(18, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        assert is_eligible(senior_referee, task) is True
 
     def test_rule_does_not_apply_to_non_referee_tasks(self, player, game):
         task = Task.objects.create(

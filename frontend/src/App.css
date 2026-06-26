@@ -1539,13 +1539,17 @@ body {
   font-style: italic;
 }
 
-/* ===== Season Selector ===== */
-.season-selector {
+/* ===== Season Dropdown ===== */
+.season-dropdown {
   position: relative;
+  display: inline-block;
 }
 
-.season-selector select {
-  padding: 7px 32px 7px 12px;
+.season-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
   border: 1px solid #e0e2ea;
   border-radius: 8px;
   background: white;
@@ -1553,24 +1557,95 @@ body {
   font-size: 13px;
   font-weight: 500;
   color: #4b5068;
-  appearance: none;
-  -webkit-appearance: none;
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
+  min-width: 160px;
 }
 
-.season-selector select:focus {
+.season-dropdown-toggle:hover {
+  border-color: #d0d3df;
+  background: #fafbfc;
+}
+
+.season-dropdown-toggle.open {
   border-color: #016c30;
   box-shadow: 0 0 0 3px rgba(1, 108, 48, 0.1);
 }
 
-.season-selector::after {
-  content: "▾";
+.season-dropdown-value {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.season-chevron {
+  font-size: 10px;
+  color: #8b8fa3;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.season-chevron.open {
+  transform: rotate(180deg);
+}
+
+.season-dropdown-menu {
   position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #7a7e94;
-  font-size: 12px;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.season-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #4b5068;
+  transition: background 0.1s ease;
+}
+
+.season-dropdown-item:hover {
+  background: #f8f9fc;
+}
+
+.season-dropdown-item.selected {
+  background: #f0f9f4;
+  color: #016c30;
+  font-weight: 600;
+}
+
+.season-dropdown-item-text {
+  text-align: left;
+}
+
+.season-check {
+  color: #016c30;
+  font-weight: 700;
+  font-size: 14px;
 }

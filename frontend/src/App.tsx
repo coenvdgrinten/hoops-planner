@@ -35,7 +35,7 @@ export function App() {
       {/* Top Bar */}
       <header className="top-bar">
         <div className="top-bar-left">
-          <img src="/shield.png" alt="BC Vido" className="logo-img" />
+          <img src="/logo.png" alt="BC Vido" className="logo-img" />
           <span className="brand">Hoops Planner <span className="brand-divider">|</span> BC Vido</span>
         </div>
         <div className="top-bar-right">

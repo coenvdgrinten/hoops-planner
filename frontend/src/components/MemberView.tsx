@@ -3,10 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTeams, getPlayers, updatePlayerCert } from "../api";
 import type { Player } from "../types";
 
-// Age category display order
-const CATEGORY_ORDER = ["X10", "X14", "X16", "M16", "VSE", "MSE", "X14"];
+// Age category display order (descending: oldest to youngest)
+const CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X10"];
 
-const CERT_OPTIONS = ["NONE", "T1", "T2", "T3", "T4", "T5", "T6"];
+const CERT_OPTIONS = ["NONE", "F", "SENIOR"];
 
 export function MemberView() {
   const queryClient = useQueryClient();
@@ -36,9 +36,8 @@ export function MemberView() {
 
   const getCertClass = (cert: string) => {
     if (cert === "NONE") return "cert-none";
-    if (["T1", "T2"].includes(cert)) return "cert-low";
-    if (["T3", "T4"].includes(cert)) return "cert-mid";
-    if (["T5", "T6"].includes(cert)) return "cert-high";
+    if (cert === "F") return "cert-low";
+    if (cert === "SENIOR") return "cert-high";
     return "";
   };
 

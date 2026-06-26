@@ -65,7 +65,7 @@ def referee(team_x14):
         first_name="Jane",
         last_name="Smith",
         team=team_x14,
-        referee_certification=Player.RefereeCertification.T1,
+        referee_certification=Player.RefereeCertification.F,
     )
 
 

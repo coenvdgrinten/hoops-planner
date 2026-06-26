@@ -1,17 +1,19 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Planner", () => {
+  const seasonName = `Planner-${Date.now()}`;
+
   test.beforeEach(async ({ request }) => {
     // Seed data via API before each test
     const scheduleCsv =
       "date,time,court,home_team,away_team\n2025-10-01,14:00,1,Team A,Team B\n2025-10-01,14:00,2,Team C,Team D";
 
     const membersCsv =
-      "first_name,last_name,team,is_coach,referee_certification\nAlice,Refsen,Team A,True,T1\nBob,Player,Team A,False,\nCharlie,Coachsen,Team C,True,T1";
+      "first_name,last_name,team,is_coach,referee_certification\nAlice,Refsen,Team A,True,SENIOR\nBob,Player,Team A,False,\nCharlie,Coachsen,Team C,True,F\nDiana,Referee,Team A,False,F\nEve,Player,Team C,False,NONE";
 
     // Import schedule (creates season automatically)
     await request.post("/api/seasons/import_schedule/", {
-      data: { season_name: "2025/2026", csv_text: scheduleCsv },
+      data: { season_name: seasonName, csv_text: scheduleCsv },
     });
 
     // Import members
@@ -23,8 +25,9 @@ test.describe("Planner", () => {
   test("displays games after selecting a season", async ({ page }) => {
     await page.goto("/");
 
-    // Select season from dropdown
-    await page.getByRole("combobox").selectOption("1");
+    // Select season from custom dropdown
+    await page.locator(".season-dropdown-toggle").click();
+    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
 
     // Games should appear
     await expect(page.getByText("Team A")).toBeVisible();
@@ -34,7 +37,8 @@ test.describe("Planner", () => {
   test("groups games by date", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").selectOption("1");
+    await page.locator(".season-dropdown-toggle").click();
+    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
 
     // Date group label should be visible (Dutch locale: "vr 3 okt")
     await expect(page.locator(".date-label")).toBeVisible();
@@ -43,7 +47,8 @@ test.describe("Planner", () => {
   test("shows age badges on game cards", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").selectOption("1");
+    await page.locator(".season-dropdown-toggle").click();
+    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
 
     // Age badges should be visible (X14 for seeded teams)
     await expect(page.locator(".age-badge").first()).toBeVisible();
@@ -52,7 +57,8 @@ test.describe("Planner", () => {
   test("shows task chips on game cards", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").selectOption("1");
+    await page.locator(".season-dropdown-toggle").click();
+    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
 
     // Task chips should appear
     await expect(page.locator(".task-chip").first()).toBeVisible({ timeout: 10_000 });
@@ -61,7 +67,8 @@ test.describe("Planner", () => {
   test("opens assignment panel when clicking a task chip", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").selectOption("1");
+    await page.locator(".season-dropdown-toggle").click();
+    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
 
     // Click on a task chip
     await page.locator(".task-chip").first().click();
@@ -74,7 +81,8 @@ test.describe("Planner", () => {
   test("shows assigned state after adding a player", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("combobox").selectOption("1");
+    await page.locator(".season-dropdown-toggle").click();
+    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
 
     // Click on a task chip to open panel
     await page.locator(".task-chip").first().click();

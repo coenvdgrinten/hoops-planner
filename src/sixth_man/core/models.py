@@ -39,12 +39,8 @@ class Player(models.Model):
 
     class RefereeCertification(models.TextChoices):
         NONE = "NONE", "None"
-        T1 = "T1", "T1"
-        T2 = "T2", "T2"
-        T3 = "T3", "T3"
-        T4 = "T4", "T4"
-        T5 = "T5", "T5"
-        T6 = "T6", "T6"
+        F = "F", "F-diploma"
+        SENIOR = "SENIOR", "Senior"
 
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)

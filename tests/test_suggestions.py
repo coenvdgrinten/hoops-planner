@@ -34,7 +34,7 @@ class TestSuggestCandidates:
             first_name="Young",
             last_name="Player",
             team=young_team,
-            referee_certification=Player.RefereeCertification.T1,
+            referee_certification=Player.RefereeCertification.F,
         )
         game_team = Team.objects.create(
             name="Vido X14-1",
@@ -105,7 +105,7 @@ class TestSuggestCandidates:
             first_name="Young",
             last_name="Player",
             team=young_team,
-            referee_certification=Player.RefereeCertification.T1,
+            referee_certification=Player.RefereeCertification.F,
         )
         game_team = Team.objects.create(
             name="Vido X14-1",

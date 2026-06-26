@@ -18,9 +18,9 @@ SCHEDULE_CSV = """date,time,court,home_team,away_team
 """
 
 MEMBERS_CSV = """first_name,last_name,team,is_coach,referee_certification
-John,Doe,Vido X14-1,False,T1
+John,Doe,Vido X14-1,False,F
 Jane,Smith,Vido X14-1,True,NONE
-Coach,Karlos,Vido X14-1,True,T2
+Coach,Karlos,Vido X14-1,True,SENIOR
 Peter,Jones,Vido X10-1,False,NONE
 """
 
@@ -106,7 +106,7 @@ class TestImportMembers:
     def test_parses_certification(self):
         import_members(MEMBERS_CSV)
         player = Player.objects.get(first_name="John", last_name="Doe")
-        assert player.referee_certification == Player.RefereeCertification.T1
+        assert player.referee_certification == Player.RefereeCertification.F
 
     def test_upsert_updates_existing(self):
         # First import
