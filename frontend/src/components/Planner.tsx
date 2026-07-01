@@ -1,9 +1,10 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getGames } from "../api";
 import type { Season, Game } from "../types";
 import type { TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
+import { GameEditModal } from "./GameEditModal";
 
 interface Props {
   season: Season;
@@ -11,10 +12,14 @@ interface Props {
 }
 
 export function Planner({ season, onSelectTask }: Props) {
+  const [editingGame, setEditingGame] = useState<number | null>(null);
+
   const { data: games = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
     queryFn: () => getGames(season.id),
   });
+
+  const editingGameData = editingGame !== null ? games.find((g) => g.id === editingGame) : null;
 
   const handleSelectTask = useCallback(
     (task: TaskWithAssignments, gameId: number) => {
@@ -23,21 +28,36 @@ export function Planner({ season, onSelectTask }: Props) {
     [onSelectTask]
   );
 
+  const handleEditGame = useCallback((gameId: number) => {
+    setEditingGame(gameId);
+  }, []);
+
+  const handleEditClose = useCallback(() => {
+    setEditingGame(null);
+  }, []);
+
   if (isLoading) return <p>Loading games...</p>;
   if (error) return <p className="error">Error: {error.message}</p>;
   if (games.length === 0) return <p>No games in this season.</p>;
 
-  // Group games by date, then by court
-  const grouped: Record<string, Record<string, Game[]>> = {};
+  // Group games by half, then by date, then by court
+  const grouped: Record<string, Record<string, Record<string, Game[]>>> = {};
   const sorted = [...games].sort((a, b) => {
+    const ha = a.half || "1";
+    const hb = b.half || "1";
+    if (ha !== hb) return ha.localeCompare(hb);
     const da = `${a.date}T${a.time}`;
     const db = `${b.date}T${b.time}`;
     return da.localeCompare(db);
   });
   for (const game of sorted) {
-    if (!grouped[game.date]) grouped[game.date] = {};
-    if (!grouped[game.date][game.court]) grouped[game.date][game.court] = [];
-    grouped[game.date][game.court].push(game);
+    const h = game.half || "1";
+    const d = game.date || "";
+    const c = game.court || "1";
+    if (!grouped[h]) grouped[h] = {};
+    if (!grouped[h][d]) grouped[h][d] = {};
+    if (!grouped[h][d][c]) grouped[h][d][c] = [];
+    grouped[h][d][c].push(game);
   }
 
   return (
@@ -49,47 +69,65 @@ export function Planner({ season, onSelectTask }: Props) {
         </p>
       </div>
       <div className="games-by-date">
-        {Object.entries(grouped).map(([date, courts]) => {
-          const dateObj = new Date(`${date}T00:00`);
-          const formattedDate = dateObj.toLocaleDateString("nl-BE", {
-            weekday: "long",
-            day: "numeric",
-            month: "short",
-          });
-          const isFuture = dateObj >= new Date(new Date().toISOString().split("T")[0]);
-          // Sort courts numerically
-          const sortedCourts = Object.entries(courts).sort(([a], [b]) => Number(a) - Number(b));
+        {Object.entries(grouped).map(([halfKey, dates]) => {
+          const halfLabel = halfKey === "1" ? "First Half" : "Second Half";
           return (
-            <div key={date} className="date-group">
-              <div className="date-label">
-                {isFuture && <span className="upcoming-badge">Upcoming Games</span>}
-                <span>{formattedDate}</span>
-              </div>
-              <div className="courts-row">
-                {sortedCourts.map(([court, courtGames]) => (
-                  <div key={court} className="court-column">
-                    <div className="court-header">Court {court}</div>
-                    <div className="court-games">
-                      {courtGames.map((game) => (
-                        <GameCard
-                          key={game.id}
-                          id={game.id}
-                          homeTeam={game.home_team}
-                          awayTeam={game.away_team}
-                          date={game.date}
-                          time={game.time}
-                          court={game.court}
-                          onSelectTask={handleSelectTask}
-                        />
+            <div key={halfKey} className="half-group">
+              <div className="half-label">{halfLabel}</div>
+              {Object.entries(dates).map(([date, courts]) => {
+                const dateObj = new Date(`${date || "1970-01-01"}T00:00`);
+                const formattedDate = dateObj.toLocaleDateString("nl-BE", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "short",
+                });
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isFuture = dateObj >= today;
+                const sortedCourts = Object.entries(courts).sort(([a], [b]) => Number(a) - Number(b));
+                return (
+                  <div key={date} className="date-group">
+                    <div className="date-label">
+                      {isFuture && <span className="upcoming-badge">Upcoming Games</span>}
+                      <span>{formattedDate}</span>
+                    </div>
+                    <div className="courts-row">
+                      {sortedCourts.map(([court, courtGames]) => (
+                        <div key={court} className="court-column">
+                          <div className="court-header">Court {court}</div>
+                          <div className="court-games">
+                            {courtGames.map((game) => (
+                              <GameCard
+                                key={game.id}
+                                id={game.id}
+                                homeTeam={game.home_team}
+                                awayTeam={game.away_team}
+                                date={game.date}
+                                time={game.time}
+                                court={game.court}
+                                half={game.half}
+                                onSelectTask={handleSelectTask}
+                                onEditGame={handleEditGame}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           );
         })}
       </div>
+      {editingGameData && (
+        <GameEditModal
+          game={editingGameData}
+          onClose={handleEditClose}
+          onSuccess={handleEditClose}
+        />
+      )}
     </div>
   );
 }

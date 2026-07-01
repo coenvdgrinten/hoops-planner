@@ -1,5 +1,7 @@
 """Eligibility checks for task assignments."""
 
+from django.db import models
+
 from sixth_man.core.models import (
     Game,
     Player,
@@ -52,7 +54,9 @@ def get_ineligibility_reason(player: Player, task: Task) -> str | None:
 
 def get_eligible_players(task: Task) -> list[Player]:
     """Return all eligible players for a task."""
-    all_players = Player.objects.filter(is_coach=False)
+    all_players = Player.objects.exclude(
+        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
+    ).distinct()
     return [p for p in all_players if is_eligible(p, task)]
 
 
@@ -94,15 +98,15 @@ def _already_assigned_at_same_time(player: Player, game: Game) -> bool:
 
 
 def _team_has_home_game_at_same_time(player: Player, game: Game) -> bool:
-    """Player's team has a home game at the same time (excluding this game).
+    """Any team the player is responsible for has a home game at the same time.
 
-    This only disqualifies the player if their team plays another game at
-    the same time (e.g., on a different court). If the player's team IS
-    the home team for this game, they are already at the gym and eligible.
+    This only disqualifies the player if their team (or a coached team) plays
+    another game at the same time (e.g., on a different court). If the player's
+    team IS the home team for this game, they are already at the gym and eligible.
     """
     return (
         Game.objects.filter(
-            home_team=player.team,
+            home_team__in=player.all_teams,
             game_type=Game.GameType.HOME,
             date=game.date,
             time=game.time,
@@ -113,36 +117,42 @@ def _team_has_home_game_at_same_time(player: Player, game: Game) -> bool:
 
 
 def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
-    """Player's team has an away game on the same day.
+    """Any team the player is responsible for has an away game on the same day.
 
-    If the player's team has an away game on the same day as this game,
-    they can't be available for this task.
+    If the player's team (or a coached team) has an away game on the same day
+    as this game, they can't be available for this task.
     """
     return Game.objects.filter(
-        home_team=player.team,
+        home_team__in=player.all_teams,
         game_type=Game.GameType.AWAY,
         date=game.date,
     ).exists()
 
 
 def _player_team_involved_in_game(player: Player, game: Game) -> bool:
-    """Player's team is the home team or the away opponent in this game.
+    """Any team the player is responsible for is involved in this game.
 
     Players should not be assigned to any task on a game where their own
-    team is playing.
+    team or a coached team is playing.
     """
-    if game.home_team == player.team:
+    if game.home_team in player.all_teams:
         return True
-    if game.away_team == player.team.name:
+    if game.away_team in [t.name for t in player.all_teams]:
         return True
     return False
 
 
 def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool:
-    """Player's team is a lower age category than the game's home team."""
-    player_order = _age_category_index(player.team.age_category)
+    """The player's highest team is a lower age category than the game's home team.
+
+    Checks the highest age category among all teams the player is responsible for
+    (own team + coached teams).
+    """
+    highest_player_order = max(
+        _age_category_index(t.age_category) for t in player.all_teams
+    )
     game_order = _age_category_index(game.home_team.age_category)
-    return player_order < game_order
+    return highest_player_order < game_order
 
 
 def _player_lacks_required_referee_certification(player: Player, game: Game) -> bool:

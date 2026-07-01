@@ -4,14 +4,17 @@ from collections import defaultdict
 from datetime import date
 from typing import Any
 
-from sixth_man.core.models import Player, Season, Task, TaskAssignment, TaskType
+from django.db import models
+
+from sixth_man.core.models import Game, Player, Season, Task, TaskAssignment, TaskType
 
 
 def get_player_stats(
     player: Player,
     season: Season | None = None,
+    half: str | None = None,
 ) -> dict[str, Any]:
-    """Compute statistics for a single player, optionally filtered by season.
+    """Compute statistics for a single player, optionally filtered by season and half.
 
     Returns:
         {
@@ -26,10 +29,15 @@ def get_player_stats(
     assignments = player.assignments.select_related("task__game")
     if season:
         assignments = assignments.filter(task__game__season=season)
+    if half:
+        assignments = assignments.filter(task__game__half=half)
 
-    # Pre-fetch all dates the player's team has a home game (single query)
-    player_team = player.team
-    team_game_dates = set(player_team.home_games.values_list("date", flat=True))
+    # Pre-fetch all dates any of the player's teams has a home game.
+    team_game_dates = set(
+        Game.objects.filter(
+            home_team__in=player.all_teams
+        ).values_list("date", flat=True)
+    )
 
     total = 0
     effective = 0.0
@@ -62,8 +70,11 @@ def get_player_stats(
     }
 
 
-def get_season_stats(season: Season) -> dict[str, Any]:
-    """Compute aggregate statistics for a season.
+def get_season_stats(
+    season: Season,
+    half: str | None = None,
+) -> dict[str, Any]:
+    """Compute aggregate statistics for a season, optionally filtered by half.
 
     Returns:
         {
@@ -76,15 +87,20 @@ def get_season_stats(season: Season) -> dict[str, Any]:
         }
     """
     games = season.games.all()
+    if half:
+        games = games.filter(half=half)
     total_games = games.count()
 
-    # All task slots in this season
-    task_slots = Task.objects.filter(game__season=season)
+    # Build game ID set for filtering tasks/assignments
+    game_ids = games.values_list("pk", flat=True)
+
+    # All task slots in this season (optionally filtered by half)
+    task_slots = Task.objects.filter(game__id__in=game_ids)
     total_task_slots = task_slots.count()
 
     # All assignments in this season
     assignments = TaskAssignment.objects.filter(
-        task__game__season=season
+        task__game__id__in=game_ids
     ).select_related("player", "player__team", "task")
     total_assignments = assignments.count()
 
@@ -93,9 +109,9 @@ def get_season_stats(season: Season) -> dict[str, Any]:
     # By task type
     by_task_type: dict[str, dict[str, Any]] = {}
     for task_type in TaskType.values:
-        slots = Task.objects.filter(game__season=season, task_type=task_type).count()
+        slots = Task.objects.filter(game__id__in=game_ids, task_type=task_type).count()
         filled = TaskAssignment.objects.filter(
-            task__game__season=season, task__task_type=task_type
+            task__game__id__in=game_ids, task__task_type=task_type
         ).count()
         by_task_type[task_type] = {"slots": slots, "filled": filled}
 
@@ -163,17 +179,20 @@ def get_upcoming_assignments(
 def get_leaderboard(
     season: Season,
     top: int = 10,
+    half: str | None = None,
 ) -> list[dict[str, Any]]:
     """Get leaderboard of players by effective task count.
 
     Returns:
         List of dicts with player info and stats, sorted by effective_tasks desc.
     """
-    players = Player.objects.filter(is_coach=False).select_related("team")
+    players = Player.objects.exclude(
+        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
+    ).distinct().select_related("team")
     leaderboard: list[dict[str, Any]] = []
 
     for player in players:
-        stats = get_player_stats(player, season)
+        stats = get_player_stats(player, season, half)
         if stats["total_tasks"] == 0:
             continue
         leaderboard.append(

@@ -15,7 +15,9 @@ interface Props {
   date: string;
   time: string;
   court: string;
+  half?: string;
   onSelectTask: (task: TaskWithAssignments, gameId: number) => void;
+  onEditGame: (gameId: number) => void;
 }
 
 const TASK_LABELS: Record<string, string> = {
@@ -31,8 +33,9 @@ export function GameCard({
   awayTeam,
   date,
   time,
-  court,
+  half,
   onSelectTask,
+  onEditGame,
 }: Props) {
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks-with-assignments", id],
@@ -65,7 +68,10 @@ export function GameCard({
     <div className="game-card">
       <div className="game-card-header">
         <div className="game-card-left">
-          <span className="age-badge">{ageBadge}</span>
+          <div className="game-badges">
+            <span className="age-badge">{ageBadge}</span>
+            {half && <span className="half-badge">H{half}</span>}
+          </div>
           <div className="game-teams">
             <span className="home">{homeTeam.name}</span>
             <span className="vs">vs.</span>
@@ -77,9 +83,18 @@ export function GameCard({
             <span>Home Gym</span>
           </div>
         </div>
-        {allAssigned && (
-          <span className="staffed-badge">FULLY STAFFED</span>
-        )}
+        <div className="game-card-right">
+          {allAssigned && (
+            <span className="staffed-badge">FULLY STAFFED</span>
+          )}
+          <button
+            className="game-edit-btn"
+            onClick={() => onEditGame(id)}
+            title="Edit game"
+          >
+            ✎
+          </button>
+        </div>
       </div>
 
       <div className="task-chips">
@@ -88,16 +103,29 @@ export function GameCard({
           const label = TASK_LABELS[task.task_type] ?? task.task_type;
           const displayLabel = task.slot_number > 1 ? `${label} #${task.slot_number}` : label;
 
+          // X10/X14 games only need 1 referee — extra ref slots are optional
+          const isOptionalRef =
+            task.task_type === "REFEREE" &&
+            task.slot_number > 1 &&
+            homeTeam.age_category &&
+            ["X10", "X14"].includes(homeTeam.age_category);
+
           return (
             <div
               key={task.id}
-              className={`task-chip ${assigned.length === 0 ? "unfilled" : "filled"}`}
+              className={`task-chip ${
+                assigned.length === 0
+                  ? isOptionalRef
+                    ? "optional"
+                    : "unfilled"
+                  : "filled"
+              }`}
               onClick={() => handleSelectTask(task)}
             >
               <span className="chip-label">{displayLabel}</span>
               {assigned.length > 0 ? (
                 <span className="chip-player">
-                  {assigned[0].player.full_name}
+                  {assigned[0]?.player?.full_name}
                   {assigned.length > 1 && <span className="chip-more"> +{assigned.length - 1}</span>}
                 </span>
               ) : (

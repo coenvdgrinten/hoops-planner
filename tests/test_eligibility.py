@@ -90,7 +90,8 @@ class TestAlreadyAssignedAtSameTime:
         assert is_eligible(referee, task2) is False
 
     def test_eligible_when_assigned_at_different_time(self, referee, season):
-        """Player can be assigned to multiple tasks on same day if at different times."""
+        """Player can be assigned to multiple tasks on same day
+        if at different times."""
         home_team1 = Team.objects.create(
             name="Vido X10-1",
             age_category=Team.AgeCategory.X10,

@@ -412,7 +412,7 @@ class TestGetLeaderboard:
         players = []
         for i in range(5):
             p = Player.objects.create(
-                first_name=f"Player",
+                first_name="Player",
                 last_name=str(i),
                 team=team,
             )

@@ -186,7 +186,6 @@ export function AssignmentPanel({
           {candidates.map((candidate: CandidateDetail) => {
             const player = candidate.player;
             const isAssigned = assignedIds.has(player.id);
-            const alreadyAssigned = isAssigned;
             return (
               <div
                 key={player.id}

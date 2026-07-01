@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSeasonStats, getLeaderboard } from "../api";
-import type { Season, SeasonStats, LeaderboardEntry } from "../types";
+import type { Season } from "../types";
 
 interface Props {
   season: Season;
@@ -14,14 +15,16 @@ const TASK_LABELS: Record<string, string> = {
 };
 
 export function Statistics({ season }: Props) {
+  const [half, setHalf] = useState<string>("");
+
   const { data: stats, isLoading: statsLoading, error: statsError } = useQuery({
-    queryKey: ["season-stats", season.id],
-    queryFn: () => getSeasonStats(season.id),
+    queryKey: ["season-stats", season.id, half],
+    queryFn: () => getSeasonStats(season.id, half || undefined),
   });
 
   const { data: leaderboard = [], isLoading: lbLoading, error: lbError } = useQuery({
-    queryKey: ["leaderboard", season.id],
-    queryFn: () => getLeaderboard(season.id),
+    queryKey: ["leaderboard", season.id, half],
+    queryFn: () => getLeaderboard(season.id, half || undefined),
   });
 
   const loading = statsLoading || lbLoading;
@@ -33,7 +36,21 @@ export function Statistics({ season }: Props) {
 
   return (
     <div className="statistics">
-      <h2>{season.name} — Statistics</h2>
+      <div className="statistics-header">
+        <h2>{season.name} — Statistics</h2>
+        <div className="half-filter">
+          <label htmlFor="half-select">Half:</label>
+          <select
+            id="half-select"
+            value={half}
+            onChange={(e) => setHalf(e.target.value)}
+          >
+            <option value="">Full Season</option>
+            <option value="1">First Half</option>
+            <option value="2">Second Half</option>
+          </select>
+        </div>
+      </div>
 
       {/* Overview Cards */}
       <div className="stat-cards">

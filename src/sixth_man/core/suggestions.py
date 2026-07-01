@@ -8,10 +8,17 @@ The suggestion algorithm ranks eligible players by:
    those with the lowest personal task counter are suggested first.
 """
 
+from typing import Any
+
 import datetime as dt
+
+from django.db import models
 
 from sixth_man.core.eligibility import get_eligible_players
 from sixth_man.core.models import Game, Player, Task, Team
+
+# Team ordering for display (oldest to youngest), matching the MemberView.
+CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X12", "X10"]
 
 # Players whose team has a home game within this window are considered
 # "already at the gym".
@@ -81,7 +88,7 @@ def get_candidate_details(
     return results[:limit]
 
 
-def get_team_eligibility(task: Task) -> list[dict]:
+def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     """Return all teams with their members, eligibility, and task counts.
 
     Each team dict contains:
@@ -89,10 +96,22 @@ def get_team_eligibility(task: Task) -> list[dict]:
     - players: list of dicts with player, eligible, task_count, at_gym
     - eligible_count: number of eligible players in this team
     """
-    from sixth_man.core.eligibility import is_eligible, get_ineligibility_reason
+    from sixth_man.core.eligibility import get_ineligibility_reason, is_eligible
 
-    all_players = Player.objects.filter(is_coach=False).select_related("team")
-    all_teams = Team.objects.all().order_by("age_category", "name")
+    all_players = Player.objects.exclude(
+        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
+    ).distinct().select_related("team")
+    # Teams ordered by custom category order (oldest first), then name.
+    all_teams = Team.objects.all().order_by("name")
+    all_teams = sorted(
+        all_teams,
+        key=lambda t: (
+            CATEGORY_ORDER.index(t.age_category)
+            if t.age_category in CATEGORY_ORDER
+            else 999,
+            t.name,
+        ),
+    )
 
     results = []
     for team in all_teams:
@@ -166,7 +185,7 @@ def _player_game_position(player: Player, game: Game) -> str | None:
     # Query the adjacent date range to handle cross-midnight windows,
     # then filter by time within that range to stay within the window.
     candidates = Game.objects.filter(
-        home_team=player.team,
+        home_team__in=player.all_teams,
         game_type=Game.GameType.HOME,
         date__gte=time_start.date(),
         date__lte=time_end.date(),
@@ -191,8 +210,12 @@ def _effective_task_count(player: Player) -> float:
     Tasks assigned on days the player has no game get a 2x multiplier.
     """
     assignments = player.assignments.select_related("task__game").all()
-    # Pre-fetch all dates the player's team has a home game (single query).
-    team_game_dates = set(player.team.home_games.values_list("date", flat=True))
+    # Pre-fetch all dates any of the player's teams has a home game.
+    team_game_dates = set(
+        Game.objects.filter(
+            home_team__in=player.all_teams
+        ).values_list("date", flat=True)
+    )
     total = 0.0
     for assignment in assignments:
         game = assignment.task.game

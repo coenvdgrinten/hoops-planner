@@ -4,11 +4,8 @@ import pytest
 from rest_framework import serializers
 
 from sixth_man.core.models import (
-    Game,
     Player,
-    Task,
     TaskAssignment,
-    TaskType,
 )
 from sixth_man.core.serializers import (
     TaskAssignmentSerializer,

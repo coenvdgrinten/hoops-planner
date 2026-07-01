@@ -8,7 +8,6 @@ from sixth_man.core.models import (
     Season,
     Task,
     TaskAssignment,
-    TaskType,
     Team,
 )
 
@@ -31,6 +30,11 @@ class PlayerSerializer(serializers.ModelSerializer):
         source="team",
         write_only=True,
     )
+    coached_teams = serializers.PrimaryKeyRelatedField(
+        queryset=Team.objects.all(),
+        many=True,
+        required=False,
+    )
 
     class Meta:
         model = Player
@@ -42,6 +46,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             "team",
             "team_id",
             "is_coach",
+            "coached_teams",
             "referee_certification",
         ]
         read_only_fields = ["full_name"]
@@ -73,6 +78,7 @@ class GameSerializer(serializers.ModelSerializer):
             "date",
             "time",
             "court",
+            "half",
             "required_referees",
         ]
 

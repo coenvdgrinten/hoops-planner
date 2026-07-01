@@ -17,6 +17,7 @@ export interface Player {
   full_name: string;
   team: Team;
   is_coach: boolean;
+  coached_teams: number[];
   referee_certification: string;
 }
 
@@ -29,6 +30,7 @@ export interface Game {
   date: string;
   time: string;
   court: string;
+  half: string;
   required_referees: number;
 }
 

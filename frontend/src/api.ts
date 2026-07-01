@@ -16,12 +16,63 @@ import type {
 
 const API = "/api";
 
+export interface AuthUser {
+  id: number;
+  username: string;
+  email: string;
+  is_staff: boolean;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: AuthUser;
+}
+
+const TOKEN_KEY = "auth_token";
+const USER_KEY = "auth_user";
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getUser(): AuthUser | null {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function setAuth(token: string, user: AuthUser) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+export function clearAuth() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Token ${token}`;
+  }
   const res = await fetch(`${API}${url}`, {
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
   });
   if (!res.ok) {
+    // If 401, clear auth and rethrow
+    if (res.status === 401) {
+      clearAuth();
+      window.dispatchEvent(new CustomEvent("auth:logout"));
+    }
     const text = await res.text();
     let message = text;
     try {
@@ -47,10 +98,10 @@ export function getSeasons() {
   return request<Season[]>("/seasons/");
 }
 
-export function importSchedule(seasonName: string, csvText: string) {
-  return request<{ games: number; tasks: number }>("/seasons/import_schedule/", {
+export function importSchedule(seasonName: string, csvText: string, replace?: boolean) {
+  return request<{ games_created: number; games_updated: number; tasks: number }>("/seasons/import_schedule/", {
     method: "POST",
-    body: JSON.stringify({ season_name: seasonName, csv_text: csvText }),
+    body: JSON.stringify({ season_name: seasonName, csv_text: csvText, replace: replace ?? false }),
   });
 }
 
@@ -71,6 +122,13 @@ export function updatePlayerCert(playerId: number, cert: string) {
   });
 }
 
+export function updatePlayerCoachedTeams(playerId: number, teamIds: number[]) {
+  return request<Player>(`/players/${playerId}/`, {
+    method: "PATCH",
+    body: JSON.stringify({ coached_teams: teamIds }),
+  });
+}
+
 export function importMembers(csvText: string) {
   return request<{ players: number; teams: number }>("/players/import_members/", {
     method: "POST",
@@ -81,6 +139,17 @@ export function importMembers(csvText: string) {
 // Games
 export function getGames(season: number) {
   return request<Game[]>(`/games/?season=${season}`);
+}
+
+export function updateGame(gameId: number, data: Partial<Game>) {
+  return request<Game>(`/games/${gameId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteGame(gameId: number) {
+  return request<void>(`/games/${gameId}/`, { method: "DELETE" });
 }
 
 // Tasks
@@ -125,8 +194,11 @@ export function deleteAssignment(id: number) {
 }
 
 // Statistics
-export function getPlayerStats(playerId: number, seasonName?: string) {
-  const qs = seasonName ? `?season=${seasonName}` : "";
+export function getPlayerStats(playerId: number, seasonName?: string, half?: string) {
+  const params = new URLSearchParams();
+  if (seasonName) params.set("season", seasonName);
+  if (half) params.set("half", half);
+  const qs = params.toString() ? `?${params.toString()}` : "";
   return request<Record<string, unknown>>(`/players/${playerId}/stats/${qs}`);
 }
 
@@ -134,10 +206,33 @@ export function getPlayerUpcoming(playerId: number) {
   return request<UpcomingAssignment[]>(`/players/${playerId}/upcoming/`);
 }
 
-export function getSeasonStats(seasonId: number) {
-  return request<SeasonStats>(`/seasons/${seasonId}/stats/`);
+export function getSeasonStats(seasonId: number, half?: string) {
+  const qs = half ? `?half=${half}` : "";
+  return request<SeasonStats>(`/seasons/${seasonId}/stats/${qs}`);
 }
 
-export function getLeaderboard(seasonId: number) {
-  return request<LeaderboardEntry[]>(`/seasons/${seasonId}/leaderboard/`);
+export function getLeaderboard(seasonId: number, half?: string) {
+  const qs = half ? `?half=${half}` : "";
+  return request<LeaderboardEntry[]>(`/seasons/${seasonId}/leaderboard/${qs}`);
+}
+
+// Auth
+export function login(username: string, password: string) {
+  return request<AuthResponse>("/auth/login/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export function register(username: string, password: string, email: string) {
+  return request<AuthResponse>("/auth/register/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password, email }),
+  });
+}
+
+export function me() {
+  return request<AuthUser>("/auth/me/");
 }

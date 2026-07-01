@@ -154,6 +154,19 @@ body {
   color: #7a7e94;
 }
 
+.half-group {
+  margin-bottom: 32px;
+}
+
+.half-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e8eaf0;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -282,6 +295,51 @@ body {
   gap: 6px;
 }
 
+.game-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.game-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.half-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.game-edit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  color: #8b8fa3;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.game-edit-btn:hover {
+  border-color: #016c30;
+  color: #016c30;
+  background: #f0f9f4;
+}
+
 .age-badge {
   display: inline-block;
   font-size: 11px;
@@ -354,6 +412,11 @@ body {
 .task-chip.unfilled {
   border-color: #fed7aa;
   background: #fffbeb;
+}
+
+.task-chip.optional {
+  border-color: #e2e4ea;
+  background: #f5f6f8;
 }
 
 .task-chip.filled {
@@ -1118,6 +1181,41 @@ body {
 }
 
 /* ===== Statistics ===== */
+.statistics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.half-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.half-filter label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5068;
+}
+
+.half-filter select {
+  padding: 6px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  color: #4b5068;
+  cursor: pointer;
+  outline: none;
+}
+
+.half-filter select:focus {
+  border-color: #016c30;
+  box-shadow: 0 0 0 2px rgba(1, 108, 48, 0.12);
+}
+
 .statistics h2 {
   font-size: 22px;
   font-weight: 700;
@@ -1429,6 +1527,21 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coach-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 .roster-member-meta {
@@ -1537,6 +1650,111 @@ body {
   font-size: 12px;
   color: #7a7e94;
   font-style: italic;
+}
+
+/* ===== Coached Teams Editor ===== */
+.coached-teams-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.coached-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b8fa3;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.coached-teams-display {
+  padding: 4px 10px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  color: #4b5068;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.coached-teams-display:hover {
+  border-color: #016c30;
+  background-color: #f0f9f4;
+}
+
+.coached-teams-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: #f5f6fa;
+  border-radius: 6px;
+  min-width: 200px;
+}
+
+.coached-teams-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.coached-team-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5068;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.coached-team-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #016c30;
+}
+
+.coached-teams-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.coached-teams-actions .btn-save {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #016c30;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coached-teams-actions .btn-save:hover {
+  background: #004d22;
+}
+
+.coached-teams-actions .btn-cancel {
+  padding: 4px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  color: #4b5068;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coached-teams-actions .btn-cancel:hover {
+  background: #f5f6fa;
 }
 
 /* ===== Season Dropdown ===== */
@@ -1648,4 +1866,226 @@ body {
   color: #016c30;
   font-weight: 700;
   font-size: 14px;
+}
+
+/* ===== Auth (Login/Register) ===== */
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #f8f9fc;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8eaf0;
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-logo {
+  height: 48px;
+  width: auto;
+  margin-bottom: 12px;
+}
+
+.auth-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.auth-subtitle {
+  font-size: 13px;
+  color: #7a7e94;
+  margin-top: 4px;
+}
+
+.auth-form h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 16px;
+}
+
+.auth-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #991b1b;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.auth-submit {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #016c30;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  margin-bottom: 16px;
+}
+
+.auth-submit:hover:not(:disabled) {
+  background: #004d1f;
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-toggle {
+  text-align: center;
+  font-size: 13px;
+  color: #7a7e94;
+}
+
+.auth-toggle button {
+  background: none;
+  border: none;
+  color: #016c30;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.auth-toggle button:hover {
+  text-decoration: underline;
+}
+
+/* ===== User Badge ===== */
+.user-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5068;
+  padding: 4px 10px;
+  background: #f4f5f8;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.logout-btn {
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+.logout-btn:hover {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+}
+
+/* ===== Game Edit Modal ===== */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5068;
+}
+
+.form-row input,
+.form-row select {
+  padding: 8px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1a1a2e;
+  outline: none;
+  background: white;
+}
+
+.form-row input:focus,
+.form-row select:focus {
+  border-color: #016c30;
+  box-shadow: 0 0 0 2px rgba(1, 108, 48, 0.12);
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e8eaf0;
+}
+
+.btn-delete {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-delete:hover {
+  background: #b91c1c;
+}
+
+.delete-confirm {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+}
+
+.delete-confirm p {
+  font-size: 13px;
+  color: #991b1b;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.delete-confirm .form-actions {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  justify-content: flex-end;
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #016c30;
+}
+
+.form-checkbox label {
+  font-size: 13px;
+  color: #4b5068;
+  cursor: pointer;
 }

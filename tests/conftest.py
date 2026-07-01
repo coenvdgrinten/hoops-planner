@@ -3,6 +3,9 @@
 import datetime as dt
 
 import pytest
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient  # noqa: F401
 
 from sixth_man.core.models import (
     Game,
@@ -108,3 +111,21 @@ def task(game):
         task_type="SCORER",
         slot_number=1,
     )
+
+
+@pytest.fixture
+def test_user(db):
+    return User.objects.create_user(
+        username="testuser",
+        password="testpass123",
+        email="test@example.com",
+    )
+
+
+@pytest.fixture
+def api_client(test_user):
+    """Authenticated API client for tests."""
+    client = APIClient()
+    token = Token.objects.create(user=test_user)
+    client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+    return client

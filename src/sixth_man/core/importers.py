@@ -3,6 +3,9 @@
 import csv
 import io
 import re
+from typing import Any
+
+from datetime import datetime
 
 from sixth_man.core.models import (
     Game,
@@ -17,21 +20,36 @@ from sixth_man.core.models import (
 def import_schedule(
     csv_text: str,
     season_name: str,
+    replace: bool = False,
 ) -> dict[str, int]:
-    """Import a schedule CSV and create games + task slots.
+    """Import a schedule CSV and create or update games + task slots.
 
     Expected CSV columns:
     date, time, court, home_team, away_team
 
-    Returns a summary dict with counts of created objects.
+    Optional CSV columns:
+    half — 1 or 2 (defaults to 1)
+
+    Parameters
+    ----------
+    csv_text : str
+        The CSV content.
+    season_name : str
+        Name of the season (e.g. "2025-2026").
+    replace : bool
+        If True, delete all existing games for this season before importing.
+        If False, match existing games by (date, time, court, home_team, away_team)
+        and update changed fields; create new games for rows without a match.
+
+    Returns a summary dict with counts of created/updated objects.
     """
     season, _ = Season.objects.get_or_create(name=season_name)
-    
-    # Delete existing games for this season to allow re-importing.
-    # Tasks and assignments are CASCADE-deleted through foreign keys.
-    Game.objects.filter(season=season).delete()
-    
-    created = {"games": 0, "tasks": 0}
+
+    if replace:
+        # Destructive import: delete everything and start fresh.
+        Game.objects.filter(season=season).delete()
+
+    created = {"games_created": 0, "games_updated": 0, "tasks": 0}
 
     reader = csv.DictReader(io.StringIO(csv_text))
     rows = list(reader)
@@ -49,20 +67,93 @@ def import_schedule(
             home_team.age_category = expected_category
             home_team.save(update_fields=["age_category"])
 
-        game, is_new = Game.objects.get_or_create(
-            season=season,
-            home_team=home_team,
-            away_team=row["away_team"].strip(),
-            date=row["date"].strip(),
-            time=row["time"].strip(),
-            court=row["court"].strip(),
-            defaults={"game_type": Game.GameType.HOME},
-        )
-        if is_new:
-            created["games"] += 1
-            created["tasks"] += _ensure_task_slots(game)
+        # Parse optional half column
+        half_raw = row.get("half", "").strip()
+        half_value = half_raw if half_raw in ("1", "2") else Game.Half.FIRST
+
+        # Build game data from CSV
+        game_data = {
+            "season": season,
+            "home_team": home_team,
+            "away_team": row["away_team"].strip(),
+            "date": row["date"].strip(),
+            "time": row["time"].strip(),
+            "court": row["court"].strip(),
+            "half": half_value,
+            "game_type": Game.GameType.HOME,
+        }
+
+        if replace:
+            # In replace mode, just create everything fresh.
+            game, is_new = Game.objects.get_or_create(
+                season=season,
+                date=game_data["date"],
+                time=game_data["time"],
+                court=game_data["court"],
+                defaults=game_data,
+            )
+            if is_new:
+                created["games_created"] += 1
+                created["tasks"] += _ensure_task_slots(game)
+        else:
+            # Smart mode: try to match an existing game.
+            game, is_new = _match_or_create_game(game_data)
+            if is_new:
+                created["games_created"] += 1
+                created["tasks"] += _ensure_task_slots(game)
+            else:
+                # Update changed fields. Only check string/int fields to avoid
+                # type mismatches (TimeField stores datetime.time, not str).
+                # Skip fields used for matching (season, date, home_team, game_type).
+                changed = False
+                updatable = ("court", "half", "away_team")
+                for key in updatable:
+                    value = game_data[key]
+                    if getattr(game, key) != value:
+                        setattr(game, key, value)
+                        changed = True
+                # For time, compare string representations
+                csv_time = game_data["time"]
+                db_time = game.time.strftime("%H:%M")
+                if db_time != csv_time:
+                    game.time = datetime.datetime.strptime(csv_time, "%H:%M").time()  # type: ignore[assignment]
+                    changed = True
+                if changed:
+                    game.save(update_fields=list(updatable) + ["time"])
+                    created["games_updated"] += 1
 
     return created
+
+
+def _match_or_create_game(game_data: dict[str, Any]) -> tuple[Game, bool]:
+    """Try to find an existing game matching the CSV row, or create one.
+
+    Matching is done on (season, date, home_team, away_team) to handle
+    cases where court or time changed but it's the same fixture.
+    Falls back to (season, date, time, court) if no match on teams.
+    """
+    # Primary match: same date + same teams (handles court/time changes)
+    game = Game.objects.filter(
+        season=game_data["season"],
+        date=game_data["date"],
+        home_team=game_data["home_team"],
+        away_team=game_data["away_team"],
+    ).first()
+    if game:
+        return game, False
+
+    # Secondary match: same date + time + court (handles opponent name changes)
+    game = Game.objects.filter(
+        season=game_data["season"],
+        date=game_data["date"],
+        time=game_data["time"],
+        court=game_data["court"],
+    ).first()
+    if game:
+        return game, False
+
+    # No match — create new
+    return Game.objects.create(**game_data), True
 
 
 def _ensure_task_slots(game: Game) -> int:
@@ -84,8 +175,10 @@ def _ensure_task_slots(game: Game) -> int:
             Task(game=game, task_type=TaskType.SECOND_24_OPERATOR, slot_number=1)
         )
 
-    # Referees — configurable per game
+    # Referees — 1 for X10/X14, 2 for others (configurable via game.required_referees)
     num_referees = int(game.required_referees)
+    if game.home_team.age_category in ("X10", "X14"):
+        num_referees = min(num_referees, 1)
     for slot in range(1, num_referees + 1):
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.REFEREE, slot_number=slot)
@@ -118,7 +211,11 @@ def _infer_age_category(team_name: str) -> str:
         else:
             # Non-numeric categories (VSE, MSE): allow optional trailing digits
             # (e.g., 'VSE1'), but not letters.
-            if re.search(rf"\b{re.escape(category)}\d*(?![a-zA-Z])", team_name, re.IGNORECASE):
+            if re.search(
+                rf"\b{re.escape(category)}\d*(?![a-zA-Z])",
+                team_name,
+                re.IGNORECASE,
+            ):
                 return category
     return Team.AgeCategory.X14  # sensible default
 
@@ -131,6 +228,9 @@ def import_members(
 
     Expected CSV columns:
     first_name, last_name, team, is_coach, referee_certification
+
+    Optional CSV columns:
+    coached_teams — comma-separated list of team names this player coaches
 
     referee_certification can be: NONE, T1, T2, T3, T4, T5, T6
     is_coach can be: True/False, yes/no, 1/0
@@ -161,6 +261,25 @@ def import_members(
         if cert not in Player.RefereeCertification.values:
             cert = Player.RefereeCertification.NONE
 
+        # Parse coached_teams if provided
+        coached_teams_raw = row.get("coached_teams", "").strip()
+        coached_team_names = [
+            t.strip()
+            for t in coached_teams_raw.split(",")
+            if t.strip()
+        ]
+        coached_teams = []
+        for ct_name in coached_team_names:
+            ct, ct_is_new = Team.objects.get_or_create(
+                name=ct_name,
+                defaults={
+                    "age_category": _infer_age_category(ct_name),
+                },
+            )
+            coached_teams.append(ct)
+            if ct_is_new:
+                created["teams"] += 1
+
         if upsert:
             player, is_new = Player.objects.get_or_create(
                 first_name=first_name,
@@ -171,6 +290,8 @@ def import_members(
                     "referee_certification": cert,
                 },
             )
+            if coached_teams:
+                player.coached_teams.set(coached_teams)
             if not is_new:
                 player.team = team
                 player.is_coach = is_coach
@@ -180,13 +301,15 @@ def import_members(
             else:
                 created["players_created"] += 1
         else:
-            Player.objects.create(
+            player = Player.objects.create(
                 first_name=first_name,
                 last_name=last_name,
                 team=team,
                 is_coach=is_coach,
                 referee_certification=cert,
             )
+            if coached_teams:
+                player.coached_teams.set(coached_teams)
             created["players_created"] += 1
 
     return created

@@ -1,6 +1,7 @@
 """Core models for the Hoops Planner."""
 
 from django.db import models
+from django.db.models import QuerySet
 
 
 class Team(models.Model):
@@ -50,6 +51,12 @@ class Player(models.Model):
         related_name="players",
     )
     is_coach = models.BooleanField(default=False)
+    coached_teams = models.ManyToManyField(
+        Team,
+        related_name="coaches",
+        blank=True,
+        help_text="Teams this player coaches (in addition to their own team).",
+    )
     referee_certification = models.CharField(
         max_length=10,
         choices=RefereeCertification.choices,
@@ -65,6 +72,13 @@ class Player(models.Model):
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def all_teams(self) -> QuerySet[Team]:
+        """Return all teams this player is responsible for (own + coached)."""
+        return Team.objects.filter(
+            models.Q(pk=self.team.pk) | models.Q(pk__in=self.coached_teams.all())
+        ).distinct()
 
 
 class Season(models.Model):
@@ -90,6 +104,10 @@ class Game(models.Model):
         COURT_1 = "1", "Court 1"
         COURT_2 = "2", "Court 2"
 
+    class Half(models.TextChoices):
+        FIRST = "1", "First Half"
+        SECOND = "2", "Second Half"
+
     season = models.ForeignKey(
         Season,
         on_delete=models.CASCADE,
@@ -112,13 +130,19 @@ class Game(models.Model):
         max_length=1,
         choices=Court.choices,
     )
+    half = models.CharField(
+        max_length=1,
+        choices=Half.choices,
+        default=Half.FIRST,
+        help_text="Which half of the season this game belongs to.",
+    )
     required_referees = models.PositiveIntegerField(
         default=2,
         help_text="Number of referees needed for this game's age category.",
     )
 
     class Meta:
-        ordering = ["date", "time", "court"]
+        ordering = ["half", "date", "time", "court"]
         # Prevent games on the same court at the same time within a season
         unique_together = ["season", "date", "time", "court"]
 

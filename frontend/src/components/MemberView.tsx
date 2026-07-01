@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTeams, getPlayers, updatePlayerCert } from "../api";
+import { getTeams, getPlayers, updatePlayerCert, updatePlayerCoachedTeams } from "../api";
 import type { Player } from "../types";
 
 // Age category display order (descending: oldest to youngest)
@@ -20,8 +20,11 @@ export function MemberView() {
     queryFn: getPlayers,
   });
 
-  const players = allPlayers.filter((pl) => !pl.is_coach);
+  // Show all players (including coaches) so coached teams can be edited/removed
+  const players = allPlayers;
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
+  const [editingCoachedTeams, setEditingCoachedTeams] = useState<number | null>(null);
+  const [tempCoachedTeams, setTempCoachedTeams] = useState<number[]>([]);
 
   const certMutation = useMutation({
     mutationFn: ({ playerId, cert }: { playerId: number; cert: string }) => updatePlayerCert(playerId, cert),
@@ -30,8 +33,40 @@ export function MemberView() {
     },
   });
 
+  const coachedTeamsMutation = useMutation({
+    mutationFn: ({ playerId, teamIds }: { playerId: number; teamIds: number[] }) =>
+      updatePlayerCoachedTeams(playerId, teamIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+    },
+  });
+
   const handleCertChange = (playerId: number, cert: string) => {
     certMutation.mutate({ playerId, cert });
+  };
+
+  const startEditCoachedTeams = (playerId: number, currentTeams: number[]) => {
+    setEditingCoachedTeams(playerId);
+    setTempCoachedTeams([...currentTeams]);
+  };
+
+  const saveCoachedTeams = (playerId: number) => {
+    coachedTeamsMutation.mutate({ playerId, teamIds: tempCoachedTeams });
+    setEditingCoachedTeams(null);
+  };
+
+  const cancelEditCoachedTeams = () => {
+    setEditingCoachedTeams(null);
+  };
+
+  const toggleTeamInCoached = (teamId: number) => {
+    setTempCoachedTeams((prev) =>
+      prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]
+    );
+  };
+
+  const getTeamName = (teamId: number): string => {
+    return teams.find((t) => t.id === teamId)?.name ?? "";
   };
 
   const getCertClass = (cert: string) => {
@@ -115,7 +150,44 @@ export function MemberView() {
                             .toUpperCase()}
                         </div>
                         <div className="roster-member-info">
-                          <span className="roster-member-name">{player.full_name}</span>
+                          <span className="roster-member-name">
+                            {player.full_name}
+                            {(player.is_coach || (player.coached_teams && player.coached_teams.length > 0)) && (
+                              <span className="coach-badge">Coach</span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="coached-teams-editor">
+                          <span className="coached-label">Coaches</span>
+                          {editingCoachedTeams === player.id ? (
+                            <div className="coached-teams-edit">
+                              <div className="coached-teams-checkboxes">
+                                {sortedTeams.map((t) => (
+                                  <label key={t.id} className="coached-team-checkbox">
+                                    <input
+                                      type="checkbox"
+                                      checked={tempCoachedTeams.includes(t.id)}
+                                      onChange={() => toggleTeamInCoached(t.id)}
+                                    />
+                                    {t.name}
+                                  </label>
+                                ))}
+                              </div>
+                              <div className="coached-teams-actions">
+                                <button className="btn-save" onClick={() => saveCoachedTeams(player.id)}>Save</button>
+                                <button className="btn-cancel" onClick={cancelEditCoachedTeams}>Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              className="coached-teams-display"
+                              onClick={() => startEditCoachedTeams(player.id, player.coached_teams || [])}
+                            >
+                              {(player.coached_teams || []).length === 0
+                                ? "None"
+                                : (player.coached_teams || []).map((id) => getTeamName(id)).join(", ")}
+                            </button>
+                          )}
                         </div>
                         <div className="cert-editor">
                           <span className="cert-label">Cert</span>

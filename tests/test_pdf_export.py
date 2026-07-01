@@ -6,10 +6,7 @@ import pytest
 
 from sixth_man.core.models import (
     Game,
-    Player,
-    Season,
     Task,
-    TaskAssignment,
     TaskType,
     Team,
 )

@@ -33,7 +33,8 @@ class TestImportSchedule:
 
     def test_creates_games(self):
         result = import_schedule(SCHEDULE_CSV, "2025-2026")
-        assert result["games"] == 3
+        assert result["games_created"] == 3
+        assert result["games_updated"] == 0
         assert Game.objects.count() == 3
 
     def test_creates_teams(self):
@@ -81,8 +82,9 @@ class TestImportSchedule:
     def test_idempotent_same_schedule(self):
         import_schedule(SCHEDULE_CSV, "2025-2026")
         result = import_schedule(SCHEDULE_CSV, "2025-2026")
-        # Second import deletes old games then re-creates them
-        assert result["games"] == 3
+        # Second import in smart mode: matches existing games, no new creates
+        assert result["games_created"] == 0
+        assert result["games_updated"] == 0
         assert Game.objects.count() == 3
 
 

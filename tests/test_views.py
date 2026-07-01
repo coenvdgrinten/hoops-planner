@@ -4,8 +4,6 @@ import datetime as dt
 
 import pytest
 
-from rest_framework.test import APIClient
-
 from sixth_man.core.models import (
     Game,
     Player,
@@ -15,11 +13,6 @@ from sixth_man.core.models import (
     TaskType,
     Team,
 )
-
-
-@pytest.fixture
-def api_client():
-    return APIClient()
 
 
 @pytest.mark.django_db

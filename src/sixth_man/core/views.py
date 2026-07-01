@@ -1,6 +1,6 @@
 """API views for the Hoops Planner."""
 
-from rest_framework import permissions, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -31,17 +31,19 @@ from sixth_man.core.serializers import (
 class SeasonViewSet(viewsets.ModelViewSet):
     queryset = Season.objects.all()
     serializer_class = SeasonSerializer
-    permission_classes = [permissions.AllowAny]
 
     @action(detail=False, methods=["post"])
     def import_schedule(self, request):
         """Import a schedule CSV for this season.
 
         Accepts either a file upload ('file' field) or raw text ('csv_text' field).
+        Optional: 'replace' (boolean, default False) — if True, deletes existing
+        games before importing; if False, matches and updates existing games.
         """
         csv_file = request.FILES.get("file")
         csv_text = request.data.get("csv_text", "")
         season_name = request.data.get("season_name", "2025-2026")
+        replace = request.data.get("replace", False)
 
         if csv_file:
             csv_text = csv_file.read().decode("utf-8-sig")
@@ -56,14 +58,15 @@ class SeasonViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        result = import_schedule(csv_text, season_name)
+        result = import_schedule(csv_text, season_name, replace=bool(replace))
         return Response(result, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["get"])
     def stats(self, request, pk=None):
         """Get aggregate statistics for a season."""
         season = self.get_object()
-        data = stats_logic.get_season_stats(season)
+        half = request.query_params.get("half")
+        data = stats_logic.get_season_stats(season, half=half)
         return Response(data)
 
     @action(detail=True, methods=["get"])
@@ -71,7 +74,8 @@ class SeasonViewSet(viewsets.ModelViewSet):
         """Get leaderboard of players by effective task count."""
         season = self.get_object()
         top = int(request.query_params.get("top", 10))
-        data = stats_logic.get_leaderboard(season, top=top)
+        half = request.query_params.get("half")
+        data = stats_logic.get_leaderboard(season, top=top, half=half)
         return Response(data)
 
     @action(detail=True, methods=["get"])
@@ -93,13 +97,11 @@ class SeasonViewSet(viewsets.ModelViewSet):
 class TeamViewSet(viewsets.ModelViewSet):
     queryset = Team.objects.all()
     serializer_class = TeamSerializer
-    permission_classes = [permissions.AllowAny]
 
 
 class PlayerViewSet(viewsets.ModelViewSet):
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
-    permission_classes = [permissions.AllowAny]
 
     @action(detail=False, methods=["post"])
     def import_members(self, request):
@@ -164,6 +166,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         """Get statistics for a specific player."""
         player = self.get_object()
         season_name = request.query_params.get("season")
+        half = request.query_params.get("half")
         season = None
         if season_name:
             try:
@@ -173,7 +176,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
                     {"detail": "Season not found."},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-        data = stats_logic.get_player_stats(player, season)
+        data = stats_logic.get_player_stats(player, season, half)
         return Response(data)
 
     @action(detail=True, methods=["get"])
@@ -187,7 +190,6 @@ class PlayerViewSet(viewsets.ModelViewSet):
 
 class GameViewSet(viewsets.ModelViewSet):
     serializer_class = GameSerializer
-    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
         qs = Game.objects.all()
@@ -208,7 +210,6 @@ class GameViewSet(viewsets.ModelViewSet):
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    permission_classes = [permissions.AllowAny]
 
     @action(detail=True, methods=["get"])
     def suggestions(self, request, pk=None):
@@ -266,4 +267,3 @@ class TaskViewSet(viewsets.ModelViewSet):
 class TaskAssignmentViewSet(viewsets.ModelViewSet):
     queryset = TaskAssignment.objects.all()
     serializer_class = TaskAssignmentSerializer
-    permission_classes = [permissions.AllowAny]

@@ -1,10 +1,12 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { SeasonSelector } from "./components/SeasonSelector";
 import { Planner } from "./components/Planner";
 import { Statistics } from "./components/Statistics";
 import { MemberView } from "./components/MemberView";
 import { ImportModal } from "./components/ImportModal";
 import { AssignmentPanel } from "./components/AssignmentPanel";
+import { Login } from "./components/Login";
+import { clearAuth, getUser, getToken } from "./api";
 import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
 import "./App.css";
@@ -12,12 +14,41 @@ import "./App.css";
 type View = "planner" | "statistics" | "members" | "settings";
 
 export function App() {
+  const [authenticated, setAuthenticated] = useState(!!getToken());
+  const [user, setUser] = useState(getUser());
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [importType, setImportType] = useState<"schedule" | "members" | null>(null);
   const [currentView, setCurrentView] = useState<View>("planner");
   const [selectedTask, setSelectedTask] = useState<
     { task: TaskWithAssignments; gameId: number } | null
   >(null);
+
+  // Listen for forced logout (401 from API)
+  useEffect(() => {
+    const handleLogout = () => {
+      setAuthenticated(false);
+      setUser(null);
+    };
+    window.addEventListener("auth:logout", handleLogout);
+    return () => window.removeEventListener("auth:logout", handleLogout);
+  }, []);
+
+  // Close assignment panel when switching views
+  const handleViewChange = useCallback((view: View) => {
+    setCurrentView(view);
+    setSelectedTask(null);
+  }, []);
+
+  const handleLogin = useCallback(() => {
+    setAuthenticated(true);
+    setUser(getUser());
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    clearAuth();
+    setAuthenticated(false);
+    setUser(null);
+  }, []);
 
   const handleSelectTask = useCallback(
     (task: TaskWithAssignments, gameId: number) => {
@@ -29,6 +60,10 @@ export function App() {
   const handleClosePanel = useCallback(() => {
     setSelectedTask(null);
   }, []);
+
+  if (!authenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="app">
@@ -57,6 +92,12 @@ export function App() {
             onSelect={setSelectedSeason}
             selectedId={selectedSeason?.id}
           />
+          <span className="user-badge" title={user?.username}>
+            {user?.username}
+          </span>
+          <button className="icon-btn logout-btn" onClick={handleLogout} title="Logout">
+            Logout
+          </button>
         </div>
       </header>
 
@@ -66,21 +107,21 @@ export function App() {
           <nav>
             <button
               className={currentView === "planner" ? "active" : ""}
-              onClick={() => setCurrentView("planner")}
+              onClick={() => handleViewChange("planner")}
             >
               <span className="nav-icon">📅</span>
               Schedule Planner
             </button>
             <button
               className={currentView === "members" ? "active" : ""}
-              onClick={() => setCurrentView("members")}
+              onClick={() => handleViewChange("members")}
             >
               <span className="nav-icon">👥</span>
               Member Roster
             </button>
             <button
               className={currentView === "statistics" ? "active" : ""}
-              onClick={() => setCurrentView("statistics")}
+              onClick={() => handleViewChange("statistics")}
             >
               <span className="nav-icon">📊</span>
               Statistics
