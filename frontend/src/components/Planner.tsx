@@ -13,6 +13,7 @@ interface Props {
 
 export function Planner({ season, onSelectTask }: Props) {
   const [editingGame, setEditingGame] = useState<number | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: games = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
@@ -36,9 +37,13 @@ export function Planner({ season, onSelectTask }: Props) {
     setEditingGame(null);
   }, []);
 
+  const handleCreateClose = useCallback(() => {
+    setShowCreateModal(false);
+  }, []);
+
   if (isLoading) return <p>Loading games...</p>;
   if (error) return <p className="error">Error: {error.message}</p>;
-  if (games.length === 0) return <p>No games in this season.</p>;
+  const hasGames = games.length > 0;
 
   // Group games by half, then by date, then by court
   const grouped: Record<string, Record<string, Record<string, Game[]>>> = {};
@@ -63,12 +68,18 @@ export function Planner({ season, onSelectTask }: Props) {
   return (
     <div className="planner">
       <div className="planner-header">
-        <h2>Game Schedule</h2>
-        <p className="planner-subtitle">
-          Assign members to standard tasks like refereeing, scoring, and timing.
-        </p>
+        <div>
+          <h2>Game Schedule</h2>
+          <p className="planner-subtitle">
+            Assign members to standard tasks like refereeing, scoring, and timing.
+          </p>
+        </div>
+        <button className="btn-add-game" onClick={() => setShowCreateModal(true)}>
+          + Add Game
+        </button>
       </div>
-      <div className="games-by-date">
+      {hasGames ? (
+        <div className="games-by-date">
         {Object.entries(grouped).map(([halfKey, dates]) => {
           const halfLabel = halfKey === "1" ? "First Half" : "Second Half";
           return (
@@ -120,12 +131,23 @@ export function Planner({ season, onSelectTask }: Props) {
             </div>
           );
         })}
-      </div>
+        </div>
+      ) : (
+        <p>No games in this season yet. Click "+ Add Game" to create one.</p>
+      )}
       {editingGameData && (
         <GameEditModal
           game={editingGameData}
+          seasonId={season.id}
           onClose={handleEditClose}
           onSuccess={handleEditClose}
+        />
+      )}
+      {showCreateModal && (
+        <GameEditModal
+          seasonId={season.id}
+          onClose={handleCreateClose}
+          onSuccess={handleCreateClose}
         />
       )}
     </div>

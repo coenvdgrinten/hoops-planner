@@ -140,6 +140,9 @@ body {
 
 .planner-header {
   margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .planner-header h2 {
@@ -147,6 +150,22 @@ body {
   font-weight: 700;
   color: #1a1a2e;
   margin-bottom: 4px;
+}
+
+.btn-add-game {
+  padding: 8px 16px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-add-game:hover {
+  background: #4f46e5;
 }
 
 .planner-subtitle {

@@ -141,6 +141,21 @@ export function getGames(season: number) {
   return request<Game[]>(`/games/?season=${season}`);
 }
 
+export function createGame(data: {
+  season: number;
+  home_team_id: number;
+  away_team: string;
+  date: string;
+  time: string;
+  court: string;
+  half: string;
+}) {
+  return request<Game>("/games/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 export function updateGame(gameId: number, data: Partial<Game>) {
   return request<Game>(`/games/${gameId}/`, {
     method: "PATCH",

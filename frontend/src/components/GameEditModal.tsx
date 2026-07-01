@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { updateGame, deleteGame, getTeams } from "../api";
+import { createGame, updateGame, deleteGame, getTeams } from "../api";
 import type { Game } from "../types";
 
 interface Props {
-  game: Game;
+  game?: Game; // Optional — if missing, operate in create mode
+  seasonId: number;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function GameEditModal({ game, onClose, onSuccess }: Props) {
+export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
   const queryClient = useQueryClient();
-  const [date, setDate] = useState(game.date);
-  const [time, setTime] = useState(game.time);
-  const [court, setCourt] = useState(game.court);
-  const [half, setHalf] = useState(game.half || "1");
-  const [awayTeam, setAwayTeam] = useState(game.away_team);
+  const isCreateMode = !game;
+
+  const [date, setDate] = useState(game?.date || "");
+  const [time, setTime] = useState(game?.time || "");
+  const [court, setCourt] = useState(game?.court || "1");
+  const [half, setHalf] = useState(game?.half || "1");
+  const [homeTeamId, setHomeTeamId] = useState(game?.home_team.id || 0);
+  const [awayTeam, setAwayTeam] = useState(game?.away_team || "");
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -32,9 +36,29 @@ export function GameEditModal({ game, onClose, onSuccess }: Props) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
+  const createMutation = useMutation({
+    mutationFn: () =>
+      createGame({
+        season: seasonId,
+        home_team_id: homeTeamId,
+        away_team: awayTeam,
+        date,
+        time,
+        court,
+        half,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["games"] });
+      onSuccess();
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : "Create failed");
+    },
+  });
+
   const updateMutation = useMutation({
     mutationFn: () =>
-      updateGame(game.id, {
+      updateGame(game!.id, {
         date,
         time,
         court,
@@ -51,7 +75,7 @@ export function GameEditModal({ game, onClose, onSuccess }: Props) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteGame(game.id),
+    mutationFn: () => deleteGame(game!.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games"] });
       onSuccess();
@@ -64,20 +88,41 @@ export function GameEditModal({ game, onClose, onSuccess }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    updateMutation.mutate();
+    if (isCreateMode) {
+      createMutation.mutate();
+    } else {
+      updateMutation.mutate();
+    }
   };
 
   const handleDelete = () => {
     deleteMutation.mutate();
   };
 
-  const isPending = updateMutation.isPending || deleteMutation.isPending;
+  const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div role="dialog" className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Edit Game</h2>
+        <h2>{isCreateMode ? "Add Game" : "Edit Game"}</h2>
         <form onSubmit={handleSubmit}>
+          {isCreateMode && (
+            <div className="form-group">
+              <label>Home Team:</label>
+              <select
+                value={homeTeamId}
+                onChange={(e) => setHomeTeamId(Number(e.target.value))}
+                required
+              >
+                <option value={0}>Select a team...</option>
+                {teams.map((t: { id: number; name: string }) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="form-group">
             <label>Date:</label>
             <input
@@ -119,22 +164,22 @@ export function GameEditModal({ game, onClose, onSuccess }: Props) {
               </select>
             </div>
           </div>
-          <div className="form-group">
-            <label>Home Team:</label>
-            <select
-              value={game.home_team.id}
-              onChange={() => {
-                // Note: home_team_id is write-only in serializer
-              }}
-              required
-            >
-              {teams.map((t: { id: number; name: string }) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isCreateMode && (
+            <div className="form-group">
+              <label>Home Team:</label>
+              <select
+                value={game!.home_team.id}
+                onChange={() => {}}
+                required
+              >
+                {teams.map((t: { id: number; name: string }) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="form-group">
             <label>Away Team:</label>
             <input
@@ -146,7 +191,7 @@ export function GameEditModal({ game, onClose, onSuccess }: Props) {
           </div>
           {error && <p className="error">{error}</p>}
           <div className="modal-actions">
-            {!showDeleteConfirm ? (
+            {!isCreateMode && !showDeleteConfirm && (
               <button
                 type="button"
                 className="btn-delete"
@@ -155,7 +200,8 @@ export function GameEditModal({ game, onClose, onSuccess }: Props) {
               >
                 Delete
               </button>
-            ) : (
+            )}
+            {!isCreateMode && showDeleteConfirm && (
               <span className="delete-confirm">
                 Really delete?{" "}
                 <button type="button" onClick={handleDelete} disabled={isPending}>
@@ -170,7 +216,13 @@ export function GameEditModal({ game, onClose, onSuccess }: Props) {
               Cancel
             </button>
             <button type="submit" disabled={isPending}>
-              {updateMutation.isPending ? "Saving..." : "Save"}
+              {isCreateMode
+                ? createMutation.isPending
+                  ? "Creating..."
+                  : "Create"
+                : updateMutation.isPending
+                  ? "Saving..."
+                  : "Save"}
             </button>
           </div>
         </form>

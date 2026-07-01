@@ -198,6 +198,13 @@ class GameViewSet(viewsets.ModelViewSet):
             qs = qs.filter(season_id=season)
         return qs
 
+    def perform_create(self, serializer):
+        game = serializer.save()
+        # Auto-create task slots for new games
+        from sixth_man.core.importers import _ensure_task_slots
+
+        _ensure_task_slots(game)
+
     @action(detail=True, methods=["get"])
     def tasks_with_assignments(self, request, pk=None):
         """Get all tasks for this game with nested assignments."""
