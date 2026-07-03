@@ -1,4 +1,4 @@
-"""Serializers for the Hoops Planner API."""
+"""Serializers for the Sixth Man API."""
 
 from rest_framework import serializers
 

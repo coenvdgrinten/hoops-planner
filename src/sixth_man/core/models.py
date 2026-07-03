@@ -1,4 +1,4 @@
-"""Core models for the Hoops Planner."""
+"""Core models for Sixth Man."""
 
 from django.db import models
 from django.db.models import QuerySet

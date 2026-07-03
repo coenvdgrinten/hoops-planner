@@ -50,7 +50,7 @@ export function Login({ onLogin }: Props) {
       <div className="auth-card">
         <div className="auth-header">
           <img src="/logo.png" alt="BC Vido" className="auth-logo" />
-          <h2>Hoops Planner</h2>
+          <h2>Sixth Man</h2>
           <p className="auth-subtitle">BC Vido — Task Planning</p>
         </div>
 

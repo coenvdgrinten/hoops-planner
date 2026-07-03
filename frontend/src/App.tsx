@@ -71,7 +71,7 @@ export function App() {
       <header className="top-bar">
         <div className="top-bar-left">
           <img src="/logo.png" alt="BC Vido" className="logo-img" />
-          <span className="brand">Hoops Planner <span className="brand-divider">|</span> BC Vido</span>
+          <span className="brand">Sixth Man <span className="brand-divider">|</span> BC Vido</span>
         </div>
         <div className="top-bar-right">
           <button
@@ -146,7 +146,7 @@ export function App() {
             <MemberView />
           ) : (
             <div className="empty-state">
-              <h2>Welcome to Hoops Planner</h2>
+              <h2>Welcome to Sixth Man</h2>
               <p>Select a season to view the planner.</p>
               <p>Start by importing a schedule and member list.</p>
             </div>

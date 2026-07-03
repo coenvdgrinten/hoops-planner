@@ -1,1 +1,1 @@
-"""Sixth Man - Hoops Planner backend."""
+"""Sixth Man backend."""

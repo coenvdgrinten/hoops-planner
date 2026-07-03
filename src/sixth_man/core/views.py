@@ -1,4 +1,4 @@
-"""API views for the Hoops Planner."""
+"""API views for Sixth Man."""
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action

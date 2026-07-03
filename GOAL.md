@@ -1,4 +1,4 @@
-Hoops Planner is a planning app for the tasks we do at our local basketball club 'BC Vido'. The app provides the planner of tasks with a nice UI that makes the usual puzzle of figuring who has to do which task a lot easier, and automatically tracks statistics of the people doing the tasks (amount of tasks done, etc.). The planner follows a set of rules so that invalid combinations are impossible.
+Sixth Man is a planning app for the tasks we do at our local basketball club 'BC Vido'. The app provides the planner of tasks with a nice UI that makes the usual puzzle of figuring who has to do which task a lot easier, and automatically tracks statistics of the people doing the tasks (amount of tasks done, etc.). The planner follows a set of rules so that invalid combinations are impossible.
 
 To populate the app, the planner can import the season's game schedules and club member lists via a CSV/Excel upload, with the long-term goal of integrating directly with the Sportlink/NBB API to automate schedule synchronization.
 
