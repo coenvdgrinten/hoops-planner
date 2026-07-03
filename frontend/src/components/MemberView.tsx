@@ -6,7 +6,7 @@ import type { Player } from "../types";
 // Age category display order (descending: oldest to youngest)
 const CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X10"];
 
-const CERT_OPTIONS = ["NONE", "F", "SENIOR"];
+const CERT_OPTIONS = ["NONE", "T1", "T2", "T3", "T4", "T5", "T6", "F", "SENIOR"];
 
 export function MemberView() {
   const queryClient = useQueryClient();
