@@ -146,13 +146,17 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             )
 
         # Player must not be assigned to another task at the same date/time
-        if TaskAssignment.objects.filter(
-            player=player,
-            task__game__date=task.game.date,
-            task__game__time=task.game.time,
-        ).exclude(
-            task__game=task.game,
-        ).exists():
+        if (
+            TaskAssignment.objects.filter(
+                player=player,
+                task__game__date=task.game.date,
+                task__game__time=task.game.time,
+            )
+            .exclude(
+                task__game=task.game,
+            )
+            .exists()
+        ):
             raise serializers.ValidationError(
                 "This player is already assigned to another task at this time."
             )

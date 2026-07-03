@@ -52,7 +52,7 @@ class SeasonViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     "detail": (
-                        "Provide a 'file' field or 'csv_text' " "field with the CSV.",
+                        "Provide a 'file' field or 'csv_text' field with the CSV.",
                     ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
@@ -120,7 +120,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     "detail": (
-                        "Provide a 'file' field or 'csv_text' " "field with the CSV.",
+                        "Provide a 'file' field or 'csv_text' field with the CSV.",
                     ),
                 },
                 status=status.HTTP_400_BAD_REQUEST,

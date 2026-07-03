@@ -34,9 +34,9 @@ def get_player_stats(
 
     # Pre-fetch all dates any of the player's teams has a home game.
     team_game_dates = set(
-        Game.objects.filter(
-            home_team__in=player.all_teams
-        ).values_list("date", flat=True)
+        Game.objects.filter(home_team__in=player.all_teams).values_list(
+            "date", flat=True
+        )
     )
 
     total = 0
@@ -186,9 +186,13 @@ def get_leaderboard(
     Returns:
         List of dicts with player info and stats, sorted by effective_tasks desc.
     """
-    players = Player.objects.exclude(
-        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
-    ).distinct().select_related("team")
+    players = (
+        Player.objects.exclude(
+            models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
+        )
+        .distinct()
+        .select_related("team")
+    )
     leaderboard: list[dict[str, Any]] = []
 
     for player in players:

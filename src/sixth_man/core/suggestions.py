@@ -98,9 +98,13 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     """
     from sixth_man.core.eligibility import get_ineligibility_reason, is_eligible
 
-    all_players = Player.objects.exclude(
-        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
-    ).distinct().select_related("team")
+    all_players = (
+        Player.objects.exclude(
+            models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
+        )
+        .distinct()
+        .select_related("team")
+    )
     # Teams ordered by custom category order (oldest first), then name.
     all_teams = Team.objects.all().order_by("name")
     all_teams = sorted(
@@ -212,9 +216,9 @@ def _effective_task_count(player: Player) -> float:
     assignments = player.assignments.select_related("task__game").all()
     # Pre-fetch all dates any of the player's teams has a home game.
     team_game_dates = set(
-        Game.objects.filter(
-            home_team__in=player.all_teams
-        ).values_list("date", flat=True)
+        Game.objects.filter(home_team__in=player.all_teams).values_list(
+            "date", flat=True
+        )
     )
     total = 0.0
     for assignment in assignments:

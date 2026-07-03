@@ -88,13 +88,17 @@ def _already_assigned_at_same_time(player: Player, game: Game) -> bool:
     Checks if the player has any task assignment for a game that plays at
     the exact same date/time (different game, same slot).
     """
-    return TaskAssignment.objects.filter(
-        player=player,
-        task__game__date=game.date,
-        task__game__time=game.time,
-    ).exclude(
-        task__game=game,
-    ).exists()
+    return (
+        TaskAssignment.objects.filter(
+            player=player,
+            task__game__date=game.date,
+            task__game__time=game.time,
+        )
+        .exclude(
+            task__game=game,
+        )
+        .exists()
+    )
 
 
 def _team_has_home_game_at_same_time(player: Player, game: Game) -> bool:
@@ -157,7 +161,7 @@ def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool
 
 def _player_lacks_required_referee_certification(player: Player, game: Game) -> bool:
     """Player lacks the required referee certification for the game level.
-    
+
     Rules:
     - Must have at least an F-diploma to referee
     - SENIOR certification qualifies for any game

@@ -262,9 +262,7 @@ def import_members(
         # Parse coached_teams if provided
         coached_teams_raw = row.get("coached_teams", "").strip()
         coached_team_names = [
-            t.strip()
-            for t in coached_teams_raw.split(",")
-            if t.strip()
+            t.strip() for t in coached_teams_raw.split(",") if t.strip()
         ]
         coached_teams = []
         for ct_name in coached_team_names:
