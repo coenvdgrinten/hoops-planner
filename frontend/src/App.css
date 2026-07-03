@@ -438,6 +438,14 @@ body {
   background: #f5f6f8;
 }
 
+.task-chip.optional .chip-label {
+  color: #a0a4b8;
+}
+
+.task-chip.optional .chip-empty {
+  color: #b0b4c8;
+}
+
 .task-chip.filled {
   border-color: #d1fae5;
   background: #f0fdf4;
