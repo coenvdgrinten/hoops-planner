@@ -439,11 +439,11 @@ body {
 }
 
 .task-chip.optional .chip-label {
-  color: #a0a4b8;
+  color: #1a1a2e;
 }
 
 .task-chip.optional .chip-empty {
-  color: #b0b4c8;
+  color: #4a4d5e;
 }
 
 .task-chip.filled {
