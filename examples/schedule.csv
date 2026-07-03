@@ -1,31 +1,33 @@
 date,time,court,home_team,away_team
-2025-10-01,14:00,1,Vido X10-1,BC Roeselare
-2025-10-01,14:00,2,Vido X14-1,Achilles '71
-2025-10-01,15:30,1,Vido X14-2,Trajanum
-2025-10-01,15:30,2,Vido X16-1,Almonte
-2025-10-01,17:00,1,Vido VSE1,Attacus
-2025-10-01,17:00,2,Vido MSE1,BC Ieper
-2025-10-01,19:00,1,Vido X10-1,BC Knokke
-2025-10-01,19:00,2,Vido X14-1,BC Tongeren
-2025-10-15,14:00,1,Vido X10-1,Jumping Giants
-2025-10-15,14:00,2,Vido X14-1,Tantalus
-2025-10-15,15:30,1,Vido X14-2,BC Oostende
-2025-10-15,15:30,2,Vido X16-1,Rush
-2025-10-15,17:00,1,Vido VSE1,Achilles '71
-2025-10-15,17:00,2,Vido MSE1,Belair
-2025-10-15,19:00,1,Vido X10-1,BC Roeselare
-2025-10-15,19:00,2,Vido X14-1,Trajanum
-2025-10-29,14:00,1,Vido X14-2,BC Knokke
-2025-10-29,14:00,2,Vido X16-1,BC Tongeren
-2025-10-29,15:30,1,Vido X10-1,Almonte
-2025-10-29,15:30,2,Vido X14-1,BC Roeselare
-2025-10-29,17:00,1,Vido VSE1,Belair
-2025-10-29,17:00,2,Vido MSE1,Trajanum
-2025-10-29,19:00,1,Vido X14-2,Jumping Giants
-2025-10-29,19:00,2,Vido X16-1,Tantalus
-2025-11-12,14:00,1,Vido X10-1,BC Oostende
-2025-11-12,14:00,2,Vido X14-1,Rush
-2025-11-12,16:00,1,Vido X14-2,Achilles '71
-2025-11-12,16:00,2,Vido X16-1,Belair
-2025-11-12,18:00,1,Vido VSE1,BC Roeselare
-2025-11-12,18:00,2,Vido MSE1,BC Ieper
+2025-10-01,13:00,1,Vido X10-1,BC Roeselare
+2025-10-01,13:00,2,Vido X14-1,Achilles '71
+2025-10-01,14:30,1,Vido X14-2,Trajanum
+2025-10-01,14:30,2,Vido X16-1,Almonte
+2025-10-01,16:00,1,Vido VSE1,Attacus
+2025-10-01,16:00,2,Vido X10-1,BC Knokke
+2025-10-01,17:30,1,Vido MSE1,BC Ieper
+2025-10-01,17:30,2,Vido X14-1,BC Tongeren
+2025-10-15,13:00,1,Vido X10-1,Jumping Giants
+2025-10-15,13:00,2,Vido X14-1,Tantalus
+2025-10-15,14:30,1,Vido X14-2,BC Oostende
+2025-10-15,14:30,2,Vido X16-1,Rush
+2025-10-15,16:00,1,Vido VSE1,Achilles '71
+2025-10-15,16:00,2,Vido X10-1,BC Roeselare
+2025-10-15,17:30,1,Vido MSE1,Belair
+2025-10-15,17:30,2,Vido X14-1,Trajanum
+2025-10-29,13:00,1,Vido X14-2,BC Knokke
+2025-10-29,13:00,2,Vido X16-1,BC Tongeren
+2025-10-29,14:30,1,Vido X10-1,Almonte
+2025-10-29,14:30,2,Vido X14-1,BC Roeselare
+2025-10-29,16:00,1,Vido VSE1,Belair
+2025-10-29,16:00,2,Vido X14-2,Jumping Giants
+2025-10-29,17:30,1,Vido MSE1,Trajanum
+2025-10-29,17:30,2,Vido X16-1,Tantalus
+2025-11-12,13:00,1,Vido X10-1,BC Oostende
+2025-11-12,13:00,2,Vido X14-1,Rush
+2025-11-12,14:30,1,Vido X14-2,Achilles '71
+2025-11-12,14:30,2,Vido X16-1,Belair
+2025-11-12,16:00,1,Vido VSE1,BC Roeselare
+2025-11-12,16:00,2,Vido X10-1,BC Knokke
+2025-11-12,17:30,1,Vido MSE1,BC Ieper
+2025-11-12,17:30,2,Vido X14-1,BC Tongeren
