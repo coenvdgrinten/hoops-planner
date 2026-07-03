@@ -175,11 +175,9 @@ def _ensure_task_slots(game: Game) -> int:
             Task(game=game, task_type=TaskType.SECOND_24_OPERATOR, slot_number=1)
         )
 
-    # Referees — 1 for X10/X14, 2 for others (configurable via game.required_referees)
-    num_referees = int(game.required_referees)
-    if game.home_team.age_category in ("X10", "X14"):
-        num_referees = min(num_referees, 1)
-    for slot in range(1, num_referees + 1):
+    # Referees — always create 2 slots
+    # For X10/X14, the second ref is optional (handled on the frontend)
+    for slot in range(1, int(game.required_referees) + 1):
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.REFEREE, slot_number=slot)
         )
