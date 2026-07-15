@@ -130,7 +130,7 @@ export function updatePlayerCoachedTeams(playerId: number, teamIds: number[]) {
 }
 
 export function importMembers(csvText: string) {
-  return request<{ players: number; teams: number }>("/players/import_members/", {
+  return request<{ teams: number; players_created: number; players_updated: number }>("/players/import_members/", {
     method: "POST",
     body: JSON.stringify({ csv_text: csvText, upsert: true }),
   });
@@ -156,7 +156,17 @@ export function createGame(data: {
   });
 }
 
-export function updateGame(gameId: number, data: Partial<Game>) {
+export function updateGame(
+  gameId: number,
+  data: Partial<{
+    home_team_id: number;
+    away_team: string;
+    date: string;
+    time: string;
+    court: string;
+    half: string;
+  }>,
+) {
   return request<Game>(`/games/${gameId}/`, {
     method: "PATCH",
     body: JSON.stringify(data),

@@ -61,11 +61,14 @@ def get_eligible_players(task: Task) -> list[Player]:
 
 
 def get_eligible_players_with_indicator(task: Task) -> list[tuple[Player, bool]]:
-    """Return all players with an eligibility indicator.
+    """Return all eligible players with an eligibility indicator.
 
-    Each tuple is (player, is_eligible). Includes coaches for display purposes.
+    Each tuple is (player, is_eligible). Coaches are excluded, matching the
+    behaviour of ``get_eligible_players`` (coaches are never assignable).
     """
-    all_players = Player.objects.all()
+    all_players = Player.objects.exclude(
+        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
+    ).distinct()
     return [(p, is_eligible(p, task)) for p in all_players]
 
 

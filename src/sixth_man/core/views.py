@@ -1,5 +1,7 @@
 """API views for Sixth Man."""
 
+from django.http import HttpResponse
+
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -83,7 +85,7 @@ class SeasonViewSet(viewsets.ModelViewSet):
         """Export the task schedule as a PDF."""
         season = self.get_object()
         pdf_bytes = export_schedule_pdf(season)
-        return Response(
+        return HttpResponse(
             pdf_bytes,
             content_type="application/pdf",
             headers={

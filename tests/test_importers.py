@@ -117,3 +117,75 @@ class TestImportMembers:
         result = import_members(MEMBERS_CSV)
         assert result["players_created"] == 0
         assert result["players_updated"] == 4
+
+
+@pytest.mark.django_db
+class TestImportScheduleGameType:
+    def test_defaults_to_home(self):
+        import_schedule(SCHEDULE_CSV, "2025-2026")
+        assert Game.objects.filter(game_type=Game.GameType.HOME).count() == 3
+        assert Game.objects.filter(game_type=Game.GameType.AWAY).count() == 0
+
+    def test_honors_away_column(self):
+        csv_text = (
+            "date,time,court,home_team,away_team,game_type\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,AWAY\n"
+            "2025-10-01,16:00,1,Vido X10-1,Jumping Giants,HOME\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        away = Game.objects.get(away_team="Achilles '71")
+        assert away.game_type == Game.GameType.AWAY
+        home = Game.objects.get(away_team="Jumping Giants")
+        assert home.game_type == Game.GameType.HOME
+
+    def test_case_insensitive_game_type(self):
+        csv_text = (
+            "date,time,court,home_team,away_team,game_type\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,away\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        assert (
+            Game.objects.get(away_team="Achilles '71").game_type == Game.GameType.AWAY
+        )
+
+    def test_invalid_game_type_defaults_to_home(self):
+        csv_text = (
+            "date,time,court,home_team,away_team,game_type\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,NEUTRAL\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        assert (
+            Game.objects.get(away_team="Achilles '71").game_type == Game.GameType.HOME
+        )
+
+    def test_smart_update_changes_game_type(self):
+        csv_text = (
+            "date,time,court,home_team,away_team,game_type\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,HOME\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game = Game.objects.get(away_team="Achilles '71")
+        assert game.game_type == Game.GameType.HOME
+
+        # Re-import the same fixture as an away game — should update, not duplicate
+        csv_text_away = (
+            "date,time,court,home_team,away_team,game_type\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,AWAY\n"
+        )
+        result = import_schedule(csv_text_away, "2025-2026")
+        assert result["games_created"] == 0
+        assert result["games_updated"] == 1
+        assert Game.objects.count() == 1
+        assert (
+            Game.objects.get(away_team="Achilles '71").game_type == Game.GameType.AWAY
+        )
+
+    def test_away_and_home_same_teams_distinct(self):
+        """An away and a home fixture with the same teams/date are distinct rows."""
+        csv_text = (
+            "date,time,court,home_team,away_team,game_type\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,HOME\n"
+            "2025-10-01,14:00,2,Vido X14-1,Achilles '71,AWAY\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        assert Game.objects.count() == 2

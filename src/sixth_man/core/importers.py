@@ -29,6 +29,9 @@ def import_schedule(
 
     Optional CSV columns:
     half — 1 or 2 (defaults to 1)
+    game_type — "HOME" or "AWAY" (defaults to "HOME"). For away games the
+        home_team column still names the team that plays at home (the club's
+        opponent), while away_team names the club's travelling team.
 
     Parameters
     ----------
@@ -71,6 +74,14 @@ def import_schedule(
         half_raw = row.get("half", "").strip()
         half_value = half_raw if half_raw in ("1", "2") else Game.Half.FIRST
 
+        # Parse optional game_type column (HOME or AWAY)
+        game_type_raw = row.get("game_type", "").strip().upper()
+        game_type_value = (
+            game_type_raw
+            if game_type_raw in Game.GameType.values
+            else Game.GameType.HOME
+        )
+
         # Build game data from CSV
         game_data = {
             "season": season,
@@ -80,7 +91,7 @@ def import_schedule(
             "time": row["time"].strip(),
             "court": row["court"].strip(),
             "half": half_value,
-            "game_type": Game.GameType.HOME,
+            "game_type": game_type_value,
         }
 
         if replace:
@@ -104,9 +115,9 @@ def import_schedule(
             else:
                 # Update changed fields. Only check string/int fields to avoid
                 # type mismatches (TimeField stores datetime.time, not str).
-                # Skip fields used for matching (season, date, home_team, game_type).
+                # Skip fields used for matching (season, date, home_team).
                 changed = False
-                updatable = ("court", "half", "away_team")
+                updatable = ("court", "half", "away_team", "game_type")
                 for key in updatable:
                     value = game_data[key]
                     if getattr(game, key) != value:
@@ -132,12 +143,13 @@ def _match_or_create_game(game_data: dict[str, Any]) -> tuple[Game, bool]:
     cases where court or time changed but it's the same fixture.
     Falls back to (season, date, time, court) if no match on teams.
     """
-    # Primary match: same date + same teams (handles court/time changes)
+    # Primary match: same date + same teams + same type (handles court/time changes)
     game = Game.objects.filter(
         season=game_data["season"],
         date=game_data["date"],
         home_team=game_data["home_team"],
         away_team=game_data["away_team"],
+        game_type=game_data["game_type"],
     ).first()
     if game:
         return game, False

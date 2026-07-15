@@ -420,15 +420,35 @@ class TestRefereeCertificationRule:
 
 
 @pytest.mark.django_db
+class TestCoachConsistency:
+    def test_indicator_excludes_coaches_like_get_eligible_players(self, coach, task):
+        """The indicator list must exclude coaches, matching get_eligible_players."""
+        from sixth_man.core.eligibility import get_eligible_players
+
+        indicator_players = {p.id for p, _ in get_eligible_players_with_indicator(task)}
+        eligible_players = {p.id for p in get_eligible_players(task)}
+
+        assert coach.id not in indicator_players
+        assert indicator_players == eligible_players
+
+    def test_indicator_marks_coach_ineligible(self, coach, task):
+        results = get_eligible_players_with_indicator(task)
+        coach_entry = next((p for p, e in results if p.id == coach.id), None)
+        assert coach_entry is None
+
+
+@pytest.mark.django_db
 class TestCoachExemption:
     def test_coach_not_in_eligible_list(self, coach, task):
         eligible = get_eligible_players(task)
         assert coach not in eligible
 
-    def test_coach_in_indicator_list(self, coach, task):
+    def test_coach_not_in_indicator_list(self, coach, task):
+        # The indicator list must be consistent with get_eligible_players,
+        # which excludes coaches.
         results = get_eligible_players_with_indicator(task)
         names = [p.full_name for p, _ in results]
-        assert coach.full_name in names
+        assert coach.full_name not in names
 
 
 @pytest.mark.django_db

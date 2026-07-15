@@ -59,6 +59,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
   const updateMutation = useMutation({
     mutationFn: () =>
       updateGame(game!.id, {
+        home_team_id: homeTeamId,
         date,
         time,
         court,
@@ -168,10 +169,11 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
             <div className="form-group">
               <label>Home Team:</label>
               <select
-                value={game!.home_team.id}
-                onChange={() => {}}
+                value={homeTeamId}
+                onChange={(e) => setHomeTeamId(Number(e.target.value))}
                 required
               >
+                <option value={0}>Select a team...</option>
                 {teams.map((t: { id: number; name: string }) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
