@@ -70,7 +70,7 @@ export function GameCard({
       <div className={styles["game-card-header"]}>
         <div className={styles["game-card-left"]}>
           <div className={styles["game-badges"]}>
-            <span className={styles["age-badge"]}>{ageBadge}</span>
+            <span data-testid="age-badge" className={styles["age-badge"]}>{ageBadge}</span>
             {half && <span className={styles["half-badge"]}>H{half}</span>}
           </div>
           <div className={styles["game-teams"]}>
@@ -110,6 +110,7 @@ export function GameCard({
 
           return (
             <div
+              data-testid={`task-chip-${task.id}`}
               key={task.id}
               className={`${styles["task-chip"]} ${
                 assigned.length === 0

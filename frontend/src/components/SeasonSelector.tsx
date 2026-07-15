@@ -117,19 +117,21 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
   return (
     <div className={styles["season-dropdown"]} ref={containerRef}>
       <button
+        data-testid="season-dropdown-toggle"
         className={`${styles["season-dropdown-toggle"]} ${open ? styles.open : ""}`}
         onClick={() => setOpen(!open)}
       >
-        <span className={styles["season-dropdown-value"]}>
+        <span data-testid="season-dropdown-value" className={styles["season-dropdown-value"]}>
           {selectedSeason ? selectedSeason.name : "Select season"}
         </span>
         <span className={`${styles["season-chevron"]} ${open ? styles.open : ""}`}>▾</span>
       </button>
       {open && (
-        <div className={styles["season-dropdown-menu"]}>
+        <div data-testid="season-dropdown-menu" className={styles["season-dropdown-menu"]}>
           {seasons.map((s) => (
             <button
               key={s.id}
+              data-testid={`season-dropdown-item-${s.id}`}
               className={`${styles["season-dropdown-item"]} ${s.id === selectedId ? styles.selected : ""}`}
               onClick={() => {
                 onSelect(s);
@@ -137,7 +139,7 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
               }}
             >
               <span className={styles["season-dropdown-item-text"]}>{s.name}</span>
-              {s.id === selectedId && <span className={styles["season-check"]}>✓</span>}
+              {s.id === selectedId && <span data-testid="season-check" className={styles["season-check"]}>✓</span>}
             </button>
           ))}
           <button

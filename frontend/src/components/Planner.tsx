@@ -102,7 +102,7 @@ export function Planner({ season, onSelectTask }: Props) {
                 const sortedCourts = Object.entries(courts).sort(([a], [b]) => Number(a) - Number(b));
                 return (
                   <div key={date} className={styles["date-group"]}>
-                    <div className={styles["date-label"]}>
+                    <div data-testid="date-label" className={styles["date-label"]}>
                       {isFuture && <span className={styles["upcoming-badge"]}>Upcoming Games</span>}
                       <span>{formattedDate}</span>
                     </div>

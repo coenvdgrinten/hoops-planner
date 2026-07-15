@@ -1,91 +1,99 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { authenticate } from "./helpers";
+
+const API = "/api";
 
 test.describe("Season Selector", () => {
-  const seasonName = `Season-${Date.now()}`;
+  let seasonName: string;
 
-  test.beforeEach(async ({ request }) => {
+  test.beforeEach(async ({ request, page }) => {
+    const token = await authenticate(request, page, `ss-${Date.now()}`);
+    seasonName = `Season-${Date.now()}`;
+
     // Seed a season so the dropdown has options
     const scheduleCsv =
       "date,time,court,home_team,away_team\n2025-10-01,14:00,1,Team A,Team B";
 
-    await request.post("/api/seasons/import_schedule/", {
+    const res = await request.post(`${API}/seasons/import_schedule/`, {
+      headers: { Authorization: `Token ${token}` },
       data: { season_name: seasonName, csv_text: scheduleCsv },
     });
+    expect(res.status(), "import_schedule should succeed").toBe(201);
   });
 
-  test("shows custom dropdown toggle button", async ({ page }) => {
+  test("shows custom dropdown toggle button", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Toggle button should be visible
-    const toggle = page.locator(".season-dropdown-toggle");
+    const toggle = page.getByTestId("season-dropdown-toggle");
     await expect(toggle).toBeVisible();
   });
 
-  test("opens dropdown menu on click", async ({ page }) => {
+  test("opens dropdown menu on click", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
-    const toggle = page.locator(".season-dropdown-toggle");
+    const toggle = page.getByTestId("season-dropdown-toggle");
     await toggle.click();
 
     // Dropdown menu should appear
-    const menu = page.locator(".season-dropdown-menu");
+    const menu = page.getByTestId("season-dropdown-menu");
     await expect(menu).toBeVisible();
   });
 
-  test("closes dropdown on clicking outside", async ({ page }) => {
+  test("closes dropdown on clicking outside", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Open dropdown
-    await page.locator(".season-dropdown-toggle").click();
-    await expect(page.locator(".season-dropdown-menu")).toBeVisible();
+    await page.getByTestId("season-dropdown-toggle").click();
+    await expect(page.getByTestId("season-dropdown-menu")).toBeVisible();
 
     // Click somewhere else (page background)
     await page.locator("body").click({ position: { x: 10, y: 10 } });
 
     // Menu should close
-    await expect(page.locator(".season-dropdown-menu")).not.toBeVisible();
+    await expect(page.getByTestId("season-dropdown-menu")).not.toBeVisible();
   });
 
-  test("closes dropdown on pressing Escape", async ({ page }) => {
+  test("closes dropdown on pressing Escape", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Open dropdown
-    await page.locator(".season-dropdown-toggle").click();
-    await expect(page.locator(".season-dropdown-menu")).toBeVisible();
+    await page.getByTestId("season-dropdown-toggle").click();
+    await expect(page.getByTestId("season-dropdown-menu")).toBeVisible();
 
     // Press Escape
     await page.keyboard.press("Escape");
 
     // Menu should close
-    await expect(page.locator(".season-dropdown-menu")).not.toBeVisible();
+    await expect(page.getByTestId("season-dropdown-menu")).not.toBeVisible();
   });
 
-  test("selects a season from dropdown", async ({ page }) => {
+  test("selects a season from dropdown", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Open and select by season name
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
+    await page.getByTestId("season-dropdown-toggle").click();
+    await page.getByTestId("season-dropdown-menu").getByText(seasonName, { exact: true }).click();
 
     // Toggle button should show selected season
-    const value = page.locator(".season-dropdown-value");
+    const value = page.getByTestId("season-dropdown-value");
     await expect(value).toContainText(seasonName);
 
     // Games should appear
     await expect(page.getByText("Team A")).toBeVisible();
   });
 
-  test("shows checkmark for selected season", async ({ page }) => {
+  test("shows checkmark for selected season", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Open dropdown, select a season
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
+    await page.getByTestId("season-dropdown-toggle").click();
+    await page.getByTestId("season-dropdown-menu").getByText(seasonName, { exact: true }).click();
 
     // Re-open dropdown
-    await page.locator(".season-dropdown-toggle").click();
+    await page.getByTestId("season-dropdown-toggle").click();
 
     // Selected item should have checkmark
-    await expect(page.locator(".season-check")).toBeVisible();
+    await expect(page.getByTestId("season-check")).toBeVisible();
   });
 });

@@ -1,7 +1,12 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { authenticate } from "./helpers";
 
 test.describe("Layout", () => {
-  test("loads the application", async ({ page }) => {
+  test.beforeEach(async ({ request, page }) => {
+    await authenticate(request, page, `lo-${Date.now()}`);
+  });
+
+  test("loads the application", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Top bar elements
@@ -22,14 +27,14 @@ test.describe("Layout", () => {
     await expect(page.getByRole("button", { name: "Schedule Planner" })).toHaveClass(/active/);
   });
 
-  test("shows empty state when no season selected", async ({ page }) => {
+  test("shows empty state when no season selected", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Should show empty state message
     await expect(page.getByRole("heading", { name: "Welcome to Sixth Man" })).toBeVisible();
   });
 
-  test("navigates between views", async ({ page }) => {
+  test("navigates between views", async ({ page }: { page: Page }) => {
     await page.goto("/");
 
     // Click Statistics

@@ -121,7 +121,7 @@ export function AssignmentPanel({
   const title = fetchedTask.slot_number > 1 ? `${label} #${fetchedTask.slot_number}` : label;
 
   return (
-    <aside className={styles["assignment-panel"]}>
+    <aside data-testid="assignment-panel" className={styles["assignment-panel"]}>
       <div className={styles["panel-header"]}>
         <div>
           <h3>{title}</h3>
@@ -129,7 +129,7 @@ export function AssignmentPanel({
             {fetchedTask.assignments.length} assigned
           </p>
         </div>
-        <button className={styles["close-btn"]} onClick={onClose} title="Close">
+        <button data-testid="assignment-panel-close" className={styles["close-btn"]} onClick={onClose} title="Close">
           ×
         </button>
       </div>
@@ -208,6 +208,7 @@ export function AssignmentPanel({
                 </div>
                 {!isAssigned && (
                   <button
+                    data-testid={`add-candidate-${player.id}`}
                     className={`${styles["add-btn"]} ${isAssigned ? styles.assigned : ""}`}
                     onClick={() => assign(player)}
                     disabled={assigning}

@@ -1,9 +1,15 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { authenticate } from "./helpers";
+
+const API = "/api";
 
 test.describe("Planner", () => {
-  const seasonName = `Planner-${Date.now()}`;
+  let seasonName: string;
 
-  test.beforeEach(async ({ request }) => {
+  test.beforeEach(async ({ request, page }) => {
+    const token = await authenticate(request, page, `pl-${Date.now()}`);
+    seasonName = `Planner-${Date.now()}`;
+
     // Seed data via API before each test
     const scheduleCsv =
       "date,time,court,home_team,away_team\n2025-10-01,14:00,1,Team A,Team B\n2025-10-01,14:00,2,Team C,Team D";
@@ -12,95 +18,91 @@ test.describe("Planner", () => {
       "first_name,last_name,team,is_coach,referee_certification\nAlice,Refsen,Team A,True,SENIOR\nBob,Player,Team A,False,\nCharlie,Coachsen,Team C,True,F\nDiana,Referee,Team A,False,F\nEve,Player,Team C,False,NONE";
 
     // Import schedule (creates season automatically)
-    await request.post("/api/seasons/import_schedule/", {
+    const schedRes = await request.post(`${API}/seasons/import_schedule/`, {
+      headers: { Authorization: `Token ${token}` },
       data: { season_name: seasonName, csv_text: scheduleCsv },
     });
+    expect(schedRes.status(), "import_schedule should succeed").toBe(201);
 
     // Import members
-    await request.post("/api/players/import_members/", {
+    const memRes = await request.post(`${API}/players/import_members/`, {
+      headers: { Authorization: `Token ${token}` },
       data: { csv_text: membersCsv, upsert: true },
     });
+    expect(memRes.status(), "import_members should succeed").toBe(201);
   });
 
-  test("displays games after selecting a season", async ({ page }) => {
-    await page.goto("/");
+  async function selectSeason(page: Page) {
+    await page.getByTestId("season-dropdown-toggle").click();
+    await page.getByTestId("season-dropdown-menu").getByText(seasonName, { exact: true }).click();
+  }
 
-    // Select season from custom dropdown
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
+  test("displays games after selecting a season", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+    await selectSeason(page);
 
     // Games should appear
     await expect(page.getByText("Team A")).toBeVisible();
     await expect(page.getByText("Team B")).toBeVisible();
   });
 
-  test("groups games by date", async ({ page }) => {
+  test("groups games by date", async ({ page }: { page: Page }) => {
     await page.goto("/");
+    await selectSeason(page);
 
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
-
-    // Date group label should be visible (Dutch locale: "vr 3 okt")
-    await expect(page.locator(".date-label")).toBeVisible();
+    // Date group label should be visible
+    await expect(page.getByTestId("date-label").first()).toBeVisible();
   });
 
-  test("shows age badges on game cards", async ({ page }) => {
+  test("shows age badges on game cards", async ({ page }: { page: Page }) => {
     await page.goto("/");
+    await selectSeason(page);
 
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
-
-    // Age badges should be visible (X14 for seeded teams)
-    await expect(page.locator(".age-badge").first()).toBeVisible();
+    // Age badges should be visible
+    await expect(page.getByTestId("age-badge").first()).toBeVisible();
   });
 
-  test("shows task chips on game cards", async ({ page }) => {
+  test("shows task chips on game cards", async ({ page }: { page: Page }) => {
     await page.goto("/");
-
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
+    await selectSeason(page);
 
     // Task chips should appear
-    await expect(page.locator(".task-chip").first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId(/^task-chip-\d+$/).first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test("opens assignment panel when clicking a task chip", async ({ page }) => {
+  test("opens assignment panel when clicking a task chip", async ({ page }: { page: Page }) => {
     await page.goto("/");
-
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
+    await selectSeason(page);
 
     // Click on a task chip
-    await page.locator(".task-chip").first().click();
+    await page.getByTestId(/^task-chip-\d+$/).first().click();
 
     // Assignment panel should appear
-    const panel = page.locator(".assignment-panel");
+    const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
   });
 
-  test("shows assigned state after adding a player", async ({ page }) => {
+  test("shows assigned state after adding a player", async ({ page }: { page: Page }) => {
     await page.goto("/");
-
-    await page.locator(".season-dropdown-toggle").click();
-    await page.locator(".season-dropdown-item").filter({ hasText: seasonName }).click();
+    await selectSeason(page);
 
     // Click on a task chip to open panel
-    await page.locator(".task-chip").first().click();
-    const panel = page.locator(".assignment-panel");
+    await page.getByTestId(/^task-chip-\d+$/).first().click();
+    const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
     // Find a candidate to add
-    const addBtn = panel.locator("button.add-btn").first();
+    const addBtn = panel.getByTestId(/^add-candidate-\d+$/).first();
     const addBtnVisible = await addBtn.isVisible();
 
     if (addBtnVisible) {
       await addBtn.click();
 
       // Close panel and check for filled state
-      await panel.locator("button.close-btn").click();
+      await panel.getByTestId("assignment-panel-close").click();
 
       // The game card should show assigned state
-      await expect(page.locator(".task-chip.filled")).toBeVisible({
+      await expect(page.getByTestId(/^task-chip-\d+$/).first()).toHaveClass(/filled/, {
         timeout: 10_000,
       });
     }
