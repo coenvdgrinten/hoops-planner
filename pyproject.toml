@@ -25,6 +25,9 @@ dev = [
 line-length = 88
 target-version = "py313"
 
+[tool.ruff.format]
+exclude = ["**/migrations/**"]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B"]
 

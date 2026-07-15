@@ -101,6 +101,7 @@ class TestRegister:
 class TestMe:
     def test_me_authenticated(self, auth_client, test_user):
         from rest_framework.authtoken.models import Token
+
         token = Token.objects.create(user=test_user)
         auth_client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
         response = auth_client.get("/api/auth/me/")
@@ -120,6 +121,7 @@ class TestProtectedEndpoints:
 
     def test_seasons_works_with_token(self, auth_client, test_user):
         from rest_framework.authtoken.models import Token
+
         token = Token.objects.create(user=test_user)
         auth_client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
         response = auth_client.get("/api/seasons/")
