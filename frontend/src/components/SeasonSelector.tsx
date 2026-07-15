@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSeasons, createSeason } from "../api";
 import type { Season } from "../types";
+import styles from "./SeasonSelector.module.css";
 
 interface Props {
   onSelect: (season: Season) => void;
@@ -70,16 +71,16 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
   if (error) return <p className="error">Error: {error.message}</p>;
   if (seasons.length === 0)
     return (
-      <div className="season-dropdown" ref={containerRef}>
+      <div className={styles["season-dropdown"]} ref={containerRef}>
         <button
-          className="season-dropdown-toggle"
+          className={styles["season-dropdown-toggle"]}
           onClick={() => setCreating((c) => !c)}
         >
-          <span className="season-dropdown-value">New season</span>
-          <span className="season-chevron">＋</span>
+          <span className={styles["season-dropdown-value"]}>New season</span>
+          <span className={styles["season-chevron"]}>＋</span>
         </button>
         {creating && (
-          <form className="season-create-form" onSubmit={handleCreate}>
+          <form className={styles["season-create-form"]} onSubmit={handleCreate}>
             <input
               type="text"
               value={newName}
@@ -88,7 +89,7 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
               autoFocus
             />
             {createError && <p className="error season-create-error">{createError}</p>}
-            <div className="season-create-actions">
+            <div className={styles["season-create-actions"]}>
               <button
                 type="submit"
                 className="icon-btn"
@@ -114,44 +115,44 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
     );
 
   return (
-    <div className="season-dropdown" ref={containerRef}>
+    <div className={styles["season-dropdown"]} ref={containerRef}>
       <button
-        className={`season-dropdown-toggle ${open ? "open" : ""}`}
+        className={`${styles["season-dropdown-toggle"]} ${open ? styles.open : ""}`}
         onClick={() => setOpen(!open)}
       >
-        <span className="season-dropdown-value">
+        <span className={styles["season-dropdown-value"]}>
           {selectedSeason ? selectedSeason.name : "Select season"}
         </span>
-        <span className={`season-chevron ${open ? "open" : ""}`}>▾</span>
+        <span className={`${styles["season-chevron"]} ${open ? styles.open : ""}`}>▾</span>
       </button>
       {open && (
-        <div className="season-dropdown-menu">
+        <div className={styles["season-dropdown-menu"]}>
           {seasons.map((s) => (
             <button
               key={s.id}
-              className={`season-dropdown-item ${s.id === selectedId ? "selected" : ""}`}
+              className={`${styles["season-dropdown-item"]} ${s.id === selectedId ? styles.selected : ""}`}
               onClick={() => {
                 onSelect(s);
                 setOpen(false);
               }}
             >
-              <span className="season-dropdown-item-text">{s.name}</span>
-              {s.id === selectedId && <span className="season-check">✓</span>}
+              <span className={styles["season-dropdown-item-text"]}>{s.name}</span>
+              {s.id === selectedId && <span className={styles["season-check"]}>✓</span>}
             </button>
           ))}
           <button
-            className="season-dropdown-item season-dropdown-new"
+            className={`${styles["season-dropdown-item"]} ${styles["season-dropdown-new"]}`}
             onClick={() => {
               setOpen(false);
               setCreating(true);
             }}
           >
-            <span className="season-dropdown-item-text">＋ New season</span>
+            <span className={styles["season-dropdown-item-text"]}>＋ New season</span>
           </button>
         </div>
       )}
       {creating && (
-        <form className="season-create-form" onSubmit={handleCreate}>
+        <form className={styles["season-create-form"]} onSubmit={handleCreate}>
           <input
             type="text"
             value={newName}
@@ -160,7 +161,7 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
             autoFocus
           />
           {createError && <p className="error season-create-error">{createError}</p>}
-          <div className="season-create-actions">
+          <div className={styles["season-create-actions"]}>
             <button
               type="submit"
               className="icon-btn"

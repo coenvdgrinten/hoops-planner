@@ -11,7 +11,8 @@ import { Login } from "./components/Login";
 import { clearAuth, getUser, getToken } from "./api";
 import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
-import "./App.css";
+import styles from "./App.module.css";
+import "./styles/globals.css";
 
 type View = "planner" | "statistics" | "members" | "settings" | "availability";
 
@@ -68,14 +69,14 @@ export function App() {
   }
 
   return (
-    <div className="app">
+    <div className={styles.app}>
       {/* Top Bar */}
-      <header className="top-bar">
-        <div className="top-bar-left">
-          <img src="/logo.png" alt="BC Vido" className="logo-img" />
-          <span className="brand">Sixth Man <span className="brand-divider">|</span> BC Vido</span>
+      <header className={styles["top-bar"]}>
+        <div className={styles["top-bar-left"]}>
+          <img src="/logo.png" alt="BC Vido" className={styles["logo-img"]} />
+          <span className={styles.brand}>Sixth Man <span className={styles["brand-divider"]}>|</span> BC Vido</span>
         </div>
-        <div className="top-bar-right">
+        <div className={styles["top-bar-right"]}>
           <button
             className="icon-btn"
             onClick={() => setImportType("schedule")}
@@ -103,50 +104,50 @@ export function App() {
         </div>
       </header>
 
-      <div className="app-body">
+      <div className={styles["app-body"]}>
         {/* Sidebar */}
-        <aside className="sidebar">
+        <aside className={styles.sidebar}>
           <nav>
             <button
-              className={currentView === "planner" ? "active" : ""}
+              className={currentView === "planner" ? styles.active : ""}
               onClick={() => handleViewChange("planner")}
             >
-              <span className="nav-icon">📅</span>
+              <span className={styles["nav-icon"]}>📅</span>
               Schedule Planner
             </button>
             <button
-              className={currentView === "members" ? "active" : ""}
+              className={currentView === "members" ? styles.active : ""}
               onClick={() => handleViewChange("members")}
             >
-              <span className="nav-icon">👥</span>
+              <span className={styles["nav-icon"]}>👥</span>
               Member Roster
             </button>
             <button
-              className={currentView === "statistics" ? "active" : ""}
+              className={currentView === "statistics" ? styles.active : ""}
               onClick={() => handleViewChange("statistics")}
             >
-              <span className="nav-icon">📊</span>
+              <span className={styles["nav-icon"]}>📊</span>
               Statistics
             </button>
             <button
-              className={currentView === "settings" ? "active" : ""}
+              className={currentView === "settings" ? styles.active : ""}
               onClick={() => handleViewChange("settings")}
             >
-              <span className="nav-icon">⚙️</span>
+              <span className={styles["nav-icon"]}>⚙️</span>
               Settings
             </button>
             <button
-              className={currentView === "availability" ? "active" : ""}
+              className={currentView === "availability" ? styles.active : ""}
               onClick={() => handleViewChange("availability")}
             >
-              <span className="nav-icon">🚫</span>
+              <span className={styles["nav-icon"]}>🚫</span>
               Availability
             </button>
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="main-content">
+        <main className={styles["main-content"]}>
           {currentView === "settings" ? (
             <Settings />
           ) : currentView === "availability" ? (

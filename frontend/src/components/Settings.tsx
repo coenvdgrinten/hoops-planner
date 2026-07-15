@@ -4,6 +4,7 @@ import {
   updateAgeCategorySettings,
 } from "../api";
 import type { AgeCategorySettings } from "../types";
+import styles from "./Settings.module.css";
 
 // Age category display order (descending: oldest to youngest)
 const CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X12", "X10"];
@@ -38,15 +39,15 @@ export function Settings() {
   });
 
   return (
-    <div className="settings">
-      <div className="settings-header">
+    <div className={styles.settings}>
+      <div className={styles["settings-header"]}>
         <h2>Settings</h2>
-        <p className="settings-subtitle">
+        <p className={styles["settings-subtitle"]}>
           Configure how many task slots are created per age category. Changes
           apply to games imported or created afterwards.
         </p>
       </div>
-      <table className="settings-table">
+      <table className={styles["settings-table"]}>
         <thead>
           <tr>
             <th>Age Category</th>
@@ -60,7 +61,7 @@ export function Settings() {
         <tbody>
           {sorted.map((s) => (
             <tr key={s.age_category}>
-              <td className="settings-category">{s.age_category}</td>
+              <td className={styles["settings-category"]}>{s.age_category}</td>
               <td>
                 <input
                   type="number"

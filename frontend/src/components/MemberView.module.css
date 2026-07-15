@@ -1,0 +1,402 @@
+/* ===== Member Roster ===== */
+.member-roster {
+  display: block;
+}
+
+.roster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.roster-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.roster-summary {
+  display: flex;
+  gap: 8px;
+}
+
+.summary-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #e6f5ed;
+  color: #016c30;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.roster-teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roster-team-group {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.roster-team-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e8eaf0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a2e;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.roster-team-header:hover {
+  background: #f8f7f5;
+  border-color: #d0d3df;
+}
+
+.roster-team-header.expanded {
+  background: #fef9e7;
+  border-color: #f5e6c8;
+}
+
+.roster-team-header .team-chevron {
+  font-size: 10px;
+  color: #8b8fa3;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.roster-team-header.expanded .team-chevron {
+  transform: rotate(90deg);
+}
+
+.roster-team-header .team-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-age-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: #f0ebe3;
+  color: #8b7355;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.team-member-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #f0ebe3;
+  color: #8b7355;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.roster-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 8px 22px;
+}
+
+.roster-member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fafafa;
+  transition: all 0.15s ease;
+}
+
+.roster-member-row:hover {
+  background: #f0f1f5;
+}
+
+.roster-member-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f0ebe3;
+  color: #8b7355;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.roster-member-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.roster-member-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.coach-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6366f1;
+  background: #eef2ff;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.roster-member-meta {
+  font-size: 11px;
+  color: #8b8fa3;
+  white-space: nowrap;
+}
+
+.cert-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cert-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b8fa3;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cert-select {
+  padding: 4px 24px 4px 10px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5068;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.cert-select::after {
+  content: "▾";
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: #8b8fa3;
+  font-size: 10px;
+}
+
+.cert-select.cert-none {
+  color: #8b8fa3;
+  border-color: #e8eaf0;
+}
+
+.cert-select.cert-low {
+  color: #016c30;
+  border-color: #c6f0de;
+  background-color: #f0f9f4;
+}
+
+.cert-select.cert-mid {
+  color: #2563eb;
+  border-color: #dbeafe;
+  background-color: #eff6ff;
+}
+
+.cert-select.cert-high {
+  color: #d97706;
+  border-color: #fef3c7;
+  background-color: #fffbeb;
+}
+
+.cert-select:hover {
+  border-color: #016c30;
+  background-color: #f0f9f4;
+}
+
+.cert-select:focus {
+  border-color: #016c30;
+  box-shadow: 0 0 0 2px rgba(1, 108, 48, 0.12);
+}
+
+.cert-select option[value="NONE"] {
+  color: #8b8fa3;
+}
+
+.cert-select option[value="T1"],
+.cert-select option[value="T2"] {
+  color: #016c30;
+  font-weight: 700;
+}
+
+.cert-select option[value="T3"],
+.cert-select option[value="T4"] {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.cert-select option[value="T5"],
+.cert-select option[value="T6"] {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.no-members {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #7a7e94;
+  font-style: italic;
+}
+
+/* ===== Coached Teams Editor ===== */
+.coached-teams-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.coached-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b8fa3;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.coached-teams-display {
+  padding: 4px 10px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  color: #4b5068;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.coached-teams-display:hover {
+  border-color: #016c30;
+  background-color: #f0f9f4;
+}
+
+.coached-teams-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: #f5f6fa;
+  border-radius: 6px;
+  min-width: 200px;
+}
+
+.coached-teams-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.coached-team-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4b5068;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.coached-team-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #016c30;
+}
+
+.coached-teams-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.coached-teams-actions .btn-save {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #016c30;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coached-teams-actions .btn-save:hover {
+  background: #004d22;
+}
+
+.coached-teams-actions .btn-cancel {
+  padding: 4px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  color: #4b5068;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.coached-teams-actions .btn-cancel:hover {
+  background: #f5f6fa;
+}

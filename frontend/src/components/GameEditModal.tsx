@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createGame, updateGame, deleteGame, getTeams } from "../api";
 import type { Game } from "../types";
+import styles from "./GameEditModal.module.css";
 
 interface Props {
   game?: Game; // Optional — if missing, operate in create mode
@@ -142,7 +143,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
               required
             />
           </div>
-          <div className="form-row">
+          <div className={styles["form-row"]}>
             <div className="form-group">
               <label>Court:</label>
               <select
@@ -196,7 +197,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
             {!isCreateMode && !showDeleteConfirm && (
               <button
                 type="button"
-                className="btn-delete"
+                className={styles["btn-delete"]}
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={isPending}
               >
@@ -204,7 +205,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
               </button>
             )}
             {!isCreateMode && showDeleteConfirm && (
-              <span className="delete-confirm">
+              <span className={styles["delete-confirm"]}>
                 Really delete?{" "}
                 <button type="button" onClick={handleDelete} disabled={isPending}>
                   Yes

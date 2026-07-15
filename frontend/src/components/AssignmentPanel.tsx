@@ -8,6 +8,7 @@ import {
   getTeamEligibility,
   getCandidateDetails,
 } from "../api";
+import styles from "./AssignmentPanel.module.css";
 
 interface Props {
   task: TaskWithAssignments;
@@ -120,15 +121,15 @@ export function AssignmentPanel({
   const title = fetchedTask.slot_number > 1 ? `${label} #${fetchedTask.slot_number}` : label;
 
   return (
-    <aside className="assignment-panel">
-      <div className="panel-header">
+    <aside className={styles["assignment-panel"]}>
+      <div className={styles["panel-header"]}>
         <div>
           <h3>{title}</h3>
-          <p className="panel-subtitle">
+          <p className={styles["panel-subtitle"]}>
             {fetchedTask.assignments.length} assigned
           </p>
         </div>
-        <button className="close-btn" onClick={onClose} title="Close">
+        <button className={styles["close-btn"]} onClick={onClose} title="Close">
           ×
         </button>
       </div>
@@ -140,7 +141,7 @@ export function AssignmentPanel({
       )}
 
       {/* Search */}
-      <div className="panel-search">
+      <div className={styles["panel-search"]}>
         <input
           type="text"
           placeholder="Search member or team..."
@@ -150,22 +151,22 @@ export function AssignmentPanel({
       </div>
 
       {/* Assigned Players */}
-      <div className="panel-section">
+      <div className={styles["panel-section"]}>
         <h4>Assigned</h4>
-        <div className="assigned-list">
+        <div className={styles["assigned-list"]}>
           {fetchedTask.assignments.length === 0 && (
-            <p className="empty-msg">No one assigned yet</p>
+            <p className={styles["empty-msg"]}>No one assigned yet</p>
           )}
           {fetchedTask.assignments.map((a) => (
-            <div key={a.id} className="assigned-player">
-              <div className="player-info">
-                <span className="player-name">{a.player.full_name}</span>
-                <span className="player-team">
+            <div key={a.id} className={styles["assigned-player"]}>
+              <div className={styles["player-info"]}>
+                <span className={styles["player-name"]}>{a.player.full_name}</span>
+                <span className={styles["player-team"]}>
                   {a.player.team.name}
                 </span>
               </div>
               <button
-                className="remove-btn"
+                className={styles["remove-btn"]}
                 onClick={() => unassign(a.id)}
                 title="Remove"
               >
@@ -177,11 +178,11 @@ export function AssignmentPanel({
       </div>
 
       {/* Suggested Candidates */}
-      <div className="panel-section">
+      <div className={styles["panel-section"]}>
         <h4>Suggested</h4>
-        <div className="suggested-list">
+        <div className={styles["suggested-list"]}>
           {candidates.length === 0 && (
-            <p className="empty-msg">No suggestions available</p>
+            <p className={styles["empty-msg"]}>No suggestions available</p>
           )}
           {candidates.map((candidate: CandidateDetail) => {
             const player = candidate.player;
@@ -189,25 +190,25 @@ export function AssignmentPanel({
             return (
               <div
                 key={player.id}
-                className={`suggested-row ${isAssigned ? "assigned" : ""}`}
+                className={`${styles["suggested-row"]} ${isAssigned ? styles.assigned : ""}`}
               >
-                <div className="suggested-info">
-                  <div className="suggested-avatar">
+                <div className={styles["suggested-info"]}>
+                  <div className={styles["suggested-avatar"]}>
                     {player.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="suggested-details">
-                    <span className="suggested-name">{player.full_name}</span>
-                    <span className="suggested-meta">
+                  <div className={styles["suggested-details"]}>
+                    <span className={styles["suggested-name"]}>{player.full_name}</span>
+                    <span className={styles["suggested-meta"]}>
                       {player.team.name} · {candidate.task_count} task{candidate.task_count !== 1 ? 's' : ''}
                     </span>
-                    <span className="suggestion-reason" title={candidate.suggestion_reason}>
+                    <span className={styles["suggestion-reason"]} title={candidate.suggestion_reason}>
                       {candidate.suggestion_reason}
                     </span>
                   </div>
                 </div>
                 {!isAssigned && (
                   <button
-                    className={`add-btn ${isAssigned ? "assigned" : ""}`}
+                    className={`${styles["add-btn"]} ${isAssigned ? styles.assigned : ""}`}
                     onClick={() => assign(player)}
                     disabled={assigning}
                     title="Add"
@@ -222,11 +223,11 @@ export function AssignmentPanel({
       </div>
 
       {/* Teams & Members */}
-      <div className="panel-section">
+      <div className={styles["panel-section"]}>
         <h4>Teams & Members</h4>
-        <div className="teams-list">
+        <div className={styles["teams-list"]}>
           {filteredTeams.length === 0 && (
-            <p className="empty-msg">No teams or members found</p>
+            <p className={styles["empty-msg"]}>No teams or members found</p>
           )}
           {filteredTeams.map((teamData) => {
             const isExpanded = expandedTeams.has(teamData.team.id);
@@ -234,26 +235,26 @@ export function AssignmentPanel({
             // Determine border color: green (eligible + at gym), orange (eligible + not at gym), red (no eligible)
             let headerClass: string;
             if (!hasEligible) {
-              headerClass = "ineligible";
+              headerClass = String(styles.ineligible);
             } else if (!teamData.at_gym_day) {
-              headerClass = "not-at-gym";
+              headerClass = String(styles["not-at-gym"]);
             } else {
-              headerClass = "eligible";
+              headerClass = String(styles.eligible);
             }
             return (
-              <div key={teamData.team.id} className="team-group">
+              <div key={teamData.team.id} className={styles["team-group"]}>
                 <button
-                  className={`team-header ${headerClass}`}
+                  className={`${styles["team-header"]} ${headerClass}`}
                   onClick={() => toggleTeam(teamData.team.id)}
                 >
-                  <span className={`team-chevron ${isExpanded ? "expanded" : ""}`}>▸</span>
-                  <span className="team-name">{teamData.team.name}</span>
-                  <span className="team-badge" title="Eligible members">
+                  <span className={`${styles["team-chevron"]} ${isExpanded ? styles.expanded : ""}`}>▸</span>
+                  <span className={styles["team-name"]}>{teamData.team.name}</span>
+                  <span className={styles["team-badge"]} title="Eligible members">
                     {teamData.eligible_count}/{teamData.players.length}
                   </span>
                 </button>
                 {isExpanded && (
-                  <div className="members-list">
+                  <div className={styles["members-list"]}>
                     {teamData.players.map((pData) => {
                       const player = pData.player;
                       const isAssigned = assignedIds.has(player.id);
@@ -261,27 +262,27 @@ export function AssignmentPanel({
                       return (
                         <div
                           key={player.id}
-                          className={`member-row ${pData.eligible ? "eligible" : "ineligible"} ${isAssigned ? "assigned" : ""}`}
+                          className={`${styles["member-row"]} ${pData.eligible ? styles.eligible : styles.ineligible} ${isAssigned ? styles.assigned : ""}`}
                           title={reason}
                         >
-                          <div className="member-info">
-                            <div className="member-avatar">
+                          <div className={styles["member-info"]}>
+                            <div className={styles["member-avatar"]}>
                               {player.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
-                            <div className="member-details">
-                              <span className="member-name">{player.full_name}</span>
-                              <span className="member-meta">
+                            <div className={styles["member-details"]}>
+                              <span className={styles["member-name"]}>{player.full_name}</span>
+                              <span className={styles["member-meta"]}>
                                 {pData.at_gym === "before" ? "Game before" : pData.at_gym === "after" ? "Game after" : ""}
                               </span>
                             </div>
                           </div>
-                          <div className="member-actions">
-                            <span className="task-count-badge" title="Task load">
+                          <div className={styles["member-actions"]}>
+                            <span className={styles["task-count-badge"]} title="Task load">
                               {Math.round(pData.task_count)}
                             </span>
                             {!isAssigned && (
                               <button
-                                className={`add-btn ${pData.eligible ? "" : "ineligible"}`}
+                                className={`${styles["add-btn"]} ${pData.eligible ? "" : styles.ineligible}`}
                                 onClick={() => assign(player)}
                                 disabled={assigning || !pData.eligible}
                                 title={pData.eligible ? "Add" : reason}

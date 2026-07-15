@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getTasksWithAssignments } from "../api";
 import type { TaskWithAssignments } from "../types";
+import styles from "./GameCard.module.css";
 
 interface Team {
   name: string;
@@ -65,30 +66,30 @@ export function GameCard({
   if (isLoading) return <p>Loading tasks...</p>;
 
   return (
-    <div className="game-card">
-      <div className="game-card-header">
-        <div className="game-card-left">
-          <div className="game-badges">
-            <span className="age-badge">{ageBadge}</span>
-            {half && <span className="half-badge">H{half}</span>}
+    <div className={styles["game-card"]}>
+      <div className={styles["game-card-header"]}>
+        <div className={styles["game-card-left"]}>
+          <div className={styles["game-badges"]}>
+            <span className={styles["age-badge"]}>{ageBadge}</span>
+            {half && <span className={styles["half-badge"]}>H{half}</span>}
           </div>
-          <div className="game-teams">
+          <div className={styles["game-teams"]}>
             <span className="home">{homeTeam.name}</span>
             <span className="vs">vs.</span>
             <span className="away">{awayTeam}</span>
           </div>
-          <div className="game-meta">
+          <div className={styles["game-meta"]}>
             <span>{formattedTime}</span>
             <span>·</span>
             <span>Home Gym</span>
           </div>
         </div>
-        <div className="game-card-right">
+        <div className={styles["game-card-right"]}>
           {allAssigned && (
-            <span className="staffed-badge">FULLY STAFFED</span>
+            <span className={styles["staffed-badge"]}>FULLY STAFFED</span>
           )}
           <button
-            className="game-edit-btn"
+            className={styles["game-edit-btn"]}
             onClick={() => onEditGame(id)}
             title="Edit game"
           >
@@ -97,7 +98,7 @@ export function GameCard({
         </div>
       </div>
 
-      <div className="task-chips">
+      <div className={styles["task-chips"]}>
         {tasks.map((task) => {
           const assigned = task.assignments;
           const label = TASK_LABELS[task.task_type] ?? task.task_type;
@@ -110,23 +111,23 @@ export function GameCard({
           return (
             <div
               key={task.id}
-              className={`task-chip ${
+              className={`${styles["task-chip"]} ${
                 assigned.length === 0
                   ? isOptionalRef
-                    ? "optional"
-                    : "unfilled"
-                  : "filled"
+                    ? styles.optional
+                    : styles.unfilled
+                  : styles.filled
               }`}
               onClick={() => handleSelectTask(task)}
             >
-              <span className="chip-label">{displayLabel}</span>
+              <span className={styles["chip-label"]}>{displayLabel}</span>
               {assigned.length > 0 ? (
-                <span className="chip-player">
+                <span className={styles["chip-player"]}>
                   {assigned[0]?.player?.full_name}
-                  {assigned.length > 1 && <span className="chip-more"> +{assigned.length - 1}</span>}
+                  {assigned.length > 1 && <span className={styles["chip-more"]}> +{assigned.length - 1}</span>}
                 </span>
               ) : (
-                <span className="chip-empty">Click to assign</span>
+                <span className={styles["chip-empty"]}>Click to assign</span>
               )}
             </div>
           );

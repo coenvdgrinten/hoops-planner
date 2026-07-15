@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSeasonStats, getLeaderboard } from "../api";
 import type { Season } from "../types";
+import styles from "./Statistics.module.css";
 
 interface Props {
   season: Season;
@@ -35,10 +36,10 @@ export function Statistics({ season }: Props) {
   if (!stats) return <p>No statistics available.</p>;
 
   return (
-    <div className="statistics">
-      <div className="statistics-header">
+    <div className={styles.statistics}>
+      <div className={styles["statistics-header"]}>
         <h2>{season.name} — Statistics</h2>
-        <div className="half-filter">
+        <div className={styles["half-filter"]}>
           <label htmlFor="half-select">Half:</label>
           <select
             id="half-select"
@@ -53,23 +54,23 @@ export function Statistics({ season }: Props) {
       </div>
 
       {/* Overview Cards */}
-      <div className="stat-cards">
-        <div className="stat-card">
-          <span className="stat-value">{stats.total_games}</span>
-          <span className="stat-label">Games</span>
+      <div className={styles["stat-cards"]}>
+        <div className={styles["stat-card"]}>
+          <span className={styles["stat-value"]}>{stats.total_games}</span>
+          <span className={styles["stat-label"]}>Games</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value">{stats.total_assignments}/{stats.total_task_slots}</span>
-          <span className="stat-label">Tasks Filled</span>
+        <div className={styles["stat-card"]}>
+          <span className={styles["stat-value"]}>{stats.total_assignments}/{stats.total_task_slots}</span>
+          <span className={styles["stat-label"]}>Tasks Filled</span>
         </div>
-        <div className="stat-card">
-          <span className="stat-value">{stats.fill_rate}%</span>
-          <span className="stat-label">Fill Rate</span>
+        <div className={styles["stat-card"]}>
+          <span className={styles["stat-value"]}>{stats.fill_rate}%</span>
+          <span className={styles["stat-label"]}>Fill Rate</span>
         </div>
       </div>
 
       {/* Task Type Breakdown */}
-      <div className="stat-section">
+      <div className={styles["stat-section"]}>
         <h3>By Task Type</h3>
         <table>
           <thead>
@@ -100,7 +101,7 @@ export function Statistics({ season }: Props) {
 
       {/* Leaderboard */}
       {leaderboard.length > 0 && (
-        <div className="stat-section">
+        <div className={styles["stat-section"]}>
           <h3>Top Contributors</h3>
           <table>
             <thead>

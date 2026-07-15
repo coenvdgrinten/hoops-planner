@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { login, register, setAuth } from "../api";
 import type { AuthResponse } from "../api";
+import styles from "./Login.module.css";
 
 interface Props {
   onLogin: () => void;
@@ -46,18 +47,18 @@ export function Login({ onLogin }: Props) {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <img src="/logo.png" alt="BC Vido" className="auth-logo" />
+    <div className={styles["auth-container"]}>
+      <div className={styles["auth-card"]}>
+        <div className={styles["auth-header"]}>
+          <img src="/logo.png" alt="BC Vido" className={styles["auth-logo"]} />
           <h2>Sixth Man</h2>
-          <p className="auth-subtitle">BC Vido — Task Planning</p>
+          <p className={styles["auth-subtitle"]}>BC Vido — Task Planning</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form onSubmit={handleSubmit} className={styles["auth-form"]}>
           <h3>{isRegister ? "Create Account" : "Sign In"}</h3>
 
-          {error && <div className="auth-error">{error}</div>}
+          {error && <div className={styles["auth-error"]}>{error}</div>}
 
           <div className="form-group">
             <label>Username or Email</label>
@@ -96,7 +97,7 @@ export function Login({ onLogin }: Props) {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="auth-submit">
+          <button type="submit" disabled={loading} className={styles["auth-submit"]}>
             {loading
               ? isRegister
                 ? "Creating account..."
@@ -106,7 +107,7 @@ export function Login({ onLogin }: Props) {
                 : "Sign In"}
           </button>
 
-          <p className="auth-toggle">
+          <p className={styles["auth-toggle"]}>
             {isRegister ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
               type="button"

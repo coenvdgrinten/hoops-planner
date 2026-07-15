@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTeams, getPlayers, updatePlayerCert, updatePlayerCoachedTeams } from "../api";
 import type { Player } from "../types";
+import styles from "./MemberView.module.css";
 
 // Age category display order (descending: oldest to youngest)
 const CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X10"];
@@ -110,38 +111,38 @@ export function MemberView() {
   const totalTeams = teams.length;
 
   return (
-    <div className="member-roster">
-      <div className="roster-header">
+    <div className={styles["member-roster"]}>
+      <div className={styles["roster-header"]}>
         <h2>Member Roster</h2>
-        <div className="roster-summary">
-          <span className="summary-badge">{totalTeams} teams</span>
-          <span className="summary-badge">{totalMembers} members</span>
+        <div className={styles["roster-summary"]}>
+          <span className={styles["summary-badge"]}>{totalTeams} teams</span>
+          <span className={styles["summary-badge"]}>{totalMembers} members</span>
         </div>
       </div>
-      <div className="roster-teams-list">
+      <div className={styles["roster-teams-list"]}>
         {sortedTeams.map((team) => {
           const isExpanded = expandedTeams.has(team.id);
           const teamPlayers = playersByTeam.get(team.id) || [];
 
           return (
-            <div key={team.id} className="roster-team-group">
+            <div key={team.id} className={styles["roster-team-group"]}>
               <button
-                className={`roster-team-header ${isExpanded ? "expanded" : ""}`}
+                className={`${styles["roster-team-header"]} ${isExpanded ? styles.expanded : ""}`}
                 onClick={() => toggleTeam(team.id)}
               >
-                <span className="team-chevron">{isExpanded ? "▾" : "▸"}</span>
-                <span className="team-age-badge">{team.age_category}</span>
-                <span className="team-name">{team.name}</span>
-                <span className="team-member-count">{teamPlayers.length}</span>
+                <span className={styles["team-chevron"]}>{isExpanded ? "▾" : "▸"}</span>
+                <span className={styles["team-age-badge"]}>{team.age_category}</span>
+                <span className={styles["team-name"]}>{team.name}</span>
+                <span className={styles["team-member-count"]}>{teamPlayers.length}</span>
               </button>
               {isExpanded && (
-                <div className="roster-members-list">
+                <div className={styles["roster-members-list"]}>
                   {teamPlayers.length === 0 ? (
-                    <div className="no-members">No members</div>
+                    <div className={styles["no-members"]}>No members</div>
                   ) : (
                     teamPlayers.map((player) => (
-                      <div key={player.id} className="roster-member-row">
-                        <div className="roster-member-avatar">
+                      <div key={player.id} className={styles["roster-member-row"]}>
+                        <div className={styles["roster-member-avatar"]}>
                           {player.full_name
                             .split(" ")
                             .map((n) => n[0])
@@ -149,21 +150,21 @@ export function MemberView() {
                             .slice(0, 2)
                             .toUpperCase()}
                         </div>
-                        <div className="roster-member-info">
-                          <span className="roster-member-name">
+                        <div className={styles["roster-member-info"]}>
+                          <span className={styles["roster-member-name"]}>
                             {player.full_name}
                             {(player.is_coach || (player.coached_teams && player.coached_teams.length > 0)) && (
-                              <span className="coach-badge">Coach</span>
+                              <span className={styles["coach-badge"]}>Coach</span>
                             )}
                           </span>
                         </div>
-                        <div className="coached-teams-editor">
-                          <span className="coached-label">Coaches</span>
+                        <div className={styles["coached-teams-editor"]}>
+                          <span className={styles["coached-label"]}>Coaches</span>
                           {editingCoachedTeams === player.id ? (
-                            <div className="coached-teams-edit">
-                              <div className="coached-teams-checkboxes">
+                            <div className={styles["coached-teams-edit"]}>
+                              <div className={styles["coached-teams-checkboxes"]}>
                                 {sortedTeams.map((t) => (
-                                  <label key={t.id} className="coached-team-checkbox">
+                                  <label key={t.id} className={styles["coached-team-checkbox"]}>
                                     <input
                                       type="checkbox"
                                       checked={tempCoachedTeams.includes(t.id)}
@@ -173,14 +174,14 @@ export function MemberView() {
                                   </label>
                                 ))}
                               </div>
-                              <div className="coached-teams-actions">
-                                <button className="btn-save" onClick={() => saveCoachedTeams(player.id)}>Save</button>
-                                <button className="btn-cancel" onClick={cancelEditCoachedTeams}>Cancel</button>
+                              <div className={styles["coached-teams-actions"]}>
+                                <button className={styles["btn-save"]} onClick={() => saveCoachedTeams(player.id)}>Save</button>
+                                <button className={styles["btn-cancel"]} onClick={cancelEditCoachedTeams}>Cancel</button>
                               </div>
                             </div>
                           ) : (
                             <button
-                              className="coached-teams-display"
+                              className={styles["coached-teams-display"]}
                               onClick={() => startEditCoachedTeams(player.id, player.coached_teams || [])}
                             >
                               {(player.coached_teams || []).length === 0
@@ -189,10 +190,10 @@ export function MemberView() {
                             </button>
                           )}
                         </div>
-                        <div className="cert-editor">
-                          <span className="cert-label">Cert</span>
+                        <div className={styles["cert-editor"]}>
+                          <span className={styles["cert-label"]}>Cert</span>
                           <select
-                            className={`cert-select ${getCertClass(player.referee_certification)}`}
+                            className={`${styles["cert-select"]} ${getCertClass(player.referee_certification)}`}
                             value={player.referee_certification}
                             onChange={(e) => handleCertChange(player.id, e.target.value)}
                           >

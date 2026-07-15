@@ -1,0 +1,156 @@
+.season-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.season-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5068;
+  outline: none;
+  transition: all 0.15s ease;
+  min-width: 160px;
+}
+
+.season-dropdown-toggle:hover {
+  border-color: #d0d3df;
+  background: #fafbfc;
+}
+
+.season-dropdown-toggle.open {
+  border-color: #016c30;
+  box-shadow: 0 0 0 3px rgba(1, 108, 48, 0.1);
+}
+
+.season-dropdown-value {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.season-chevron {
+  font-size: 10px;
+  color: #8b8fa3;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.season-chevron.open {
+  transform: rotate(180deg);
+}
+
+.season-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.15s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.season-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #4b5068;
+  transition: background 0.1s ease;
+}
+
+.season-dropdown-item:hover {
+  background: #f8f9fc;
+}
+
+.season-dropdown-item.selected {
+  background: #f0f9f4;
+  color: #016c30;
+  font-weight: 600;
+}
+
+.season-dropdown-item-text {
+  text-align: left;
+}
+
+.season-check {
+  color: #016c30;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.season-dropdown-new {
+  border-top: 1px solid #eef0f5;
+  color: #1a56db;
+  font-weight: 600;
+}
+
+.season-create-form {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  background: white;
+  border: 1px solid #e3e6ee;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 12px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.season-create-form input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d4d8e2;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.season-create-form input:focus {
+  outline: none;
+  border-color: #1a56db;
+  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.15);
+}
+
+.season-create-error {
+  margin: 0;
+  font-size: 12px;
+}
+
+.season-create-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

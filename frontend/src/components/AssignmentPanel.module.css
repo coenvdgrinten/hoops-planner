@@ -1,0 +1,493 @@
+.assignment-panel {
+  width: 320px;
+  background: #ffffff;
+  border-left: 1px solid #e8eaf0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8eaf0;
+}
+
+.panel-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 2px;
+}
+
+.panel-subtitle {
+  font-size: 12px;
+  color: #7a7e94;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #7a7e94;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #1a1a2e;
+}
+
+.panel-search {
+  padding: 12px 20px;
+  border-bottom: 1px solid #e8eaf0;
+}
+
+.panel-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.panel-search input:focus {
+  border-color: #016c30;
+  box-shadow: 0 0 0 3px rgba(1, 108, 48, 0.1);
+}
+
+.panel-section {
+  padding: 16px 20px;
+  flex: 1;
+}
+
+.panel-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7a7e94;
+  margin-bottom: 10px;
+}
+
+.assigned-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.assigned-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #e6f5ed;
+}
+
+.player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.player-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-team,
+.player-meta {
+  font-size: 11px;
+  color: #7a7e94;
+}
+
+.remove-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #9ca3af;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.remove-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Suggested Candidates */
+.suggested-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suggested-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fef9e7;
+  border: 1px solid #f5e6c8;
+  transition: all 0.15s ease;
+}
+
+.suggested-row:hover {
+  background: #fdf0d5;
+  border-color: #e6d4a8;
+}
+
+.suggested-row.assigned {
+  opacity: 0.5;
+}
+
+.suggested-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.suggested-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f5e6c8;
+  color: #8b7355;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.suggested-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.suggested-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggested-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.suggestion-reason {
+  font-size: 11px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty-msg {
+  font-size: 13px;
+  color: #7a7e94;
+  font-style: italic;
+}
+
+/* ===== Team Tree View ===== */
+.teams-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.team-group {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.team-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e8eaf0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a2e;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.team-header:hover {
+  background: #f8f7f5;
+  border-color: #d0d3df;
+}
+
+.team-header.eligible {
+  border-left: 3px solid #22c55e;
+}
+
+.team-header.not-at-gym {
+  border-left: 3px solid #f59e0b;
+}
+
+.team-header.ineligible {
+  border-left: 3px solid #ef4444;
+  opacity: 0.6;
+}
+
+.team-chevron {
+  font-size: 10px;
+  color: #8b8fa3;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.team-chevron.expanded {
+  transform: rotate(90deg);
+}
+
+.team-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #f0ebe3;
+  color: #8b7355;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0 8px 22px;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #fafafa;
+  transition: all 0.15s ease;
+}
+
+.member-row.eligible {
+  border-left: 2px solid #22c55e;
+}
+
+.member-row.ineligible {
+  border-left: 2px solid #ef4444;
+  opacity: 0.6;
+}
+
+.member-row.ineligible[title]:hover {
+  opacity: 1;
+}
+
+.member-row.assigned {
+  background: #e6f5ed;
+  border-left-color: #016c30;
+}
+
+.member-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.member-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f0ebe3;
+  color: #8b7355;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.member-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.member-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-meta {
+  font-size: 10px;
+  color: #8b8fa3;
+  white-space: nowrap;
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.add-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #016c30;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.add-btn:hover:not(:disabled) {
+  background: #004d1f;
+  transform: scale(1.1);
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-btn.ineligible {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+.add-btn.ineligible:hover {
+  background: #d1d5db;
+  transform: none;
+}
+
+.task-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #f3f1ee;
+  color: #8b8fa3;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ===== Tooltips ===== */
+.member-row.ineligible {
+  position: relative;
+}
+
+.member-row.ineligible[title]::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  background: #1a1a2e;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.15s ease;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.member-row.ineligible[title]::before {
+  content: "";
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  border: 5px solid transparent;
+  border-top-color: #1a1a2e;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.15s ease;
+  z-index: 100;
+}
+
+.member-row.ineligible[title]:hover::after,
+.member-row.ineligible[title]:hover::before {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}

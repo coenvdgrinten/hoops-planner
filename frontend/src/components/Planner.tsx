@@ -5,6 +5,7 @@ import type { Season, Game } from "../types";
 import type { TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
 import { GameEditModal } from "./GameEditModal";
+import styles from "./Planner.module.css";
 
 interface Props {
   season: Season;
@@ -69,25 +70,25 @@ export function Planner({ season, onSelectTask }: Props) {
   }
 
   return (
-    <div className="planner">
-      <div className="planner-header">
+    <div className={styles.planner}>
+      <div className={styles["planner-header"]}>
         <div>
           <h2>Game Schedule</h2>
-          <p className="planner-subtitle">
+          <p className={styles["planner-subtitle"]}>
             Assign members to standard tasks like refereeing, scoring, and timing.
           </p>
         </div>
-        <button className="btn-add-game" onClick={() => setShowCreateModal(true)}>
+        <button className={styles["btn-add-game"]} onClick={() => setShowCreateModal(true)}>
           + Add Game
         </button>
       </div>
       {hasGames ? (
-        <div className="games-by-date">
+        <div className={styles["games-by-date"]}>
         {Object.entries(grouped).map(([halfKey, dates]) => {
           const halfLabel = halfKey === "1" ? "First Half" : "Second Half";
           return (
-            <div key={halfKey} className="half-group">
-              <div className="half-label">{halfLabel}</div>
+            <div key={halfKey} className={styles["half-group"]}>
+              <div className={styles["half-label"]}>{halfLabel}</div>
               {Object.entries(dates).map(([date, courts]) => {
                 const dateObj = new Date(`${date || "1970-01-01"}T00:00`);
                 const formattedDate = dateObj.toLocaleDateString("nl-BE", {
@@ -100,16 +101,16 @@ export function Planner({ season, onSelectTask }: Props) {
                 const isFuture = dateObj >= today;
                 const sortedCourts = Object.entries(courts).sort(([a], [b]) => Number(a) - Number(b));
                 return (
-                  <div key={date} className="date-group">
-                    <div className="date-label">
-                      {isFuture && <span className="upcoming-badge">Upcoming Games</span>}
+                  <div key={date} className={styles["date-group"]}>
+                    <div className={styles["date-label"]}>
+                      {isFuture && <span className={styles["upcoming-badge"]}>Upcoming Games</span>}
                       <span>{formattedDate}</span>
                     </div>
-                    <div className="courts-row">
+                    <div className={styles["courts-row"]}>
                       {sortedCourts.map(([court, courtGames]) => (
-                        <div key={court} className="court-column">
-                          <div className="court-header">Court {court}</div>
-                          <div className="court-games">
+                        <div key={court} className={styles["court-column"]}>
+                          <div className={styles["court-header"]}>Court {court}</div>
+                          <div className={styles["court-games"]}>
                             {courtGames.map((game) => (
                               <GameCard
                                 key={game.id}

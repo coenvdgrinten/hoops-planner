@@ -1,0 +1,260 @@
+/* ===== Global resets & tokens ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f8f9fc;
+  color: #1a1a2e;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ===== Shared utilities (used across multiple components) ===== */
+
+/* Buttons reused in top bar, season create form, etc. */
+.icon-btn {
+  padding: 7px 14px;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5068;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: #f4f5f8;
+  border-color: #d0d3df;
+}
+
+/* Inline error text */
+.error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+/* Modal shell (ImportModal, GameEditModal) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #1a1a2e;
+}
+
+/* Generic form field (shared by modals) */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #4b5068;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #016c30;
+  box-shadow: 0 0 0 3px rgba(1, 108, 48, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  font-family: monospace;
+  min-height: 150px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.modal-actions button[type="submit"]:last-child,
+.modal-actions button:last-child {
+  background: #016c30;
+  color: white;
+  border-color: #016c30;
+}
+
+.modal-actions button[type="submit"]:last-child:hover,
+.modal-actions button:last-child:hover {
+  background: #004d1f;
+}
+
+.modal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty placeholder text */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #7a7e94;
+}
+
+.empty-state h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+/* Close button at the bottom of the assignment panel */
+.close-panel-btn {
+  margin: 12px 20px;
+  padding: 10px;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5068;
+  transition: all 0.15s ease;
+}
+
+.close-panel-btn:hover {
+  background: #f4f5f8;
+}
+
+.user-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5068;
+  padding: 4px 10px;
+  background: #f4f5f8;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* Logout button in the top bar */
+.logout-btn {
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+.logout-btn:hover {
+  background: #fef2f2 !important;
+  border-color: #fca5a5 !important;
+}
+
+/* Error banner + dismiss (AssignmentPanel) */
+.error-banner {
+  margin: 12px 20px 0;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #991b1b;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: #991b1b;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.dismiss-btn:hover {
+  opacity: 1;
+}
+
+/* Checkbox row (ImportModal / GameEditModal) */
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #016c30;
+}
+
+.form-checkbox label {
+  font-size: 13px;
+  color: #4b5068;
+  cursor: pointer;
+}
+
+/* Inline error inside the season create form */
+.season-create-error {
+  margin: 0;
+  font-size: 12px;
+}
