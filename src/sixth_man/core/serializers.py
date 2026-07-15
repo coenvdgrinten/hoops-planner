@@ -1,5 +1,6 @@
 """Serializers for the Sixth Man API."""
 
+from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from sixth_man.core.models import (
@@ -145,46 +146,13 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         task = validated_data["task"]
         player = validated_data["player"]
 
-        if task.assignments.exists():
-            raise serializers.ValidationError(
-                "This task already has an assignment. Remove it first."
-            )
-
-        # Player must not already be assigned to another task in the same game
-        if TaskAssignment.objects.filter(
-            player=player,
-            task__game=task.game,
-        ).exists():
-            raise serializers.ValidationError(
-                "This player is already assigned to another task in this game."
-            )
-
-        # Player must not be assigned to another task at the same date/time
-        if (
-            TaskAssignment.objects.filter(
-                player=player,
-                task__game__date=task.game.date,
-                task__game__time=task.game.time,
-            )
-            .exclude(
-                task__game=task.game,
-            )
-            .exists()
-        ):
-            raise serializers.ValidationError(
-                "This player is already assigned to another task at this time."
-            )
-
-        # Players must not be assigned to their own team's games
-        game = task.game
-        if game.home_team == player.team:
-            raise serializers.ValidationError(
-                "A player cannot be assigned to their own team's game."
-            )
-        if game.away_team == player.team.name:
-            raise serializers.ValidationError(
-                "A player cannot be assigned to their own team's game."
-            )
+        # Enforce the no-double-booking rules at the model level so they hold
+        # for any write path, not only this serializer.
+        assignment = TaskAssignment(task=task, player=player)
+        try:
+            assignment.full_clean(exclude=["assigned_at"])
+        except ValidationError as exc:
+            raise serializers.ValidationError(exc.messages[0])
 
         return super().create(validated_data)
 

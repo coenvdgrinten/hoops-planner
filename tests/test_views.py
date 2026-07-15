@@ -143,6 +143,79 @@ class TestSeasonViewSet:
         assert "John Doe" in body
         assert "Vido X14-1" in body
 
+    def test_export_pdf(self, api_client, season, team_x14, player):
+        from datetime import date, time
+
+        from sixth_man.core.models import Game, Task, TaskAssignment
+
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=date(2025, 10, 1),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(game=game, task_type="SCORER", slot_number=1)
+        TaskAssignment.objects.create(task=task, player=player)
+
+        response = api_client.get(f"/api/seasons/{season.id}/export_pdf/")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/pdf"
+        assert (
+            response["Content-Disposition"]
+            == f'attachment; filename="schedule_{season.name}.pdf"'
+        )
+        assert response.content.startswith(b"%PDF")
+
+    def test_import_schedule_creates_season_and_games(self, api_client):
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Team A,Team B\n"
+            "2025-10-01,14:00,2,Team C,Team D"
+        )
+        response = api_client.post(
+            "/api/seasons/import_schedule/",
+            {"season_name": "Imported-2025", "csv_text": csv_text},
+            format="json",
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["games_created"] == 2
+        assert Season.objects.filter(name="Imported-2025").exists()
+        assert Game.objects.filter(season__name="Imported-2025").count() == 2
+
+    def test_import_schedule_requires_csv(self, api_client):
+        response = api_client.post(
+            "/api/seasons/import_schedule/",
+            {"season_name": "NoCsv"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestPlayerEligibleViewAction:
+    def test_missing_task_param(self, api_client):
+        response = api_client.get("/api/players/eligible/")
+        assert response.status_code == 400
+
+    def test_invalid_task_id(self, api_client):
+        response = api_client.get("/api/players/eligible/?task=99999")
+        assert response.status_code == 404
+
+    def test_returns_eligible_indicator(self, api_client, player, task):
+        response = api_client.get(f"/api/players/eligible/?task={task.id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) >= 1
+        names = [d["full_name"] for d in data]
+        assert player.full_name in names
+        # Each entry carries the eligibility indicator
+        assert "eligible" in data[0]
+
 
 @pytest.mark.django_db
 class TestGameViewSet:
@@ -173,7 +246,8 @@ class TestGameViewSet:
 
         response = api_client.get("/api/games/")
         assert response.status_code == 200
-        assert len(response.json()) == 2
+        assert response.json()["count"] == 2
+        assert len(response.json()["results"]) == 2
 
     def test_list_games_with_season_filter(self, api_client, season):
         team = Team.objects.create(
@@ -202,7 +276,8 @@ class TestGameViewSet:
 
         response = api_client.get(f"/api/games/?season={season.id}")
         assert response.status_code == 200
-        assert len(response.json()) == 1
+        assert response.json()["count"] == 1
+        assert len(response.json()["results"]) == 1
 
     def test_tasks_with_assignments(self, api_client, player, season):
         game = Game.objects.create(

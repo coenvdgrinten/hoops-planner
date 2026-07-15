@@ -92,6 +92,16 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   // 204 No Content has no body to parse
   if (res.status === 204) return undefined as T;
   const json = await res.json();
+  // DRF pagination wraps list responses in {count, next, previous, results}.
+  // Unwrap to the bare array so callers can keep treating lists as arrays.
+  if (
+    json &&
+    typeof json === "object" &&
+    !Array.isArray(json) &&
+    Array.isArray((json as { results?: unknown }).results)
+  ) {
+    return (json as { results: T }).results;
+  }
   return json as T;
 }
 

@@ -1,5 +1,6 @@
 """Core models for Sixth Man."""
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import QuerySet
 
@@ -212,6 +213,64 @@ class TaskAssignment(models.Model):
 
     class Meta:
         unique_together = ["task", "player"]
+
+    def clean(self):
+        """Enforce the no-double-booking rules at the model level.
+
+        These mirror the checks in ``TaskAssignmentSerializer.create`` so the
+        rules hold for any write path (not only the serializer). Direct DB
+        writes (e.g. fixtures, management commands) bypass this by calling
+        ``save()`` without ``full_clean()``; the API always validates.
+        """
+        super().clean()
+        if self.task_id is None or self.player_id is None:
+            return
+
+        # A task slot holds at most one assignment (unique_together also guards
+        # this, but surface a clear message here too).
+        existing = TaskAssignment.objects.filter(task=self.task)
+        if self.pk is not None:
+            existing = existing.exclude(pk=self.pk)
+        if existing.exists():
+            raise ValidationError(
+                "This task already has an assignment. Remove it first."
+            )
+
+        # Player must not already be assigned to another task in the same game.
+        same_game = TaskAssignment.objects.filter(
+            player=self.player,
+            task__game=self.task.game,
+        )
+        if self.pk is not None:
+            same_game = same_game.exclude(pk=self.pk)
+        if same_game.exists():
+            raise ValidationError(
+                "This player is already assigned to another task in this game."
+            )
+
+        # Player must not be assigned to another task at the same date/time.
+        same_time = TaskAssignment.objects.filter(
+            player=self.player,
+            task__game__date=self.task.game.date,
+            task__game__time=self.task.game.time,
+        ).exclude(task__game=self.task.game)
+        if self.pk is not None:
+            same_time = same_time.exclude(pk=self.pk)
+        if same_time.exists():
+            raise ValidationError(
+                "This player is already assigned to another task at this time."
+            )
+
+        # Players must not be assigned to their own team's games.
+        game = self.task.game
+        if game.home_team_id == self.player.team_id:
+            raise ValidationError(
+                "A player cannot be assigned to their own team's game."
+            )
+        if game.away_team == self.player.team.name:
+            raise ValidationError(
+                "A player cannot be assigned to their own team's game."
+            )
 
     def __str__(self) -> str:
         return f"{self.player} -> {self.task}"

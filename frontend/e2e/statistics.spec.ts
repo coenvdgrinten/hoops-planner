@@ -16,6 +16,10 @@ interface PlayerRecord {
 }
 
 test.describe("Statistics", () => {
+  // These tests seed shared state via the API; run serially to avoid
+  // collisions on the shared SQLite database.
+  test.describe.configure({ mode: "serial" });
+
   let seasonName: string;
 
   test.beforeEach(async ({ request, page }) => {
@@ -52,11 +56,18 @@ test.describe("Statistics", () => {
     const seasonsRes = await request.get(`${API}/seasons/`, {
       headers: { Authorization: `Token ${token}` },
     });
-    const seasonId = (await seasonsRes.json())[0].id;
+    const seasonsBody = await seasonsRes.json();
+    const seasons = (
+      Array.isArray(seasonsBody) ? seasonsBody : seasonsBody.results
+    ) as { id: number }[];
+    const seasonId = seasons[0].id;
     const gamesRes = await request.get(`${API}/games/?season=${seasonId}`, {
       headers: { Authorization: `Token ${token}` },
     });
-    const games = (await gamesRes.json()) as GameRecord[];
+    const gamesBody = await gamesRes.json();
+    const games = (
+      Array.isArray(gamesBody) ? gamesBody : gamesBody.results
+    ) as GameRecord[];
     const awayGame = games.find((g) => g.date === "2025-10-08")!;
     const tasksRes = await request.get(
       `${API}/games/${awayGame.id}/tasks_with_assignments/`,
@@ -66,7 +77,11 @@ test.describe("Statistics", () => {
     const playersRes = await request.get(`${API}/players/`, {
       headers: { Authorization: `Token ${token}` },
     });
-    const player = (await playersRes.json() as PlayerRecord[]).find(
+    const playersBody = await playersRes.json();
+    const players = (
+      Array.isArray(playersBody) ? playersBody : playersBody.results
+    ) as PlayerRecord[];
+    const player = players.find(
       (p) => p.team.name === "Vido X14-Away" && p.full_name.includes(String(playerSuffix)),
     )!;
     const assignRes = await request.post(
