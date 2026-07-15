@@ -100,6 +100,13 @@ export function getSeasons() {
   return request<Season[]>("/seasons/");
 }
 
+export function createSeason(name: string) {
+  return request<Season>("/seasons/", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
 export function importSchedule(seasonName: string, csvText: string, replace?: boolean) {
   return request<{ games_created: number; games_updated: number; tasks: number }>("/seasons/import_schedule/", {
     method: "POST",

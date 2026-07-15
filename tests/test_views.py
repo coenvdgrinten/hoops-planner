@@ -16,6 +16,28 @@ from sixth_man.core.models import (
 
 
 @pytest.mark.django_db
+class TestSeasonViewSet:
+    def test_create_season(self, api_client):
+        response = api_client.post(
+            "/api/seasons/", {"name": "2026-2027"}, format="json"
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["name"] == "2026-2027"
+        assert Season.objects.filter(name="2026-2027").exists()
+
+    def test_create_season_requires_name(self, api_client):
+        response = api_client.post("/api/seasons/", {}, format="json")
+        assert response.status_code == 400
+
+    def test_create_season_duplicate_name_conflicts(self, api_client, season):
+        response = api_client.post(
+            "/api/seasons/", {"name": season.name}, format="json"
+        )
+        assert response.status_code == 400
+
+
+@pytest.mark.django_db
 class TestGameViewSet:
     def test_list_games_without_season_filter(self, api_client, season):
         team = Team.objects.create(

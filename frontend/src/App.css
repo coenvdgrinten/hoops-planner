@@ -1895,6 +1895,53 @@ body {
   font-size: 14px;
 }
 
+.season-dropdown-new {
+  border-top: 1px solid #eef0f5;
+  color: #1a56db;
+  font-weight: 600;
+}
+
+.season-create-form {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  background: white;
+  border: 1px solid #e3e6ee;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 12px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.season-create-form input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d4d8e2;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.season-create-form input:focus {
+  outline: none;
+  border-color: #1a56db;
+  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.15);
+}
+
+.season-create-error {
+  margin: 0;
+  font-size: 12px;
+}
+
+.season-create-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 /* ===== Auth (Login/Register) ===== */
 .auth-container {
   display: flex;
