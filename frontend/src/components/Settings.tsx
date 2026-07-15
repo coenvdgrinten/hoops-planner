@@ -50,7 +50,8 @@ export function Settings() {
         <thead>
           <tr>
             <th>Age Category</th>
-            <th>Referees</th>
+            <th>Referees (req.)</th>
+            <th>Referees (opt.)</th>
             <th>Scorer</th>
             <th>Timer</th>
             <th>24-sec Operator</th>
@@ -71,6 +72,25 @@ export function Settings() {
                       ageCategory: s.age_category,
                       data: {
                         required_referees: Math.max(
+                          0,
+                          Number(e.target.value),
+                        ),
+                      },
+                    })
+                  }
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  min={0}
+                  max={4}
+                  value={s.optional_referees}
+                  onChange={(e) =>
+                    mutation.mutate({
+                      ageCategory: s.age_category,
+                      data: {
+                        optional_referees: Math.max(
                           0,
                           Number(e.target.value),
                         ),

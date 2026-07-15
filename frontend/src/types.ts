@@ -39,6 +39,7 @@ export interface Task {
   game: number;
   task_type: string;
   slot_number: number;
+  optional: boolean;
 }
 
 export interface TaskWithAssignments {
@@ -46,6 +47,7 @@ export interface TaskWithAssignments {
   game: number;
   task_type: string;
   slot_number: number;
+  optional: boolean;
   assignments: TaskAssignment[];
 }
 
@@ -119,6 +121,7 @@ export interface LeaderboardEntry {
 export interface AgeCategorySettings {
   age_category: string;
   required_referees: number;
+  optional_referees: number;
   scorer: boolean;
   timer: boolean;
   requires_24_second_operator: boolean;

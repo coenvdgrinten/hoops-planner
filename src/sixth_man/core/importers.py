@@ -188,9 +188,7 @@ def _ensure_task_slots(game: Game) -> int:
 
     # Timer — per-category setting
     if settings.timer:
-        tasks_to_create.append(
-            Task(game=game, task_type=TaskType.TIMER, slot_number=1)
-        )
+        tasks_to_create.append(Task(game=game, task_type=TaskType.TIMER, slot_number=1))
 
     # 24 Second Operator — per-category setting
     if settings.requires_24_second_operator:
@@ -198,10 +196,18 @@ def _ensure_task_slots(game: Game) -> int:
             Task(game=game, task_type=TaskType.SECOND_24_OPERATOR, slot_number=1)
         )
 
-    # Referees — per-category count
-    for slot in range(1, int(settings.required_referees) + 1):
+    # Referees — required slots first, then optional slots
+    required = int(settings.required_referees)
+    optional = int(settings.optional_referees)
+    for slot in range(1, required + optional + 1):
+        is_optional = slot > required
         tasks_to_create.append(
-            Task(game=game, task_type=TaskType.REFEREE, slot_number=slot)
+            Task(
+                game=game,
+                task_type=TaskType.REFEREE,
+                slot_number=slot,
+                optional=is_optional,
+            )
         )
 
     count = 0
@@ -210,6 +216,7 @@ def _ensure_task_slots(game: Game) -> int:
             game=game,
             task_type=task.task_type,
             slot_number=task.slot_number,
+            defaults={"optional": task.optional},
         )
         if was_created:
             count += 1

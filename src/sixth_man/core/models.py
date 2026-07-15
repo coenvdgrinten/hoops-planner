@@ -179,6 +179,13 @@ class Task(models.Model):
             "(e.g., Referee 1, Referee 2)."
         ),
     )
+    optional = models.BooleanField(
+        default=False,
+        help_text=(
+            "Whether this slot is optional (e.g. a 2nd referee that is not "
+            "required to be filled)."
+        ),
+    )
 
     class Meta:
         ordering = ["task_type", "slot_number", "game"]
@@ -225,7 +232,14 @@ class AgeCategorySettings(models.Model):
     )
     required_referees = models.PositiveIntegerField(
         default=2,
-        help_text="Number of referee slots to create for games in this category.",
+        help_text="Number of referee slots that must be filled for this category.",
+    )
+    optional_referees = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Number of additional referee slots that may be filled but are "
+            "not required (e.g. a 2nd referee for X10/X14 games)."
+        ),
     )
     scorer = models.BooleanField(
         default=True,
@@ -254,6 +268,7 @@ class AgeCategorySettings(models.Model):
             age_category=age_category,
             defaults={
                 "required_referees": 2,
+                "optional_referees": 0,
                 "scorer": True,
                 "timer": True,
                 "requires_24_second_operator": False,

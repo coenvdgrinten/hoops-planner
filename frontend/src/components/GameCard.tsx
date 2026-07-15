@@ -103,12 +103,9 @@ export function GameCard({
           const label = TASK_LABELS[task.task_type] ?? task.task_type;
           const displayLabel = task.slot_number > 1 ? `${label} #${task.slot_number}` : label;
 
-          // X10/X14 games: second ref is optional (greyed out)
+          // Optional referee slots (e.g. a 2nd ref for X10/X14) are greyed out
           const isOptionalRef =
-            task.task_type === "REFEREE" &&
-            task.slot_number >= 2 &&
-            homeTeam.age_category &&
-            ["X10", "X14"].includes(homeTeam.age_category);
+            task.task_type === "REFEREE" && task.optional;
 
           return (
             <div

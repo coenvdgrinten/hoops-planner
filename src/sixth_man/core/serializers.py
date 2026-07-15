@@ -64,6 +64,7 @@ class AgeCategorySettingsSerializer(serializers.ModelSerializer):
         fields = [
             "age_category",
             "required_referees",
+            "optional_referees",
             "scorer",
             "timer",
             "requires_24_second_operator",
@@ -111,6 +112,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "game_id",
             "task_type",
             "slot_number",
+            "optional",
         ]
 
 

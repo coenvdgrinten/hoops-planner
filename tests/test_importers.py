@@ -201,9 +201,7 @@ class TestTaskSlotStaffing:
         import_schedule(csv_text, "2025-2026")
         game = Game.objects.get()
         task_types = set(
-            Task.objects.filter(game=game).values_list(
-                "task_type", "slot_number"
-            )
+            Task.objects.filter(game=game).values_list("task_type", "slot_number")
         )
         assert ("SCORER", 1) in task_types
         assert ("TIMER", 1) in task_types
@@ -224,9 +222,7 @@ class TestTaskSlotStaffing:
         )
         import_schedule(csv_text, "2025-2026")
         game = Game.objects.get()
-        ref_slots = Task.objects.filter(
-            game=game, task_type="REFEREE"
-        ).count()
+        ref_slots = Task.objects.filter(game=game, task_type="REFEREE").count()
         assert ref_slots == 3
 
     def test_settings_enable_24_second_operator(self):
@@ -242,17 +238,13 @@ class TestTaskSlotStaffing:
         )
         import_schedule(csv_text, "2025-2026")
         game = Game.objects.get()
-        assert Task.objects.filter(
-            game=game, task_type="24_SECOND_OPERATOR"
-        ).exists()
+        assert Task.objects.filter(game=game, task_type="24_SECOND_OPERATOR").exists()
 
     def test_settings_disable_scorer(self):
         from sixth_man.core.models import AgeCategorySettings
 
         AgeCategorySettings.for_category("X14")
-        AgeCategorySettings.objects.filter(age_category="X14").update(
-            scorer=False
-        )
+        AgeCategorySettings.objects.filter(age_category="X14").update(scorer=False)
         csv_text = (
             "date,time,court,home_team,away_team\n"
             "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
@@ -260,3 +252,23 @@ class TestTaskSlotStaffing:
         import_schedule(csv_text, "2025-2026")
         game = Game.objects.get()
         assert not Task.objects.filter(game=game, task_type="SCORER").exists()
+
+    def test_optional_referees_create_marked_optional_slots(self):
+        from sixth_man.core.models import AgeCategorySettings
+
+        AgeCategorySettings.for_category("X14")
+        AgeCategorySettings.objects.filter(age_category="X14").update(
+            required_referees=1, optional_referees=1
+        )
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game = Game.objects.get()
+        refs = Task.objects.filter(game=game, task_type="REFEREE").order_by(
+            "slot_number"
+        )
+        assert refs.count() == 2
+        assert refs[0].slot_number == 1 and refs[0].optional is False
+        assert refs[1].slot_number == 2 and refs[1].optional is True

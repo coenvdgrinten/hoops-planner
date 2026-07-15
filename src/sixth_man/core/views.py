@@ -299,9 +299,7 @@ class SettingsViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         obj = AgeCategorySettings.for_category(pk)
-        serializer = AgeCategorySettingsSerializer(
-            obj, data=request.data, partial=True
-        )
+        serializer = AgeCategorySettingsSerializer(obj, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
