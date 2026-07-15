@@ -126,4 +126,22 @@ test.describe("Planner", () => {
     expect(csv).toContain("date,time,court");
     expect(csv).toContain("Team A");
   });
+
+  test("exports the schedule as PDF", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("export-pdf-btn").click();
+    const download = await downloadPromise;
+
+    expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.pdf`);
+
+    const stream = await download.createReadStream();
+    let pdf = "";
+    for await (const chunk of stream) {
+      pdf += chunk.toString();
+    }
+    expect(pdf).toContain("%PDF");
+  });
 });

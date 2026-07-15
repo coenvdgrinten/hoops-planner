@@ -109,8 +109,21 @@ export function createSeason(name: string) {
 
 /** Download the season's task schedule as a CSV file (triggers a browser download). */
 export async function exportSeasonCsv(seasonId: number, seasonName: string) {
+  return downloadSeasonExport(seasonId, seasonName, "csv");
+}
+
+/** Download the season's task schedule as a PDF file (triggers a browser download). */
+export async function exportSeasonPdf(seasonId: number, seasonName: string) {
+  return downloadSeasonExport(seasonId, seasonName, "pdf");
+}
+
+async function downloadSeasonExport(
+  seasonId: number,
+  seasonName: string,
+  format: "csv" | "pdf",
+) {
   const token = getToken();
-  const res = await fetch(`${API}/seasons/${seasonId}/export_csv/`, {
+  const res = await fetch(`${API}/seasons/${seasonId}/export_${format}/`, {
     headers: token ? { Authorization: `Token ${token}` } : {},
   });
   if (!res.ok) {
@@ -120,7 +133,7 @@ export async function exportSeasonCsv(seasonId: number, seasonName: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `schedule_${seasonName}.csv`;
+  a.download = `schedule_${seasonName}.${format}`;
   document.body.appendChild(a);
   a.click();
   a.remove();
