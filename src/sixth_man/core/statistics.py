@@ -6,7 +6,15 @@ from typing import Any
 
 from django.db import models
 
-from sixth_man.core.models import Game, Player, Season, Task, TaskAssignment, TaskType
+from sixth_man.core.models import (
+    Game,
+    Player,
+    Season,
+    Task,
+    TaskAssignment,
+    TaskType,
+    Team,
+)
 
 
 def get_player_stats(
@@ -61,12 +69,19 @@ def get_player_stats(
             games_without_own_team += 1
             effective += 2.0  # 2x multiplier for away days
 
+    # The away-day multiplier contributes an extra +1 effective point per
+    # away-day task (the second "x" of the 2x). Surfaced so the fairness
+    # logic is transparent in the UI.
+    away_day_bonus = float(games_without_own_team)
+
     return {
         "total_tasks": total,
         "effective_tasks": effective,
         "by_type": dict(by_type),
         "games_with_own_team": games_with_own_team,
         "games_without_own_team": games_without_own_team,
+        "away_day_tasks": games_without_own_team,
+        "away_day_bonus": away_day_bonus,
     }
 
 
@@ -115,13 +130,22 @@ def get_season_stats(
         ).count()
         by_task_type[task_type] = {"slots": slots, "filled": filled}
 
-    # Per team
+    # Per team. For away games the `home_team` field names the opponent, while
+    # `away_team` (free text) names the club's travelling team — so attribute
+    # the fixture to the travelling team in that case.
+    away_team_to_name: dict[str, str] = {t.name: t.name for t in Team.objects.all()}
+
+    def team_for_game(game: Game) -> str:
+        if game.game_type == Game.GameType.AWAY:
+            # away_team holds the club's travelling team name
+            return away_team_to_name.get(game.away_team, game.away_team)
+        return game.home_team.name
+
     per_team: dict[str, dict[str, Any]] = defaultdict(
         lambda: {"games": 0, "assignments": 0}
     )
     for game in games:
-        team_name = game.home_team.name
-        per_team[team_name]["games"] += 1
+        per_team[team_for_game(game)]["games"] += 1
 
     for assignment in assignments:
         team_name = assignment.player.team.name
@@ -206,6 +230,8 @@ def get_leaderboard(
                 "team": player.team.name,
                 "total_tasks": stats["total_tasks"],
                 "effective_tasks": stats["effective_tasks"],
+                "away_day_tasks": stats["away_day_tasks"],
+                "away_day_bonus": stats["away_day_bonus"],
                 "by_type": stats["by_type"],
             }
         )

@@ -84,6 +84,36 @@ class TestGetPlayerStats:
         assert stats["games_with_own_team"] == 0
         assert stats["games_without_own_team"] == 1
 
+    def test_away_day_multiplier_fields(self, player, season):
+        # Another team's game — player's team has no game on this date
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=other_team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        stats = get_player_stats(player)
+        # away_day_tasks counts the away-day assignment; away_day_bonus is the
+        # extra effective point contributed by the 2x multiplier.
+        assert stats["away_day_tasks"] == 1
+        assert stats["away_day_bonus"] == 1.0
+        expected = stats["total_tasks"] + stats["away_day_bonus"]
+        assert stats["effective_tasks"] == expected
+
     def test_by_type_counts(self, player, season):
         game = Game.objects.create(
             season=season,
@@ -238,6 +268,32 @@ class TestGetSeasonStats:
         stats = get_season_stats(season)
         assert stats["per_team"]["Vido X14-1"]["games"] == 1
         assert stats["per_team"]["Vido X14-1"]["assignments"] == 1
+
+    def test_per_team_attributes_away_games_to_travelling_team(self, season):
+        # Home team here is the opponent; the club's travelling team is in away_team.
+        travelling = Team.objects.create(
+            name="Vido X14-Away",
+            age_category=Team.AgeCategory.X14,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=travelling,  # opponent shares the name by coincidence is fine
+            away_team="Vido X14-Away",  # club's travelling team
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+
+        stats = get_season_stats(season)
+        # The fixture must be attributed to the travelling team, not the opponent.
+        assert stats["per_team"]["Vido X14-Away"]["games"] == 1
+        assert "Vido X14-Away" in stats["per_team"]
 
 
 @pytest.mark.django_db

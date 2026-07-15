@@ -110,6 +110,7 @@ export function Statistics({ season }: Props) {
                 <th>Player</th>
                 <th>Team</th>
                 <th>Tasks</th>
+                <th>Away-day Bonus</th>
                 <th>Effective</th>
               </tr>
             </thead>
@@ -120,6 +121,11 @@ export function Statistics({ season }: Props) {
                   <td>{entry.player_name}</td>
                   <td>{entry.team}</td>
                   <td>{entry.total_tasks}</td>
+                  <td>
+                    {entry.away_day_tasks > 0
+                      ? `${entry.away_day_bonus.toFixed(1)} (${entry.away_day_tasks}×2)`
+                      : "—"}
+                  </td>
                   <td>{entry.effective_tasks}</td>
                 </tr>
               ))}
@@ -127,6 +133,12 @@ export function Statistics({ season }: Props) {
           </table>
         </div>
       )}
+
+      <p className={styles["stat-note"]}>
+        Tasks done on a day the member's own team has no home game count
+        double (2×) toward the effective total, to reward members who travel
+        in just to help.
+      </p>
     </div>
   );
 }

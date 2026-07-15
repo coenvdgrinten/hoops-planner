@@ -124,6 +124,8 @@ export interface LeaderboardEntry {
   team: string;
   total_tasks: number;
   effective_tasks: number;
+  away_day_tasks: number;
+  away_day_bonus: number;
   by_type: Record<string, number>;
 }
 

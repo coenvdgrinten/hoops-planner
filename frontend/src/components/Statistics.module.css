@@ -110,3 +110,11 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+.stat-note {
+  margin: 12px 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #7a7e94;
+  max-width: 640px;
+}
