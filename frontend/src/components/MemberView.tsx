@@ -252,9 +252,10 @@ export function MemberView() {
           const isEditingTeam = editingTeamId === team.id;
 
           return (
-            <div key={team.id} className={styles["roster-team-group"]}>
+            <div data-testid={`team-group-${team.id}`} key={team.id} className={styles["roster-team-group"]}>
               <div className={styles["team-row"]}>
                 <button
+                  data-testid={`team-header-${team.id}`}
                   className={`${styles["roster-team-header"]} ${isExpanded ? styles.expanded : ""}`}
                   onClick={() => toggleTeam(team.id)}
                 >
@@ -265,6 +266,7 @@ export function MemberView() {
                 </button>
                 <div className={styles["team-actions"]}>
                   <button
+                    data-testid={`team-edit-${team.id}`}
                     className={styles["icon-edit"]}
                     title="Edit team"
                     onClick={() => {
@@ -276,6 +278,7 @@ export function MemberView() {
                     ✎
                   </button>
                   <button
+                    data-testid={`team-delete-${team.id}`}
                     className={styles["icon-delete"]}
                     title="Delete team"
                     onClick={() => {
@@ -327,6 +330,7 @@ export function MemberView() {
               {isExpanded && (
                 <div className={styles["roster-members-list"]}>
                   <button
+                    data-testid={`add-player-${team.id}`}
                     className={styles["add-player-btn"]}
                     onClick={() => {
                       setAddingPlayerForTeam(team.id);
@@ -474,7 +478,7 @@ export function MemberView() {
                               </button>
                             </div>
                           ) : (
-                            <div className={styles["roster-member-row"]}>
+                            <div data-testid={`player-row-${player.id}`} className={styles["roster-member-row"]}>
                               <div className={styles["roster-member-avatar"]}>
                                 {player.full_name
                                   .split(" ")
@@ -539,6 +543,7 @@ export function MemberView() {
                               <div className={styles["cert-editor"]}>
                                 <span className={styles["cert-label"]}>Cert</span>
                                 <select
+                                  data-testid={`cert-select-${player.id}`}
                                   className={`${styles["cert-select"]} ${getCertClass(player.referee_certification)}`}
                                   value={player.referee_certification}
                                   onChange={(e) => handleCertChange(player.id, e.target.value)}
@@ -552,6 +557,7 @@ export function MemberView() {
                               </div>
                               <div className={styles["member-actions"]}>
                                 <button
+                                  data-testid={`player-edit-${player.id}`}
                                   className={styles["icon-edit"]}
                                   title="Edit player"
                                   onClick={() => {
@@ -568,6 +574,7 @@ export function MemberView() {
                                   ✎
                                 </button>
                                 <button
+                                  data-testid={`player-delete-${player.id}`}
                                   className={styles["icon-delete"]}
                                   title="Delete player"
                                   onClick={() => {
