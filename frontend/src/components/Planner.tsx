@@ -15,10 +15,13 @@ export function Planner({ season, onSelectTask }: Props) {
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const { data: games = [], isLoading, error } = useQuery({
+  const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
     queryFn: () => getGames(season.id),
   });
+
+  // Away games have no tasks; they live in the Availability view instead.
+  const games = allGames.filter((g) => g.game_type !== "AWAY");
 
   const editingGameData = editingGame !== null ? games.find((g) => g.id === editingGame) : null;
 

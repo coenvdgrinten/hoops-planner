@@ -4,6 +4,7 @@ import { Planner } from "./components/Planner";
 import { Statistics } from "./components/Statistics";
 import { MemberView } from "./components/MemberView";
 import { Settings } from "./components/Settings";
+import { Availability } from "./components/Availability";
 import { ImportModal } from "./components/ImportModal";
 import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
@@ -12,7 +13,7 @@ import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
 import "./App.css";
 
-type View = "planner" | "statistics" | "members" | "settings";
+type View = "planner" | "statistics" | "members" | "settings" | "availability";
 
 export function App() {
   const [authenticated, setAuthenticated] = useState(!!getToken());
@@ -134,6 +135,13 @@ export function App() {
               <span className="nav-icon">⚙️</span>
               Settings
             </button>
+            <button
+              className={currentView === "availability" ? "active" : ""}
+              onClick={() => handleViewChange("availability")}
+            >
+              <span className="nav-icon">🚫</span>
+              Availability
+            </button>
           </nav>
         </aside>
 
@@ -141,6 +149,15 @@ export function App() {
         <main className="main-content">
           {currentView === "settings" ? (
             <Settings />
+          ) : currentView === "availability" ? (
+            selectedSeason ? (
+              <Availability season={selectedSeason} />
+            ) : (
+              <div className="empty-state">
+                <h2>Select a season</h2>
+                <p>Choose a season to view availability.</p>
+              </div>
+            )
           ) : selectedSeason ? (
             <>
               {currentView === "planner" && (

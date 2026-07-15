@@ -303,3 +303,73 @@ class SettingsViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class AvailabilityViewSet(viewsets.ViewSet):
+    """Show, per day, which members are unavailable due to away games.
+
+    An away game for a team makes every member of that team (players and
+    coaches) and anyone who coaches that team unavailable for tasks that day.
+    This view surfaces that information so planners can see *why* a member
+    cannot be assigned.
+    """
+
+    def list(self, request):
+        season_id = request.query_params.get("season")
+        if not season_id:
+            return Response(
+                {"detail": "Provide a 'season' query parameter."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        away_games = (
+            Game.objects.filter(season_id=season_id, game_type=Game.GameType.AWAY)
+            .select_related("home_team")
+            .order_by("date", "time")
+        )
+
+        # Group away games by date
+        by_date: dict[str, list[dict[str, object]]] = {}
+        for game in away_games:
+            team = game.home_team
+            # Members made unavailable: players on the team + anyone coaching it
+            players = list(
+                Player.objects.filter(team=team).values(
+                    "id", "first_name", "last_name", "is_coach"
+                )
+            )
+            coaches_of_team = list(
+                Player.objects.filter(coached_teams=team).values(
+                    "id", "first_name", "last_name", "is_coach"
+                )
+            )
+            # Merge, de-duplicating by player id
+            seen = set()
+            members = []
+            for p in players + coaches_of_team:
+                if p["id"] in seen:
+                    continue
+                seen.add(p["id"])
+                members.append(
+                    {
+                        "id": p["id"],
+                        "name": f"{p['first_name']} {p['last_name']}",
+                        "is_coach": p["is_coach"],
+                    }
+                )
+
+            entry = {
+                "game_id": game.id,
+                "team": TeamSerializer(team).data,
+                "opponent": game.away_team,
+                "time": game.time.strftime("%H:%M") if game.time else "",
+                "member_count": len(members),
+                "members": members,
+            }
+            by_date.setdefault(str(game.date), []).append(entry)
+
+        data = [
+            {"date": date, "away_games": games}
+            for date, games in sorted(by_date.items())
+        ]
+        return Response(data)

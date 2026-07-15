@@ -31,7 +31,6 @@ export interface Game {
   time: string;
   court: string;
   half: string;
-  required_referees: number;
 }
 
 export interface Task {
@@ -125,4 +124,24 @@ export interface AgeCategorySettings {
   scorer: boolean;
   timer: boolean;
   requires_24_second_operator: boolean;
+}
+
+export interface AvailabilityMember {
+  id: number;
+  name: string;
+  is_coach: boolean;
+}
+
+export interface AvailabilityAwayGame {
+  game_id: number;
+  team: Team;
+  opponent: string;
+  time: string;
+  member_count: number;
+  members: AvailabilityMember[];
+}
+
+export interface AvailabilityDay {
+  date: string;
+  away_games: AvailabilityAwayGame[];
 }

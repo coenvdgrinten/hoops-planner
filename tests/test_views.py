@@ -315,3 +315,65 @@ class TestSettingsEndpoint:
             format="json",
         )
         assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestAvailabilityEndpoint:
+    def test_requires_season_param(self, api_client):
+        response = api_client.get("/api/availability/")
+        assert response.status_code == 400
+
+    def test_lists_away_games_with_unavailable_members(self, api_client, season):
+        away_team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        Player.objects.create(
+            first_name="Jane", last_name="Doe", team=away_team, is_coach=True
+        )
+        Player.objects.create(first_name="John", last_name="Smith", team=away_team)
+        # A coach of another team who also coaches the away team
+        other_team = Team.objects.create(
+            name="Vido X10-1", age_category=Team.AgeCategory.X10
+        )
+        cross_coach = Player.objects.create(
+            first_name="Coach", last_name="Karlos", team=other_team, is_coach=True
+        )
+        cross_coach.coached_teams.add(away_team)
+
+        Game.objects.create(
+            season=season,
+            home_team=away_team,
+            away_team="Opponent A",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        # A home game should NOT appear in availability
+        Game.objects.create(
+            season=season,
+            home_team=away_team,
+            away_team="Opponent B",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(16, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        response = api_client.get(f"/api/availability/?season={season.id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        day = data[0]
+        assert day["date"] == "2025-10-01"
+        assert len(day["away_games"]) == 1
+        game = day["away_games"][0]
+        assert game["team"]["name"] == "Vido X14-1"
+        assert game["opponent"] == "Opponent A"
+        # Jane (player+coach), John (player), Coach Karlos (coaches away team)
+        assert game["member_count"] == 3
+        names = {m["name"] for m in game["members"]}
+        assert "Jane Doe" in names
+        assert "John Smith" in names
+        assert "Coach Karlos" in names

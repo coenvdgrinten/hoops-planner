@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from sixth_man.core import auth_views
 from sixth_man.core.views import (
+    AvailabilityViewSet,
     GameViewSet,
     PlayerViewSet,
     SeasonViewSet,
@@ -22,6 +23,7 @@ router.register(r"games", GameViewSet, basename="games")
 router.register(r"tasks", TaskViewSet)
 router.register(r"assignments", TaskAssignmentViewSet)
 router.register(r"settings", SettingsViewSet, basename="settings")
+router.register(r"availability", AvailabilityViewSet, basename="availability")
 
 urlpatterns = [
     path("auth/login/", auth_views.login, name="login"),

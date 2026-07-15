@@ -1,5 +1,6 @@
 import type {
   AgeCategorySettings,
+  AvailabilityDay,
   CandidateDetail,
   EligiblePlayer,
   Game,
@@ -255,6 +256,11 @@ export function updateAgeCategorySettings(
     method: "PUT",
     body: JSON.stringify(data),
   });
+}
+
+// Availability
+export function getAvailability(season: number) {
+  return request<AvailabilityDay[]>(`/availability/?season=${season}`);
 }
 
 // Auth
