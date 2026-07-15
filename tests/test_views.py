@@ -16,6 +16,82 @@ from sixth_man.core.models import (
 
 
 @pytest.mark.django_db
+class TestTeamViewSet:
+    def test_create_team(self, api_client):
+        response = api_client.post(
+            "/api/teams/",
+            {"name": "Vido X14-2", "age_category": Team.AgeCategory.X14},
+            format="json",
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["name"] == "Vido X14-2"
+        assert body["age_category"] == Team.AgeCategory.X14
+        assert Team.objects.filter(name="Vido X14-2").exists()
+
+    def test_create_team_requires_name(self, api_client):
+        response = api_client.post(
+            "/api/teams/", {"age_category": Team.AgeCategory.X14}, format="json"
+        )
+        assert response.status_code == 400
+
+    def test_update_team(self, api_client, team_x14):
+        response = api_client.patch(
+            f"/api/teams/{team_x14.id}/",
+            {"name": "Vido X14-Renamed"},
+            format="json",
+        )
+        assert response.status_code == 200
+        team_x14.refresh_from_db()
+        assert team_x14.name == "Vido X14-Renamed"
+
+    def test_delete_team(self, api_client, team_x14):
+        response = api_client.delete(f"/api/teams/{team_x14.id}/")
+        assert response.status_code == 204
+        assert not Team.objects.filter(id=team_x14.id).exists()
+
+
+@pytest.mark.django_db
+class TestPlayerViewSet:
+    def test_create_player(self, api_client, team_x14):
+        response = api_client.post(
+            "/api/players/",
+            {
+                "first_name": "New",
+                "last_name": "Player",
+                "team_id": team_x14.id,
+                "referee_certification": Player.RefereeCertification.T1,
+            },
+            format="json",
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["full_name"] == "New Player"
+        assert Player.objects.filter(first_name="New", last_name="Player").exists()
+
+    def test_create_player_requires_names(self, api_client, team_x14):
+        response = api_client.post(
+            "/api/players/", {"team_id": team_x14.id}, format="json"
+        )
+        assert response.status_code == 400
+
+    def test_update_player(self, api_client, player):
+        response = api_client.patch(
+            f"/api/players/{player.id}/",
+            {"referee_certification": Player.RefereeCertification.F},
+            format="json",
+        )
+        assert response.status_code == 200
+        player.refresh_from_db()
+        assert player.referee_certification == Player.RefereeCertification.F
+
+    def test_delete_player(self, api_client, player):
+        response = api_client.delete(f"/api/players/{player.id}/")
+        assert response.status_code == 204
+        assert not Player.objects.filter(id=player.id).exists()
+
+
+@pytest.mark.django_db
 class TestSeasonViewSet:
     def test_create_season(self, api_client):
         response = api_client.post(

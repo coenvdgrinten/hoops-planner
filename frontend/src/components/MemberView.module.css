@@ -400,3 +400,184 @@
 .coached-teams-actions .btn-cancel:hover {
   background: #f5f6fa;
 }
+
+/* ===== Team / Player Management ===== */
+.add-team-btn {
+  padding: 6px 14px;
+  border: 1px solid #016c30;
+  border-radius: 6px;
+  background: #016c30;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-team-btn:hover {
+  background: #004d22;
+  border-color: #004d22;
+}
+
+.team-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.team-row .roster-team-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.team-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.icon-edit,
+.icon-delete {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-edit:hover {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.icon-delete:hover {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.team-edit-form,
+.player-edit-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 4px 0 4px 22px;
+  background: #f5f6fa;
+  border: 1px solid #e0e2ea;
+  border-radius: 8px;
+}
+
+.team-edit-form input,
+.player-edit-form input[type="text"] {
+  padding: 6px 10px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1a1a2e;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.team-edit-form input:focus,
+.player-edit-form input[type="text"]:focus {
+  border-color: #016c30;
+  box-shadow: 0 0 0 2px rgba(1, 108, 48, 0.12);
+}
+
+.team-edit-form select,
+.player-edit-form select {
+  padding: 6px 10px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  color: #4b5068;
+  cursor: pointer;
+  outline: none;
+}
+
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4b5068;
+  cursor: pointer;
+}
+
+.inline-check input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #016c30;
+}
+
+.add-player-btn {
+  padding: 6px 12px;
+  margin: 6px 0 2px;
+  border: 1px dashed #016c30;
+  border-radius: 6px;
+  background: #f0f9f4;
+  color: #016c30;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-player-btn:hover {
+  background: #e3f5ea;
+}
+
+.member-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Standalone save/cancel buttons (used in team/player forms) */
+.btn-save {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #016c30;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #004d22;
+}
+
+.btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  padding: 6px 14px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  color: #4b5068;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-cancel:hover {
+  background: #f5f6fa;
+}

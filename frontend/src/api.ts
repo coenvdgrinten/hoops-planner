@@ -119,9 +119,65 @@ export function getTeams() {
   return request<Team[]>("/teams/");
 }
 
+export function createTeam(data: { name: string; age_category: string }) {
+  return request<Team>("/teams/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateTeam(
+  teamId: number,
+  data: Partial<{ name: string; age_category: string }>,
+) {
+  return request<Team>(`/teams/${teamId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteTeam(teamId: number) {
+  return request<void>(`/teams/${teamId}/`, { method: "DELETE" });
+}
+
 // Players
 export function getPlayers() {
   return request<Player[]>("/players/");
+}
+
+export function createPlayer(data: {
+  first_name: string;
+  last_name: string;
+  team_id: number;
+  is_coach?: boolean;
+  coached_teams?: number[];
+  referee_certification?: string;
+}) {
+  return request<Player>("/players/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updatePlayer(
+  playerId: number,
+  data: Partial<{
+    first_name: string;
+    last_name: string;
+    team_id: number;
+    is_coach: boolean;
+    coached_teams: number[];
+    referee_certification: string;
+  }>,
+) {
+  return request<Player>(`/players/${playerId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deletePlayer(playerId: number) {
+  return request<void>(`/players/${playerId}/`, { method: "DELETE" });
 }
 
 export function updatePlayerCert(playerId: number, cert: string) {

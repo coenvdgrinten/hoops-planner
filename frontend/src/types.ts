@@ -3,11 +3,21 @@ export interface Season {
   name: string;
 }
 
+export type AgeCategory =
+  | "X10"
+  | "X12"
+  | "X14"
+  | "X16"
+  | "VSE"
+  | "M16"
+  | "M18"
+  | "M22"
+  | "MSE";
+
 export interface Team {
   id: number;
   name: string;
-  age_category: string;
-  requires_24_second_operator: boolean;
+  age_category: AgeCategory;
 }
 
 export interface Player {
