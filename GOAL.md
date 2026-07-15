@@ -121,3 +121,81 @@ A given home day might look like this:
 - Vido MSE2 vs. Tantalus on Court 1
 
 Provided a schedule of games, the user can start planning interactively. At first, all task slots are empty. When the user clicks a slot to fill, an interface opens showing all teams and their individual players, with ineligible ones indicated in red. A subtle number indicator shows the count of valid volunteers for the task. The app also automatically finds and suggests the best candidates based on the logic above.
+
+---
+
+## Roadmap
+
+Agreed features, to be tackled one-by-one. Notes from product discussion are
+included where they clarify intent.
+
+### Data model & import
+
+- **Per-task-type staffing settings per age category.**
+  Make the number of referees (already partially configurable via
+  `Game.required_referees`) plus scorer, timer, and 24-second operator
+  configurable per age category in settings. Rationale: youth teams reaching a
+  higher level may also require a 24-second operator; staffing needs vary by
+  category.
+- **Bulk member/team management tools.**
+  Add UI to create/edit/delete teams and players directly (today they are only
+  created via CSV import). Useful for one-off corrections without re-importing.
+- **Set `game_type` in the UI.**
+  The importer reads an optional `game_type` (HOME/AWAY) column, but
+  `GameEditModal` has no field for it and `examples/schedule.csv` omits it.
+  Add a HOME/AWAY selector to the modal and document the column.
+
+### Statistics
+
+- **Fix `per_team` to account for away games.**
+  `get_season_stats` keys the per-team breakdown only by `game.home_team.name`,
+  so a team's away fixtures are invisible. Attribute by both `home_team` and
+  `away_team`.
+- **Surface the away-day multiplier.**
+  The 2× effective-task multiplier is computed but not shown in the
+  leaderboard/player-stats UI. Display it so the fairness logic is transparent.
+
+### Frontend
+
+- **Away-game availability view.**
+  Away games have no tasks, so they should NOT appear in the schedule planner.
+  They are only useful to show member availability (a team with an away game
+  means its members/coaches are unavailable that day). Add a dedicated
+  availability view rather than mixing away games into the schedule.
+- **Settings view.**
+  Implement the `settings` view already referenced in `App.tsx` (currently an
+  unused `View` value). Host the per-age-category staffing settings here.
+- **Season creation UI.**
+  Seasons are only created implicitly by schedule import. Add an explicit
+  "create season" flow so the app is usable without CSVs.
+- **CSV export.**
+  Export assignments/schedule as CSV to complement the existing PDF export.
+
+### Backend / API
+
+- **Tests for view actions.**
+  No HTTP-layer tests for `SeasonViewSet.import_schedule`, `export_pdf`, or
+  `PlayerViewSet.eligible`. Add them (only the underlying functions are
+  unit-tested today).
+- **Pagination.**
+  Add pagination to `players`/`games`/`tasks` list endpoints for larger clubs.
+- **Model-level assignment conflict prevention.**
+  Enforce the "no double-booking" rule via a `clean()`/DB constraint, not only
+  in the serializer, so it holds for any write path.
+
+### Auth
+
+- **Password reset / email verification.**
+  `register` exists but there is no recovery or verification flow.
+
+### Suggested order
+
+1. Settings view + per-age-category staffing settings (unblocks the data-model
+   work and gives the away-game availability view a home).
+2. Away-game availability view.
+3. Season creation UI.
+4. Bulk member/team management tools.
+5. Statistics fixes (`per_team` away games, multiplier visibility).
+6. CSV export.
+7. Backend/API hardening (view-action tests, pagination, model-level conflicts).
+8. Auth (password reset / email verification).
