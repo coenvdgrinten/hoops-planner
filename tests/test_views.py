@@ -112,6 +112,37 @@ class TestSeasonViewSet:
         )
         assert response.status_code == 400
 
+    def test_export_csv(self, api_client, season, team_x14, player):
+        from datetime import date, time
+
+        from sixth_man.core.models import Game, Task, TaskAssignment
+
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=date(2025, 10, 1),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game, task_type="SCORER", slot_number=1
+        )
+        TaskAssignment.objects.create(task=task, player=player)
+
+        response = api_client.get(f"/api/seasons/{season.id}/export_csv/")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/csv"
+        assert (
+            response["Content-Disposition"]
+            == f'attachment; filename="schedule_{season.name}.csv"'
+        )
+        body = response.content.decode()
+        assert "date,time,court" in body
+        assert "John Doe" in body
+        assert "Vido X14-1" in body
+
 
 @pytest.mark.django_db
 class TestGameViewSet:

@@ -17,6 +17,28 @@
   margin-bottom: 4px;
 }
 
+.planner-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-export {
+  padding: 8px 16px;
+  background: white;
+  color: #6366f1;
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-export:hover {
+  background: #eef2ff;
+}
+
 .btn-add-game {
   padding: 8px 16px;
   background: #6366f1;

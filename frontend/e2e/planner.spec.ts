@@ -107,4 +107,23 @@ test.describe("Planner", () => {
       });
     }
   });
+
+  test("exports the schedule as CSV", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("export-csv-btn").click();
+    const download = await downloadPromise;
+
+    expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.csv`);
+
+    const stream = await download.createReadStream();
+    let csv = "";
+    for await (const chunk of stream) {
+      csv += chunk.toString();
+    }
+    expect(csv).toContain("date,time,court");
+    expect(csv).toContain("Team A");
+  });
 });

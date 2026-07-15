@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getGames } from "../api";
+import { getGames, exportSeasonCsv } from "../api";
 import type { Season, Game } from "../types";
 import type { TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
@@ -78,9 +78,18 @@ export function Planner({ season, onSelectTask }: Props) {
             Assign members to standard tasks like refereeing, scoring, and timing.
           </p>
         </div>
-        <button className={styles["btn-add-game"]} onClick={() => setShowCreateModal(true)}>
-          + Add Game
-        </button>
+        <div className={styles["planner-actions"]}>
+          <button
+            data-testid="export-csv-btn"
+            className={styles["btn-export"]}
+            onClick={() => exportSeasonCsv(season.id, season.name)}
+          >
+            Export CSV
+          </button>
+          <button className={styles["btn-add-game"]} onClick={() => setShowCreateModal(true)}>
+            + Add Game
+          </button>
+        </div>
       </div>
       {hasGames ? (
         <div className={styles["games-by-date"]}>

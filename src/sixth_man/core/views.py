@@ -18,6 +18,7 @@ from sixth_man.core.models import (
     TaskAssignment,
     Team,
 )
+from sixth_man.core.csv_export import export_schedule_csv
 from sixth_man.core.pdf_export import export_schedule_pdf
 from sixth_man.core.serializers import (
     AgeCategorySettingsSerializer,
@@ -92,6 +93,21 @@ class SeasonViewSet(viewsets.ModelViewSet):
             headers={
                 "Content-Disposition": (
                     f'attachment; filename="schedule_{season.name}.pdf"'
+                ),
+            },
+        )
+
+    @action(detail=True, methods=["get"])
+    def export_csv(self, request, pk=None):
+        """Export the task schedule (assignments) as a CSV."""
+        season = self.get_object()
+        csv_text = export_schedule_csv(season)
+        return HttpResponse(
+            csv_text,
+            content_type="text/csv",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="schedule_{season.name}.csv"'
                 ),
             },
         )

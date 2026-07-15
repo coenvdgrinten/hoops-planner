@@ -107,6 +107,26 @@ export function createSeason(name: string) {
   });
 }
 
+/** Download the season's task schedule as a CSV file (triggers a browser download). */
+export async function exportSeasonCsv(seasonId: number, seasonName: string) {
+  const token = getToken();
+  const res = await fetch(`${API}/seasons/${seasonId}/export_csv/`, {
+    headers: token ? { Authorization: `Token ${token}` } : {},
+  });
+  if (!res.ok) {
+    throw new Error(`Export failed: ${res.status}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `schedule_${seasonName}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function importSchedule(seasonName: string, csvText: string, replace?: boolean) {
   return request<{ games_created: number; games_updated: number; tasks: number }>("/seasons/import_schedule/", {
     method: "POST",
