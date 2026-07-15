@@ -1,7 +1,6 @@
 """API views for Sixth Man."""
 
 from django.http import HttpResponse
-
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -11,6 +10,7 @@ from sixth_man.core import suggestions as suggestion_logic
 from sixth_man.core.eligibility import get_eligible_players_with_indicator
 from sixth_man.core.importers import import_members, import_schedule
 from sixth_man.core.models import (
+    AgeCategorySettings,
     Game,
     Player,
     Season,
@@ -20,6 +20,7 @@ from sixth_man.core.models import (
 )
 from sixth_man.core.pdf_export import export_schedule_pdf
 from sixth_man.core.serializers import (
+    AgeCategorySettingsSerializer,
     GameSerializer,
     PlayerSerializer,
     SeasonSerializer,
@@ -276,3 +277,31 @@ class TaskViewSet(viewsets.ModelViewSet):
 class TaskAssignmentViewSet(viewsets.ModelViewSet):
     queryset = TaskAssignment.objects.all()
     serializer_class = TaskAssignmentSerializer
+
+
+class SettingsViewSet(viewsets.ViewSet):
+    """Read/update per-age-category staffing settings."""
+
+    def list(self, request):
+        """Return settings for every age category (creating defaults as needed)."""
+        settings = [
+            AgeCategorySettings.for_category(category)
+            for category in Team.AgeCategory.values
+        ]
+        serializer = AgeCategorySettingsSerializer(settings, many=True)
+        return Response(serializer.data)
+
+    def update(self, request, pk=None):
+        """Update the settings for a single age category (pk is the category)."""
+        if pk not in Team.AgeCategory.values:
+            return Response(
+                {"detail": "Unknown age category."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        obj = AgeCategorySettings.for_category(pk)
+        serializer = AgeCategorySettingsSerializer(
+            obj, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)

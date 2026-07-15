@@ -1,4 +1,5 @@
 import type {
+  AgeCategorySettings,
   CandidateDetail,
   EligiblePlayer,
   Game,
@@ -239,6 +240,21 @@ export function getSeasonStats(seasonId: number, half?: string) {
 export function getLeaderboard(seasonId: number, half?: string) {
   const qs = half ? `?half=${half}` : "";
   return request<LeaderboardEntry[]>(`/seasons/${seasonId}/leaderboard/${qs}`);
+}
+
+// Settings
+export function getAgeCategorySettings() {
+  return request<AgeCategorySettings[]>("/settings/");
+}
+
+export function updateAgeCategorySettings(
+  ageCategory: string,
+  data: Partial<AgeCategorySettings>,
+) {
+  return request<AgeCategorySettings>(`/settings/${ageCategory}/`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 // Auth

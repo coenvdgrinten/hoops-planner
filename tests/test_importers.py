@@ -189,3 +189,74 @@ class TestImportScheduleGameType:
         )
         import_schedule(csv_text, "2025-2026")
         assert Game.objects.count() == 2
+
+
+@pytest.mark.django_db
+class TestTaskSlotStaffing:
+    def test_defaults_create_scorer_timer_two_refs(self):
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game = Game.objects.get()
+        task_types = set(
+            Task.objects.filter(game=game).values_list(
+                "task_type", "slot_number"
+            )
+        )
+        assert ("SCORER", 1) in task_types
+        assert ("TIMER", 1) in task_types
+        assert ("REFEREE", 1) in task_types
+        assert ("REFEREE", 2) in task_types
+        assert ("24_SECOND_OPERATOR", 1) not in task_types
+
+    def test_settings_drive_referee_count(self):
+        from sixth_man.core.models import AgeCategorySettings
+
+        AgeCategorySettings.for_category("X14")
+        AgeCategorySettings.objects.filter(age_category="X14").update(
+            required_referees=3
+        )
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game = Game.objects.get()
+        ref_slots = Task.objects.filter(
+            game=game, task_type="REFEREE"
+        ).count()
+        assert ref_slots == 3
+
+    def test_settings_enable_24_second_operator(self):
+        from sixth_man.core.models import AgeCategorySettings
+
+        AgeCategorySettings.for_category("X14")
+        AgeCategorySettings.objects.filter(age_category="X14").update(
+            requires_24_second_operator=True
+        )
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game = Game.objects.get()
+        assert Task.objects.filter(
+            game=game, task_type="24_SECOND_OPERATOR"
+        ).exists()
+
+    def test_settings_disable_scorer(self):
+        from sixth_man.core.models import AgeCategorySettings
+
+        AgeCategorySettings.for_category("X14")
+        AgeCategorySettings.objects.filter(age_category="X14").update(
+            scorer=False
+        )
+        csv_text = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game = Game.objects.get()
+        assert not Task.objects.filter(game=game, task_type="SCORER").exists()

@@ -8,6 +8,7 @@ from sixth_man.core.views import (
     GameViewSet,
     PlayerViewSet,
     SeasonViewSet,
+    SettingsViewSet,
     TaskAssignmentViewSet,
     TaskViewSet,
     TeamViewSet,
@@ -20,6 +21,7 @@ router.register(r"players", PlayerViewSet)
 router.register(r"games", GameViewSet, basename="games")
 router.register(r"tasks", TaskViewSet)
 router.register(r"assignments", TaskAssignmentViewSet)
+router.register(r"settings", SettingsViewSet, basename="settings")
 
 urlpatterns = [
     path("auth/login/", auth_views.login, name="login"),

@@ -23,10 +23,6 @@ class Team(models.Model):
         max_length=10,
         choices=AgeCategory.choices,
     )
-    requires_24_second_operator = models.BooleanField(
-        default=False,
-        help_text="Whether this team requires a 24-second operator for their games.",
-    )
 
     class Meta:
         ordering = ["age_category", "name"]
@@ -142,10 +138,6 @@ class Game(models.Model):
         default=Half.FIRST,
         help_text="Which half of the season this game belongs to.",
     )
-    required_referees = models.PositiveIntegerField(
-        default=2,
-        help_text="Number of referees needed for this game's age category.",
-    )
 
     class Meta:
         ordering = ["half", "date", "time", "court"]
@@ -216,3 +208,55 @@ class TaskAssignment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.player} -> {self.task}"
+
+
+class AgeCategorySettings(models.Model):
+    """Per-age-category staffing configuration for task slots.
+
+    Replaces the per-team ``requires_24_second_operator`` flag and the
+    per-game ``required_referees`` field. A single row exists per age
+    category; the defaults below match the previous behaviour.
+    """
+
+    age_category = models.CharField(
+        max_length=10,
+        unique=True,
+        choices=Team.AgeCategory.choices,
+    )
+    required_referees = models.PositiveIntegerField(
+        default=2,
+        help_text="Number of referee slots to create for games in this category.",
+    )
+    scorer = models.BooleanField(
+        default=True,
+        help_text="Whether a scorer slot is required for this category.",
+    )
+    timer = models.BooleanField(
+        default=True,
+        help_text="Whether a timer slot is required for this category.",
+    )
+    requires_24_second_operator = models.BooleanField(
+        default=False,
+        help_text="Whether a 24-second operator slot is required for this category.",
+    )
+
+    class Meta:
+        ordering = ["age_category"]
+        verbose_name_plural = "age category settings"
+
+    def __str__(self) -> str:
+        return f"Settings for {self.age_category}"
+
+    @classmethod
+    def for_category(cls, age_category: str) -> "AgeCategorySettings":
+        """Return the settings for an age category, creating defaults if missing."""
+        obj, _ = cls.objects.get_or_create(
+            age_category=age_category,
+            defaults={
+                "required_referees": 2,
+                "scorer": True,
+                "timer": True,
+                "requires_24_second_operator": False,
+            },
+        )
+        return obj

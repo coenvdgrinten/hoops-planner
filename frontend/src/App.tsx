@@ -3,6 +3,7 @@ import { SeasonSelector } from "./components/SeasonSelector";
 import { Planner } from "./components/Planner";
 import { Statistics } from "./components/Statistics";
 import { MemberView } from "./components/MemberView";
+import { Settings } from "./components/Settings";
 import { ImportModal } from "./components/ImportModal";
 import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
@@ -126,12 +127,21 @@ export function App() {
               <span className="nav-icon">📊</span>
               Statistics
             </button>
+            <button
+              className={currentView === "settings" ? "active" : ""}
+              onClick={() => handleViewChange("settings")}
+            >
+              <span className="nav-icon">⚙️</span>
+              Settings
+            </button>
           </nav>
         </aside>
 
         {/* Main Content */}
         <main className="main-content">
-          {selectedSeason ? (
+          {currentView === "settings" ? (
+            <Settings />
+          ) : selectedSeason ? (
             <>
               {currentView === "planner" && (
                 <Planner

@@ -8,9 +8,8 @@ The suggestion algorithm ranks eligible players by:
    those with the lowest personal task counter are suggested first.
 """
 
-from typing import Any
-
 import datetime as dt
+from typing import Any
 
 from django.db import models
 

@@ -285,3 +285,33 @@ class TestImportEndpoints:
             format="json",
         )
         assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestSettingsEndpoint:
+    def test_list_returns_all_categories(self, api_client):
+        response = api_client.get("/api/settings/")
+        assert response.status_code == 200
+        data = response.json()
+        categories = {row["age_category"] for row in data}
+        assert "X14" in categories
+        assert "MSE" in categories
+
+    def test_update_changes_settings(self, api_client):
+        response = api_client.put(
+            "/api/settings/X14/",
+            {"required_referees": 3, "requires_24_second_operator": True},
+            format="json",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["required_referees"] == 3
+        assert data["requires_24_second_operator"] is True
+
+    def test_update_unknown_category(self, api_client):
+        response = api_client.put(
+            "/api/settings/ZZ9/",
+            {"required_referees": 1},
+            format="json",
+        )
+        assert response.status_code == 400

@@ -115,3 +115,11 @@ export interface LeaderboardEntry {
   effective_tasks: number;
   by_type: Record<string, number>;
 }
+
+export interface AgeCategorySettings {
+  age_category: string;
+  required_referees: number;
+  scorer: boolean;
+  timer: boolean;
+  requires_24_second_operator: boolean;
+}

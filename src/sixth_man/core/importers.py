@@ -3,9 +3,8 @@
 import csv
 import io
 import re
-from typing import Any
-
 from datetime import datetime
+from typing import Any
 
 from sixth_man.core.models import (
     Game,
@@ -171,25 +170,36 @@ def _match_or_create_game(game_data: dict[str, Any]) -> tuple[Game, bool]:
 def _ensure_task_slots(game: Game) -> int:
     """Create task slots for a game if they don't already exist.
 
+    Staffing (referees, scorer, timer, 24-second operator) is driven by the
+    per-age-category ``AgeCategorySettings`` for the game's home team.
+
     Returns the number of task slots created.
     """
+    from sixth_man.core.models import AgeCategorySettings
+
+    settings = AgeCategorySettings.for_category(game.home_team.age_category)
     tasks_to_create: list[Task] = []
 
-    # Scorer — always needed
-    tasks_to_create.append(Task(game=game, task_type=TaskType.SCORER, slot_number=1))
+    # Scorer — per-category setting
+    if settings.scorer:
+        tasks_to_create.append(
+            Task(game=game, task_type=TaskType.SCORER, slot_number=1)
+        )
 
-    # Timer — always needed
-    tasks_to_create.append(Task(game=game, task_type=TaskType.TIMER, slot_number=1))
+    # Timer — per-category setting
+    if settings.timer:
+        tasks_to_create.append(
+            Task(game=game, task_type=TaskType.TIMER, slot_number=1)
+        )
 
-    # 24 Second Operator — depends on team setting
-    if game.home_team.requires_24_second_operator:
+    # 24 Second Operator — per-category setting
+    if settings.requires_24_second_operator:
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.SECOND_24_OPERATOR, slot_number=1)
         )
 
-    # Referees — always create 2 slots
-    # For X10/X14, the second ref is optional (handled on the frontend)
-    for slot in range(1, int(game.required_referees) + 1):
+    # Referees — per-category count
+    for slot in range(1, int(settings.required_referees) + 1):
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.REFEREE, slot_number=slot)
         )
