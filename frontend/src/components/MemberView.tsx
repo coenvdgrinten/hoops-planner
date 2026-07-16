@@ -18,8 +18,10 @@ import styles from "./MemberView.module.css";
 // Age category display order (descending: oldest to youngest)
 const CATEGORY_ORDER: AgeCategory[] = [
   "MSE",
-  "VSE",
+  "M22",
+  "M18",
   "M16",
+  "VSE",
   "X16",
   "X14",
   "X12",

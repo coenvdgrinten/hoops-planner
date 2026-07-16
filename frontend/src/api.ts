@@ -94,15 +94,48 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const json = await res.json();
   // DRF pagination wraps list responses in {count, next, previous, results}.
   // Unwrap to the bare array so callers can keep treating lists as arrays.
+  // Follow `next` links so the UI always receives the complete dataset even
+  // when a list spans multiple pages.
   if (
     json &&
     typeof json === "object" &&
     !Array.isArray(json) &&
     Array.isArray((json as { results?: unknown }).results)
   ) {
-    return (json as { results: T }).results;
+    return (await collectPages(json as Paginated<T>, headers)) as T;
   }
   return json as T;
+}
+
+interface Paginated<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+/**
+ * Walk a DRF paginated response, following `next` links, and return the
+ * concatenated list of all results.
+ */
+async function collectPages<T>(
+  first: Paginated<T>,
+  headers: Record<string, string>,
+): Promise<T[]> {
+  const all = [...first.results];
+  let next = first.next;
+  while (next) {
+    // `next` is an absolute URL pointing at the API origin. Strip the origin
+    // so the request goes through the same dev proxy / same-origin path as the
+    // initial call (fetching the backend port directly would fail CORS).
+    const path = next.replace(/^https?:\/\/[^/]+/, "");
+    const res = await fetch(path, { headers });
+    if (!res.ok) break;
+    const page = (await res.json()) as Paginated<T>;
+    all.push(...page.results);
+    next = page.next;
+  }
+  return all;
 }
 
 // Seasons
@@ -137,6 +170,11 @@ async function downloadSeasonExport(
     headers: token ? { Authorization: `Token ${token}` } : {},
   });
   if (!res.ok) {
+    // Mirror the request() helper: a 401 means the session expired.
+    if (res.status === 401) {
+      clearAuth();
+      window.dispatchEvent(new CustomEvent("auth:logout"));
+    }
     throw new Error(`Export failed: ${res.status}`);
   }
   const blob = await res.blob();
