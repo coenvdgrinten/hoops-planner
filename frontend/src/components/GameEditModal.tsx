@@ -69,6 +69,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
         court,
         half,
         away_team: awayTeam,
+        game_type: gameType,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games"] });

@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
 from sixth_man.core.models import (
-    AgeCategorySettings,
     Game,
     Player,
     Season,
@@ -63,19 +62,6 @@ class SeasonSerializer(serializers.ModelSerializer):
         model = Season
         fields = ["id", "name"]
 
-
-class AgeCategorySettingsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AgeCategorySettings
-        fields = [
-            "age_category",
-            "required_referees",
-            "optional_referees",
-            "scorer",
-            "timer",
-            "requires_24_second_operator",
-        ]
-        read_only_fields = ["age_category"]
 
 
 class GameSerializer(serializers.ModelSerializer):

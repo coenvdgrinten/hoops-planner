@@ -29,6 +29,14 @@ export function Settings() {
   if (isLoading) return <p>Loading settings...</p>;
   if (error) return <p className="error">Error: {error.message}</p>;
 
+  const handleChange = (
+    teamId: number,
+    field: keyof Team,
+    value: number | boolean,
+  ) => {
+    mutation.mutate({ teamId, data: { [field]: value } });
+  };
+
   const sorted = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
@@ -65,15 +73,7 @@ export function Settings() {
                   max={4}
                   value={t.required_referees}
                   onChange={(e) =>
-                    mutation.mutate({
-                      teamId: t.id,
-                      data: {
-                        required_referees: Math.max(
-                          0,
-                          Number(e.target.value),
-                        ),
-                      },
-                    })
+                    handleChange(t.id, "required_referees", Math.max(0, Number(e.target.value)))
                   }
                 />
               </td>
@@ -84,15 +84,7 @@ export function Settings() {
                   max={4}
                   value={t.optional_referees}
                   onChange={(e) =>
-                    mutation.mutate({
-                      teamId: t.id,
-                      data: {
-                        optional_referees: Math.max(
-                          0,
-                          Number(e.target.value),
-                        ),
-                      },
-                    })
+                    handleChange(t.id, "optional_referees", Math.max(0, Number(e.target.value)))
                   }
                 />
               </td>
@@ -100,36 +92,21 @@ export function Settings() {
                 <input
                   type="checkbox"
                   checked={t.require_scorer}
-                  onChange={(e) =>
-                    mutation.mutate({
-                      teamId: t.id,
-                      data: { require_scorer: e.target.checked },
-                    })
-                  }
+                  onChange={(e) => handleChange(t.id, "require_scorer", e.target.checked)}
                 />
               </td>
               <td>
                 <input
                   type="checkbox"
                   checked={t.require_timer}
-                  onChange={(e) =>
-                    mutation.mutate({
-                      teamId: t.id,
-                      data: { require_timer: e.target.checked },
-                    })
-                  }
+                  onChange={(e) => handleChange(t.id, "require_timer", e.target.checked)}
                 />
               </td>
               <td>
                 <input
                   type="checkbox"
                   checked={t.requires_24_second_operator}
-                  onChange={(e) =>
-                    mutation.mutate({
-                      teamId: t.id,
-                      data: { requires_24_second_operator: e.target.checked },
-                    })
-                  }
+                  onChange={(e) => handleChange(t.id, "requires_24_second_operator", e.target.checked)}
                 />
               </td>
             </tr>

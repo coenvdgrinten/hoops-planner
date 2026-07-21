@@ -297,66 +297,6 @@ class TaskAssignment(models.Model):
         return f"{self.player} -> {self.task}"
 
 
-class AgeCategorySettings(models.Model):
-    """Per-age-category staffing configuration for task slots.
-
-    Replaces the per-team ``requires_24_second_operator`` flag and the
-    per-game ``required_referees`` field. A single row exists per age
-    category; the defaults below match the previous behaviour.
-    """
-
-    age_category = models.CharField(
-        max_length=10,
-        unique=True,
-        choices=Team.AgeCategory.choices,
-    )
-    required_referees = models.PositiveIntegerField(
-        default=2,
-        help_text="Number of referee slots that must be filled for this category.",
-    )
-    optional_referees = models.PositiveIntegerField(
-        default=0,
-        help_text=(
-            "Number of additional referee slots that may be filled but are "
-            "not required (e.g. a 2nd referee for X10/X14 games)."
-        ),
-    )
-    scorer = models.BooleanField(
-        default=True,
-        help_text="Whether a scorer slot is required for this category.",
-    )
-    timer = models.BooleanField(
-        default=True,
-        help_text="Whether a timer slot is required for this category.",
-    )
-    requires_24_second_operator = models.BooleanField(
-        default=False,
-        help_text="Whether a 24-second operator slot is required for this category.",
-    )
-
-    class Meta:
-        ordering = ["age_category"]
-        verbose_name_plural = "age category settings"
-
-    def __str__(self) -> str:
-        return f"Settings for {self.age_category}"
-
-    @classmethod
-    def for_category(cls, age_category: str) -> "AgeCategorySettings":
-        """Return the settings for an age category, creating defaults if missing."""
-        obj, _ = cls.objects.get_or_create(
-            age_category=age_category,
-            defaults={
-                "required_referees": 2,
-                "optional_referees": 0,
-                "scorer": True,
-                "timer": True,
-                "requires_24_second_operator": False,
-            },
-        )
-        return obj
-
-
 class EmailVerificationToken(models.Model):
     """One-time token for email verification, with expiry."""
 
