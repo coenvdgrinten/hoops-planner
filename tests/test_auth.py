@@ -249,15 +249,16 @@ class TestEmailVerification:
         auth_client,
         test_user,
     ):
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
+        from django.utils import timezone
         from rest_framework.authtoken.models import Token
 
         # Create an existing token
         old_token = EmailVerificationToken.objects.create(
             user=test_user,
             token="old_token",
-            expires_at=datetime.now(datetime.UTC) + timedelta(hours=1),
+            expires_at=timezone.now() + timedelta(hours=1),
         )
 
         # Request a new verification
@@ -284,10 +285,12 @@ class TestEmailVerification:
         assert response.status_code == 400
 
     def test_verify_email_confirm_success(self, auth_client, test_user):
-        from datetime import datetime, timedelta
+        from datetime import timedelta
+
+        from django.utils import timezone
 
         # Create a verification token
-        expires = datetime.now(datetime.UTC) + timedelta(hours=1)
+        expires = timezone.now() + timedelta(hours=1)
         verification = EmailVerificationToken.objects.create(
             user=test_user,
             token="test_token_123",
@@ -312,10 +315,12 @@ class TestEmailVerification:
         assert response.status_code == 400
 
     def test_verify_email_confirm_expired_token(self, auth_client, test_user):
-        from datetime import datetime, timedelta
+        from datetime import timedelta
+
+        from django.utils import timezone
 
         # Create an expired token
-        expires = datetime.now(datetime.UTC) - timedelta(hours=1)
+        expires = timezone.now() - timedelta(hours=1)
         verification = EmailVerificationToken.objects.create(
             user=test_user,
             token="expired_token",
@@ -340,7 +345,9 @@ class TestEmailVerification:
         assert response.status_code == 400
 
     def test_verify_email_activates_user(self, auth_client):
-        from datetime import datetime, timedelta
+        from datetime import timedelta
+
+        from django.utils import timezone
 
         # Create inactive user
         inactive_user = User.objects.create_user(
@@ -351,7 +358,7 @@ class TestEmailVerification:
         )
 
         # Create verification token
-        expires = datetime.now(datetime.UTC) + timedelta(hours=1)
+        expires = timezone.now() + timedelta(hours=1)
         EmailVerificationToken.objects.create(
             user=inactive_user,
             token="activate_token",

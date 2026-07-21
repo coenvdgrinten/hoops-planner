@@ -1,9 +1,10 @@
 """Authentication views for login and registration."""
 
 import secrets
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.conf import settings
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -194,7 +195,7 @@ def verify_email_request(request):
     EmailVerificationToken.objects.filter(user=user).delete()
 
     token_value = secrets.token_urlsafe(32)
-    expires = datetime.now(datetime.UTC) + timedelta(hours=24)
+    expires = timezone.now() + timedelta(hours=24)
     EmailVerificationToken.objects.create(
         user=user,
         token=token_value,

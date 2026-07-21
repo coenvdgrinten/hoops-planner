@@ -353,6 +353,6 @@ class EmailVerificationToken(models.Model):
 
     def is_valid(self) -> bool:
         """Return True if the token has not expired."""
-        import datetime
+        from django.utils import timezone
 
-        return self.expires_at >= datetime.datetime.now(datetime.UTC)
+        return self.expires_at >= timezone.now()
