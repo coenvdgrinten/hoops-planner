@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sixth_man.core import statistics as stats_logic
 from sixth_man.core import suggestions as suggestion_logic
+from sixth_man.core.csv_export import export_schedule_csv
 from sixth_man.core.eligibility import get_eligible_players_with_indicator
 from sixth_man.core.importers import import_members, import_schedule
 from sixth_man.core.models import (
@@ -18,7 +19,6 @@ from sixth_man.core.models import (
     TaskAssignment,
     Team,
 )
-from sixth_man.core.csv_export import export_schedule_csv
 from sixth_man.core.pdf_export import export_schedule_pdf
 from sixth_man.core.serializers import (
     AgeCategorySettingsSerializer,

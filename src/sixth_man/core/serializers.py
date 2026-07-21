@@ -152,7 +152,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         try:
             assignment.full_clean(exclude=["assigned_at"])
         except ValidationError as exc:
-            raise serializers.ValidationError(exc.messages[0])
+            raise serializers.ValidationError(exc.messages[0]) from exc
 
         return super().create(validated_data)
 
