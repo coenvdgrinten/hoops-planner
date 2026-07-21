@@ -109,7 +109,7 @@ Set via environment variables (or `.env`):
 │   │   └── components/
 │   └── e2e/
 ├── src/
-│   └── sixth_man/
+│   └── sixth_man/  # package name (Django module)
 │       ├── settings.py
 │       ├── urls.py
 │       └── core/

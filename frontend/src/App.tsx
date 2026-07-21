@@ -74,7 +74,7 @@ export function App() {
       <header className={styles["top-bar"]}>
         <div className={styles["top-bar-left"]}>
           <img src="/logo.png" alt="BC Vido" className={styles["logo-img"]} />
-          <span className={styles.brand}>Sixth Man <span className={styles["brand-divider"]}>|</span> BC Vido</span>
+          <span className={styles.brand}>Hoops Planner <span className={styles["brand-divider"]}>|</span> BC Vido</span>
         </div>
         <div className={styles["top-bar-right"]}>
           <button

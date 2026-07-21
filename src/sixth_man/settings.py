@@ -78,7 +78,7 @@ SITE_URL = os.getenv("SITE_URL", "http://localhost:5173")
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
 )
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "sixth-man@localhost")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "hoops-planner@localhost")
 
 # REST framework settings
 REST_FRAMEWORK = {

@@ -1,5 +1,5 @@
 [project]
-name = "sixth-man"
+name = "hoops-planner"
 version = "0.1.0"
 description = "Planning app for basketball club tasks."
 readme = "README.md"
