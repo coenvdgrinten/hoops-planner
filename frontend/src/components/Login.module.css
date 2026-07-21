@@ -57,6 +57,16 @@
   margin-bottom: 16px;
 }
 
+.auth-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #166534;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
 .auth-submit {
   width: 100%;
   padding: 10px 16px;

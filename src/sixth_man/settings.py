@@ -71,6 +71,15 @@ STATIC_URL = "static/"
 # CORS settings for React frontend
 CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
 
+# Site URL for password reset / email verification links
+SITE_URL = os.getenv("SITE_URL", "http://localhost:5173")
+
+# Email backend (console for development)
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "sixth-man@localhost")
+
 # REST framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

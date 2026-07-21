@@ -29,4 +29,24 @@ urlpatterns = [
     path("auth/login/", auth_views.login, name="login"),
     path("auth/register/", auth_views.register, name="register"),
     path("auth/me/", auth_views.me, name="me"),
+    path(
+        "auth/password_reset_request/",
+        auth_views.password_reset_request,
+        name="password_reset_request",
+    ),
+    path(
+        "auth/password_reset_confirm/",
+        auth_views.password_reset_confirm,
+        name="password_reset_confirm",
+    ),
+    path(
+        "auth/verify_email_request/",
+        auth_views.verify_email_request,
+        name="verify_email_request",
+    ),
+    path(
+        "auth/verify_email_confirm/",
+        auth_views.verify_email_confirm,
+        name="verify_email_confirm",
+    ),
 ] + router.urls

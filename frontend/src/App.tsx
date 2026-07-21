@@ -98,6 +98,28 @@ export function App() {
           <span className="user-badge" title={user?.username}>
             {user?.username}
           </span>
+          {user?.email && (
+            <button
+              className="icon-btn"
+              onClick={async () => {
+                try {
+                  const { verifyEmailRequest, verifyEmailConfirm } = await import("./api");
+                  const data = await verifyEmailRequest();
+                  if (data.token) {
+                    await verifyEmailConfirm(data.token);
+                    alert("Email verified successfully!");
+                  } else {
+                    alert("Verification email sent.");
+                  }
+                } catch (err) {
+                  alert(err instanceof Error ? err.message : "Failed to verify email");
+                }
+              }}
+              title="Verify Email"
+            >
+              Verify Email
+            </button>
+          )}
           <button className="icon-btn logout-btn" onClick={handleLogout} title="Logout">
             Logout
           </button>

@@ -126,9 +126,7 @@ class TestSeasonViewSet:
             time=time(14, 0),
             court=Game.Court.COURT_1,
         )
-        task = Task.objects.create(
-            game=game, task_type="SCORER", slot_number=1
-        )
+        task = Task.objects.create(game=game, task_type="SCORER", slot_number=1)
         TaskAssignment.objects.create(task=task, player=player)
 
         response = api_client.get(f"/api/seasons/{season.id}/export_csv/")

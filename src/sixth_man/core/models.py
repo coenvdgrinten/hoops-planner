@@ -334,3 +334,25 @@ class AgeCategorySettings(models.Model):
             },
         )
         return obj
+
+
+class EmailVerificationToken(models.Model):
+    """One-time token for email verification, with expiry."""
+
+    user = models.ForeignKey(
+        "auth.User",
+        on_delete=models.CASCADE,
+        related_name="email_verification_tokens",
+    )
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def is_valid(self) -> bool:
+        """Return True if the token has not expired."""
+        import datetime
+
+        return self.expires_at >= datetime.datetime.now(datetime.UTC)

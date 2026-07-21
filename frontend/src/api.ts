@@ -427,3 +427,34 @@ export function register(username: string, password: string, email: string) {
 export function me() {
   return request<AuthUser>("/auth/me/");
 }
+
+export function passwordResetRequest(email: string) {
+  return request<{ token: string; uid: number }>("/auth/password_reset_request/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function passwordResetConfirm(token: string, uid: number, password: string) {
+  return request<unknown>("/auth/password_reset_confirm/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, uid, password }),
+  });
+}
+
+export function verifyEmailRequest() {
+  return request<{ token: string }>("/auth/verify_email_request/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+export function verifyEmailConfirm(token: string) {
+  return request<unknown>("/auth/verify_email_confirm/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+}
