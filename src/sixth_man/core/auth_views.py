@@ -4,10 +4,10 @@ import secrets
 from datetime import timedelta
 
 from django.conf import settings
-from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
