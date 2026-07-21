@@ -196,7 +196,7 @@ export function App() {
             <MemberView />
           ) : (
             <div className="empty-state">
-              <h2>Welcome to Sixth Man</h2>
+              <h2>Welcome to Hoops Planner</h2>
               <p>Select a season to view the planner.</p>
               <p>Start by importing a schedule and member list.</p>
             </div>

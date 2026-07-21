@@ -103,7 +103,7 @@ export function Login({ onLogin }: Props) {
       <div className={styles["auth-card"]}>
         <div className={styles["auth-header"]}>
           <img src="/logo.png" alt="BC Vido" className={styles["auth-logo"]} />
-          <h2>Sixth Man</h2>
+          <h2>Hoops Planner</h2>
           <p className={styles["auth-subtitle"]}>BC Vido — Task Planning</p>
         </div>
 

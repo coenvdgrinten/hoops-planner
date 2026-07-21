@@ -1,4 +1,4 @@
-"""Serializers for the Sixth Man API."""
+"""Serializers for the Hoops Planner API."""
 
 from django.core.exceptions import ValidationError
 from rest_framework import serializers

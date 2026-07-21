@@ -1,4 +1,4 @@
-"""API views for Sixth Man."""
+"""API views for Hoops Planner."""
 
 from django.http import HttpResponse
 from rest_framework import status, viewsets

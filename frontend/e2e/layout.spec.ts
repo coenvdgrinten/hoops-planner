@@ -11,7 +11,7 @@ test.describe("Layout", () => {
 
     // Top bar elements
     await expect(page.getByAltText("BC Vido")).toBeVisible();
-    await expect(page.getByText("Sixth Man")).toHaveCount(2);
+    await expect(page.getByText("Hoops Planner")).toHaveCount(2);
     await expect(page.getByText("BC Vido")).toBeVisible();
 
     // Import buttons
@@ -31,7 +31,7 @@ test.describe("Layout", () => {
     await page.goto("/");
 
     // Should show empty state message
-    await expect(page.getByRole("heading", { name: "Welcome to Sixth Man" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Hoops Planner" })).toBeVisible();
   });
 
   test("navigates between views", async ({ page }: { page: Page }) => {

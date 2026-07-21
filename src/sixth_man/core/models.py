@@ -1,4 +1,4 @@
-"""Core models for Sixth Man."""
+"""Core models for Hoops Planner."""
 
 from django.core.exceptions import ValidationError
 from django.db import models

@@ -1,1 +1,1 @@
-"""Sixth Man backend."""
+"""Hoops Planner backend."""

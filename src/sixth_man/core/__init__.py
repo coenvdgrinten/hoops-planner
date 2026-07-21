@@ -1,1 +1,1 @@
-"""Core models for Sixth Man."""
+"""Core models for Hoops Planner."""

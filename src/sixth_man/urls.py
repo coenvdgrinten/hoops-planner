@@ -1,4 +1,4 @@
-"""URLs for Sixth Man."""
+"""URLs for Hoops Planner."""
 
 from django.contrib import admin
 from django.urls import include, path

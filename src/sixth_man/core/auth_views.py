@@ -124,7 +124,7 @@ def password_reset_request(request):
 
     token = default_token_generator.make_token(user)
     send_mail(
-        subject="Sixth Man — Password Reset",
+        subject="Hoops Planner — Password Reset",
         message=(
             f"Click the link below to reset your password:\n\n"
             f"{settings.SITE_URL}/password-reset/{token}/{user.pk}\n\n"
@@ -203,7 +203,7 @@ def verify_email_request(request):
     )
 
     send_mail(
-        subject="Sixth Man — Verify Your Email",
+        subject="Hoops Planner — Verify Your Email",
         message=(
             f"Click the link below to verify your email address:\n\n"
             f"{settings.SITE_URL}/verify-email/{token_value}\n\n"
