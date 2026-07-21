@@ -11,7 +11,6 @@ from sixth_man.core.csv_export import export_schedule_csv
 from sixth_man.core.eligibility import get_eligible_players_with_indicator
 from sixth_man.core.importers import import_members, import_schedule
 from sixth_man.core.models import (
-    AgeCategorySettings,
     Game,
     Player,
     Season,
@@ -21,7 +20,6 @@ from sixth_man.core.models import (
 )
 from sixth_man.core.pdf_export import export_schedule_pdf
 from sixth_man.core.serializers import (
-    AgeCategorySettingsSerializer,
     GameSerializer,
     PlayerSerializer,
     SeasonSerializer,
@@ -296,26 +294,24 @@ class TaskAssignmentViewSet(viewsets.ModelViewSet):
 
 
 class SettingsViewSet(viewsets.ViewSet):
-    """Read/update per-age-category staffing settings."""
+    """Read/update per-team staffing settings."""
 
     def list(self, request):
-        """Return settings for every age category (creating defaults as needed)."""
-        settings = [
-            AgeCategorySettings.for_category(category)
-            for category in Team.AgeCategory.values
-        ]
-        serializer = AgeCategorySettingsSerializer(settings, many=True)
+        """Return settings for every team."""
+        teams = Team.objects.all()
+        serializer = TeamSerializer(teams, many=True)
         return Response(serializer.data)
 
     def update(self, request, pk=None):
-        """Update the settings for a single age category (pk is the category)."""
-        if pk not in Team.AgeCategory.values:
+        """Update the settings for a single team (pk is the team id)."""
+        try:
+            team = Team.objects.get(pk=pk)
+        except Team.DoesNotExist:
             return Response(
-                {"detail": "Unknown age category."},
+                {"detail": "Unknown team."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        obj = AgeCategorySettings.for_category(pk)
-        serializer = AgeCategorySettingsSerializer(obj, data=request.data, partial=True)
+        serializer = TeamSerializer(team, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)

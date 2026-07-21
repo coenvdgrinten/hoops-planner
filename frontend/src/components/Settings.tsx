@@ -1,56 +1,49 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getAgeCategorySettings,
-  updateAgeCategorySettings,
+  getTeamSettings,
+  updateTeamSettings,
 } from "../api";
-import type { AgeCategorySettings } from "../types";
+import type { Team } from "../types";
 import styles from "./Settings.module.css";
-
-// Age category display order (descending: oldest to youngest)
-const CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X12", "X10"];
 
 export function Settings() {
   const queryClient = useQueryClient();
-  const { data: settings = [], isLoading, error } = useQuery({
-    queryKey: ["age-category-settings"],
-    queryFn: getAgeCategorySettings,
+  const { data: teams = [], isLoading, error } = useQuery({
+    queryKey: ["team-settings"],
+    queryFn: getTeamSettings,
   });
 
   const mutation = useMutation({
     mutationFn: ({
-      ageCategory,
+      teamId,
       data,
     }: {
-      ageCategory: string;
-      data: Partial<AgeCategorySettings>;
-    }) => updateAgeCategorySettings(ageCategory, data),
+      teamId: number;
+      data: Partial<Team>;
+    }) => updateTeamSettings(teamId, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["age-category-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["team-settings"] });
     },
   });
 
   if (isLoading) return <p>Loading settings...</p>;
   if (error) return <p className="error">Error: {error.message}</p>;
 
-  const sorted = [...settings].sort((a, b) => {
-    const ai = CATEGORY_ORDER.indexOf(a.age_category);
-    const bi = CATEGORY_ORDER.indexOf(b.age_category);
-    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-  });
+  const sorted = [...teams].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className={styles.settings}>
       <div className={styles["settings-header"]}>
         <h2>Settings</h2>
         <p className={styles["settings-subtitle"]}>
-          Configure how many task slots are created per age category. Changes
+          Configure how many task slots are created per team. Changes
           apply to games imported or created afterwards.
         </p>
       </div>
       <table className={styles["settings-table"]}>
         <thead>
           <tr>
-            <th>Age Category</th>
+            <th>Team</th>
             <th>Referees (req.)</th>
             <th>Referees (opt.)</th>
             <th>Scorer</th>
@@ -59,18 +52,21 @@ export function Settings() {
           </tr>
         </thead>
         <tbody>
-          {sorted.map((s) => (
-            <tr key={s.age_category}>
-              <td className={styles["settings-category"]}>{s.age_category}</td>
+          {sorted.map((t) => (
+            <tr key={t.id}>
+              <td className={styles["settings-category"]}>
+                <span className={styles["settings-team-name"]}>{t.name}</span>
+                <span className={styles["settings-age-category"]}>{t.age_category}</span>
+              </td>
               <td>
                 <input
                   type="number"
                   min={0}
                   max={4}
-                  value={s.required_referees}
+                  value={t.required_referees}
                   onChange={(e) =>
                     mutation.mutate({
-                      ageCategory: s.age_category,
+                      teamId: t.id,
                       data: {
                         required_referees: Math.max(
                           0,
@@ -86,10 +82,10 @@ export function Settings() {
                   type="number"
                   min={0}
                   max={4}
-                  value={s.optional_referees}
+                  value={t.optional_referees}
                   onChange={(e) =>
                     mutation.mutate({
-                      ageCategory: s.age_category,
+                      teamId: t.id,
                       data: {
                         optional_referees: Math.max(
                           0,
@@ -103,11 +99,11 @@ export function Settings() {
               <td>
                 <input
                   type="checkbox"
-                  checked={s.scorer}
+                  checked={t.require_scorer}
                   onChange={(e) =>
                     mutation.mutate({
-                      ageCategory: s.age_category,
-                      data: { scorer: e.target.checked },
+                      teamId: t.id,
+                      data: { require_scorer: e.target.checked },
                     })
                   }
                 />
@@ -115,11 +111,11 @@ export function Settings() {
               <td>
                 <input
                   type="checkbox"
-                  checked={s.timer}
+                  checked={t.require_timer}
                   onChange={(e) =>
                     mutation.mutate({
-                      ageCategory: s.age_category,
-                      data: { timer: e.target.checked },
+                      teamId: t.id,
+                      data: { require_timer: e.target.checked },
                     })
                   }
                 />
@@ -127,10 +123,10 @@ export function Settings() {
               <td>
                 <input
                   type="checkbox"
-                  checked={s.requires_24_second_operator}
+                  checked={t.requires_24_second_operator}
                   onChange={(e) =>
                     mutation.mutate({
-                      ageCategory: s.age_category,
+                      teamId: t.id,
                       data: { requires_24_second_operator: e.target.checked },
                     })
                   }

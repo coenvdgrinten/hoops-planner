@@ -171,34 +171,32 @@ def _ensure_task_slots(game: Game) -> int:
     """Create task slots for a game if they don't already exist.
 
     Staffing (referees, scorer, timer, 24-second operator) is driven by the
-    per-age-category ``AgeCategorySettings`` for the game's home team.
+    per-team settings on the game's home team.
 
     Returns the number of task slots created.
     """
-    from sixth_man.core.models import AgeCategorySettings
-
-    settings = AgeCategorySettings.for_category(game.home_team.age_category)
+    team = game.home_team
     tasks_to_create: list[Task] = []
 
-    # Scorer — per-category setting
-    if settings.scorer:
+    # Scorer — per-team setting
+    if team.require_scorer:
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.SCORER, slot_number=1)
         )
 
-    # Timer — per-category setting
-    if settings.timer:
+    # Timer — per-team setting
+    if team.require_timer:
         tasks_to_create.append(Task(game=game, task_type=TaskType.TIMER, slot_number=1))
 
-    # 24 Second Operator — per-category setting
-    if settings.requires_24_second_operator:
+    # 24 Second Operator — per-team setting
+    if team.requires_24_second_operator:
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.SECOND_24_OPERATOR, slot_number=1)
         )
 
     # Referees — required slots first, then optional slots
-    required = int(settings.required_referees)
-    optional = int(settings.optional_referees)
+    required = int(team.required_referees)
+    optional = int(team.optional_referees)
     for slot in range(1, required + optional + 1):
         is_optional = slot > required
         tasks_to_create.append(

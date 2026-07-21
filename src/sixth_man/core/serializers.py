@@ -21,6 +21,11 @@ class TeamSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "age_category",
+            "required_referees",
+            "optional_referees",
+            "require_scorer",
+            "require_timer",
+            "requires_24_second_operator",
         ]
 
 

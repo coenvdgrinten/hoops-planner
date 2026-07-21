@@ -1,5 +1,4 @@
 import type {
-  AgeCategorySettings,
   AvailabilityDay,
   CandidateDetail,
   EligiblePlayer,
@@ -390,15 +389,15 @@ export function getLeaderboard(seasonId: number, half?: string) {
 }
 
 // Settings
-export function getAgeCategorySettings() {
-  return request<AgeCategorySettings[]>("/settings/");
+export function getTeamSettings() {
+  return request<Team[]>("/settings/");
 }
 
-export function updateAgeCategorySettings(
-  ageCategory: string,
-  data: Partial<AgeCategorySettings>,
+export function updateTeamSettings(
+  teamId: number,
+  data: Partial<Team>,
 ) {
-  return request<AgeCategorySettings>(`/settings/${ageCategory}/`, {
+  return request<Team>(`/settings/${teamId}/`, {
     method: "PUT",
     body: JSON.stringify(data),
   });

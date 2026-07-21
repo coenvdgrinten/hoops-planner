@@ -18,6 +18,11 @@ export interface Team {
   id: number;
   name: string;
   age_category: AgeCategory;
+  required_referees: number;
+  optional_referees: number;
+  require_scorer: boolean;
+  require_timer: boolean;
+  requires_24_second_operator: boolean;
 }
 
 export interface Player {
@@ -127,15 +132,6 @@ export interface LeaderboardEntry {
   away_day_tasks: number;
   away_day_bonus: number;
   by_type: Record<string, number>;
-}
-
-export interface AgeCategorySettings {
-  age_category: string;
-  required_referees: number;
-  optional_referees: number;
-  scorer: boolean;
-  timer: boolean;
-  requires_24_second_operator: boolean;
 }
 
 export interface AvailabilityMember {

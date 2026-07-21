@@ -210,12 +210,8 @@ class TestTaskSlotStaffing:
         assert ("24_SECOND_OPERATOR", 1) not in task_types
 
     def test_settings_drive_referee_count(self):
-        from sixth_man.core.models import AgeCategorySettings
-
-        AgeCategorySettings.for_category("X14")
-        AgeCategorySettings.objects.filter(age_category="X14").update(
-            required_referees=3
-        )
+        Team.objects.create(name="Vido X14-1", age_category="X14")
+        Team.objects.filter(name="Vido X14-1").update(required_referees=3)
         csv_text = (
             "date,time,court,home_team,away_team\n"
             "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
@@ -226,12 +222,8 @@ class TestTaskSlotStaffing:
         assert ref_slots == 3
 
     def test_settings_enable_24_second_operator(self):
-        from sixth_man.core.models import AgeCategorySettings
-
-        AgeCategorySettings.for_category("X14")
-        AgeCategorySettings.objects.filter(age_category="X14").update(
-            requires_24_second_operator=True
-        )
+        Team.objects.create(name="Vido X14-1", age_category="X14")
+        Team.objects.filter(name="Vido X14-1").update(requires_24_second_operator=True)
         csv_text = (
             "date,time,court,home_team,away_team\n"
             "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
@@ -241,10 +233,8 @@ class TestTaskSlotStaffing:
         assert Task.objects.filter(game=game, task_type="24_SECOND_OPERATOR").exists()
 
     def test_settings_disable_scorer(self):
-        from sixth_man.core.models import AgeCategorySettings
-
-        AgeCategorySettings.for_category("X14")
-        AgeCategorySettings.objects.filter(age_category="X14").update(scorer=False)
+        Team.objects.create(name="Vido X14-1", age_category="X14")
+        Team.objects.filter(name="Vido X14-1").update(require_scorer=False)
         csv_text = (
             "date,time,court,home_team,away_team\n"
             "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
@@ -254,10 +244,8 @@ class TestTaskSlotStaffing:
         assert not Task.objects.filter(game=game, task_type="SCORER").exists()
 
     def test_optional_referees_create_marked_optional_slots(self):
-        from sixth_man.core.models import AgeCategorySettings
-
-        AgeCategorySettings.for_category("X14")
-        AgeCategorySettings.objects.filter(age_category="X14").update(
+        Team.objects.create(name="Vido X14-1", age_category="X14")
+        Team.objects.filter(name="Vido X14-1").update(
             required_referees=1, optional_referees=1
         )
         csv_text = (

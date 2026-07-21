@@ -24,6 +24,27 @@ class Team(models.Model):
         max_length=10,
         choices=AgeCategory.choices,
     )
+    # Task slot configuration — varies by team level within an age category
+    required_referees = models.PositiveIntegerField(
+        default=2,
+        help_text="Number of referee slots that must be filled.",
+    )
+    optional_referees = models.PositiveIntegerField(
+        default=0,
+        help_text="Additional referee slots that are optional.",
+    )
+    require_scorer = models.BooleanField(
+        default=True,
+        help_text="Whether a scorer slot is required.",
+    )
+    require_timer = models.BooleanField(
+        default=True,
+        help_text="Whether a timer slot is required.",
+    )
+    requires_24_second_operator = models.BooleanField(
+        default=False,
+        help_text="Whether a 24-second operator slot is required.",
+    )
 
     class Meta:
         ordering = ["age_category", "name"]

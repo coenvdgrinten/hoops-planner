@@ -491,17 +491,20 @@ class TestImportEndpoints:
 
 @pytest.mark.django_db
 class TestSettingsEndpoint:
-    def test_list_returns_all_categories(self, api_client):
+    def test_list_returns_all_teams(self, api_client):
+        Team.objects.create(name="Vido X14-1", age_category="X14")
+        Team.objects.create(name="Vido X10-1", age_category="X10")
         response = api_client.get("/api/settings/")
         assert response.status_code == 200
         data = response.json()
-        categories = {row["age_category"] for row in data}
-        assert "X14" in categories
-        assert "MSE" in categories
+        team_names = {row["name"] for row in data}
+        assert "Vido X14-1" in team_names
+        assert "Vido X10-1" in team_names
 
     def test_update_changes_settings(self, api_client):
+        team = Team.objects.create(name="Vido X14-1", age_category="X14")
         response = api_client.put(
-            "/api/settings/X14/",
+            f"/api/settings/{team.id}/",
             {"required_referees": 3, "requires_24_second_operator": True},
             format="json",
         )
@@ -510,9 +513,9 @@ class TestSettingsEndpoint:
         assert data["required_referees"] == 3
         assert data["requires_24_second_operator"] is True
 
-    def test_update_unknown_category(self, api_client):
+    def test_update_unknown_team(self, api_client):
         response = api_client.put(
-            "/api/settings/ZZ9/",
+            "/api/settings/99999/",
             {"required_referees": 1},
             format="json",
         )
