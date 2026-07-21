@@ -1,3 +1,5 @@
+name: hoops-planner
+
 services:
   backend:
     build: .
