@@ -14,6 +14,8 @@ interface Props {
 export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
   const queryClient = useQueryClient();
   const isCreateMode = !game;
+  const isAway = game?.game_type === "AWAY";
+  const [gameType, setGameType] = useState<"HOME" | "AWAY">(isAway ? "AWAY" : "HOME");
 
   const [date, setDate] = useState(game?.date || "");
   const [time, setTime] = useState(game?.time || "");
@@ -47,6 +49,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
         time,
         court,
         half,
+        game_type: gameType,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["games"] });
@@ -110,6 +113,18 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
         <form onSubmit={handleSubmit}>
           {isCreateMode && (
             <div className="form-group">
+              <label>Game Type:</label>
+              <select
+                value={gameType}
+                onChange={(e) => setGameType(e.target.value as "HOME" | "AWAY")}
+              >
+                <option value="HOME">Home</option>
+                <option value="AWAY">Away</option>
+              </select>
+            </div>
+          )}
+          {isCreateMode && (
+            <div className="form-group">
               <label>Home Team:</label>
               <select
                 value={homeTeamId}
@@ -143,29 +158,31 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
               required
             />
           </div>
-          <div className={styles["form-row"]}>
-            <div className="form-group">
-              <label>Court:</label>
-              <select
-                value={court}
-                onChange={(e) => setCourt(e.target.value)}
-                required
-              >
-                <option value="1">Court 1</option>
-                <option value="2">Court 2</option>
-              </select>
+          {gameType === "HOME" && (
+            <div className={styles["form-row"]}>
+              <div className="form-group">
+                <label>Court:</label>
+                <select
+                  value={court}
+                  onChange={(e) => setCourt(e.target.value)}
+                  required
+                >
+                  <option value="1">Court 1</option>
+                  <option value="2">Court 2</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Half:</label>
+                <select
+                  value={half}
+                  onChange={(e) => setHalf(e.target.value)}
+                >
+                  <option value="1">First Half</option>
+                  <option value="2">Second Half</option>
+                </select>
+              </div>
             </div>
-            <div className="form-group">
-              <label>Half:</label>
-              <select
-                value={half}
-                onChange={(e) => setHalf(e.target.value)}
-              >
-                <option value="1">First Half</option>
-                <option value="2">Second Half</option>
-              </select>
-            </div>
-          </div>
+          )}
           {!isCreateMode && (
             <div className="form-group">
               <label>Home Team:</label>

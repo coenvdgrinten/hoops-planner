@@ -1,6 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAvailability } from "../api";
 import type { AvailabilityDay, Season } from "../types";
+import { GameEditModal } from "./GameEditModal";
 import styles from "./Availability.module.css";
 
 interface Props {
@@ -8,10 +10,18 @@ interface Props {
 }
 
 export function Availability({ season }: Props) {
+  const queryClient = useQueryClient();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const { data: days = [], isLoading, error } = useQuery({
     queryKey: ["availability", season.id],
     queryFn: () => getAvailability(season.id),
   });
+
+  const handleCreateClose = () => {
+    setShowCreateModal(false);
+    queryClient.invalidateQueries({ queryKey: ["availability", season.id] });
+  };
 
   if (isLoading) return <p>Loading availability...</p>;
   if (error) return <p className="error">Error: {error.message}</p>;
@@ -20,15 +30,30 @@ export function Availability({ season }: Props) {
     return (
       <div className={styles.availability}>
         <div className={styles["availability-header"]}>
-          <h2>Availability</h2>
-          <p className={styles["availability-subtitle"]}>
-            Days where a team has an away game — its members and coaches are
-            unavailable for tasks.
-          </p>
+          <div>
+            <h2>Availability</h2>
+            <p className={styles["availability-subtitle"]}>
+              Days where a team has an away game — its members and coaches are
+              unavailable for tasks.
+            </p>
+          </div>
+          <button
+            className={styles["btn-add-away"]}
+            onClick={() => setShowCreateModal(true)}
+          >
+            + Add Away Game
+          </button>
         </div>
         <p className={styles["empty-msg"]}>
           No away games scheduled for this season.
         </p>
+        {showCreateModal && (
+          <GameEditModal
+            seasonId={season.id}
+            onClose={handleCreateClose}
+            onSuccess={handleCreateClose}
+          />
+        )}
       </div>
     );
   }
@@ -36,11 +61,19 @@ export function Availability({ season }: Props) {
   return (
     <div className={styles.availability}>
       <div className={styles["availability-header"]}>
-        <h2>Availability</h2>
-        <p className={styles["availability-subtitle"]}>
-          Days where a team has an away game — its members and coaches are
-          unavailable for tasks.
-        </p>
+        <div>
+          <h2>Availability</h2>
+          <p className={styles["availability-subtitle"]}>
+            Days where a team has an away game — its members and coaches are
+            unavailable for tasks.
+          </p>
+        </div>
+        <button
+          className={styles["btn-add-away"]}
+          onClick={() => setShowCreateModal(true)}
+        >
+          + Add Away Game
+        </button>
       </div>
       {days.map((day: AvailabilityDay) => {
         const dateObj = new Date(`${day.date || "1970-01-01"}T00:00`);
@@ -88,6 +121,13 @@ export function Availability({ season }: Props) {
           </div>
         );
       })}
+      {showCreateModal && (
+        <GameEditModal
+          seasonId={season.id}
+          onClose={handleCreateClose}
+          onSuccess={handleCreateClose}
+        />
+      )}
     </div>
   );
 }

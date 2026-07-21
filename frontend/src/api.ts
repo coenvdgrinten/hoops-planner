@@ -295,6 +295,7 @@ export function createGame(data: {
   time: string;
   court: string;
   half: string;
+  game_type: "HOME" | "AWAY";
 }) {
   return request<Game>("/games/", {
     method: "POST",
@@ -311,6 +312,7 @@ export function updateGame(
     time: string;
     court: string;
     half: string;
+    game_type: "HOME" | "AWAY";
   }>,
 ) {
   return request<Game>(`/games/${gameId}/`, {

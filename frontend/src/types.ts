@@ -36,7 +36,7 @@ export interface Game {
   season: number;
   home_team: Team;
   away_team: string;
-  game_type: string;
+  game_type: "HOME" | "AWAY";
   date: string;
   time: string;
   court: string;
