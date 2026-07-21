@@ -29,8 +29,8 @@ Task planning application for basketball clubs. Assign referees, scorers, timers
 
 ```bash
 # Clone and enter the repo
-git clone https://github.com/coenvdgrinten/sixth-man.git
-cd sixth-man
+git clone https://github.com/coenvdgrinten/hoops-planner.git
+cd hoops-planner
 
 # Start the containers
 docker compose up --build
