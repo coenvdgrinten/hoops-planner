@@ -18,7 +18,9 @@ WORKDIR /app
 # Copy project files
 COPY pyproject.toml uv.lock manage.py ./
 COPY src/ src/
-COPY media/ media/
+
+# Create media directory (assets are copied separately if needed)
+RUN mkdir -p /app/media
 
 # Install dependencies
 RUN uv sync --frozen
@@ -26,8 +28,9 @@ RUN uv sync --frozen
 # Set Python path
 ENV PYTHONPATH=/app/src
 
-# Create media directory
-RUN mkdir -p /app/media
+# Create media directory and copy assets
+RUN mkdir -p /app/media/assets
+COPY media/assets/ /app/media/assets/
 
 EXPOSE 8000
 

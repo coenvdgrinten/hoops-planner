@@ -132,9 +132,7 @@ class SeasonViewSet(viewsets.ModelViewSet):
             ics_bytes,
             content_type="text/calendar; charset=utf-8",
             headers={
-                "Content-Disposition": (
-                    f'attachment; filename="game_{game.id}.ics"'
-                ),
+                "Content-Disposition": (f'attachment; filename="game_{game.id}.ics"'),
             },
         )
 
