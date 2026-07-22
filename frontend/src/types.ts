@@ -23,6 +23,7 @@ export interface Team {
   require_scorer: boolean;
   require_timer: boolean;
   requires_24_second_operator: boolean;
+  parent_responsible: boolean;
 }
 
 export interface Player {

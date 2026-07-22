@@ -46,6 +46,7 @@ export function Settings() {
         <p className={styles["settings-subtitle"]}>
           Configure how many task slots are created per team. Changes
           apply to games imported or created afterwards.
+          Parents Responsible excludes players from Scorer/Timer suggestions.
         </p>
       </div>
       <table className={styles["settings-table"]}>
@@ -57,6 +58,7 @@ export function Settings() {
             <th>Scorer</th>
             <th>Timer</th>
             <th>24-sec Operator</th>
+            <th title="Applies to Scorer and Timer tasks only">Parents Responsible</th>
           </tr>
         </thead>
         <tbody>
@@ -107,6 +109,13 @@ export function Settings() {
                   type="checkbox"
                   checked={t.requires_24_second_operator}
                   onChange={(e) => handleChange(t.id, "requires_24_second_operator", e.target.checked)}
+                />
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={t.parent_responsible}
+                  onChange={(e) => handleChange(t.id, "parent_responsible", e.target.checked)}
                 />
               </td>
             </tr>

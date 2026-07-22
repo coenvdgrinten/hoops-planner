@@ -49,6 +49,9 @@ def get_ineligibility_reason(player: Player, task: Task) -> str | None:
             return "Player's team is younger than game team"
         if _player_lacks_required_referee_certification(player, task.game):
             return "Missing required referee certification"
+    if task.task_type in (TaskType.SCORER, TaskType.TIMER):
+        if _player_on_parent_responsible_team(player):
+            return "Parents are responsible for this task type"
     return None
 
 
@@ -178,3 +181,8 @@ def _age_category_index(category: str) -> int:
         return AGE_CATEGORY_ORDER.index(category)
     except ValueError:
         return 0
+
+
+def _player_on_parent_responsible_team(player: Player) -> bool:
+    """Check if any team the player belongs to has parent_responsible enabled."""
+    return any(t.parent_responsible for t in player.all_teams)

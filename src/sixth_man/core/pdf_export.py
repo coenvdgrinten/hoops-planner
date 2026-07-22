@@ -1,21 +1,15 @@
-"""PDF export for the task schedule."""
+"""PDF export for the task schedule — HTML/CSS-based layout using WeasyPrint."""
 
-from io import BytesIO
-from typing import Any
+import os
+from datetime import date as date_type
+from pathlib import Path
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-from reportlab.lib.units import mm
-from reportlab.platypus import (
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
+from django.conf import settings
+from weasyprint import HTML
+from weasyprint.text.fonts import FontConfiguration
+from weasyprint.urls import URLFetcher, URLFetcherResponse
 
-from sixth_man.core.models import Season, Task, TaskAssignment, TaskType
+from sixth_man.core.models import Game, Season, Task, TaskAssignment, TaskType
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Referee",
@@ -24,148 +18,422 @@ TASK_LABELS: dict[str, str] = {
     TaskType.SECOND_24_OPERATOR: "24-sec Operator",
 }
 
-# Styles
-STYLE_HEADER = "ScheduleHeader"
-STYLE_NORMAL = "ScheduleNormal"
-STYLE_SMALL = "ScheduleSmall"
+# Logo path (relative to project root)
+LOGO_PATH = Path(settings.BASE_DIR).parent / "media" / "assets" / "club-logo.png"
 
-STYLES = {
-    STYLE_HEADER: {
-        "fontName": "Helvetica-Bold",
-        "fontSize": 14,
-        "leading": 16,
-        "spaceAfter": 6,
-    },
-    STYLE_NORMAL: {
-        "fontName": "Helvetica",
-        "fontSize": 9,
-        "leading": 11,
-    },
-    STYLE_SMALL: {
-        "fontName": "Helvetica",
-        "fontSize": 8,
-        "leading": 10,
-    },
+# CSS for the PDF
+CSS_STYLES = """
+@page {
+    size: A4 landscape;
+    margin: 15mm;
+    @bottom-left {
+        content: "Generated on {{date}}";
+        font-size: 8pt;
+        color: #666;
+    }
+    @bottom-right {
+        content: "Page " counter(page);
+        font-size: 8pt;
+        color: #666;
+    }
 }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 9pt;
+    color: #1a1a2e;
+    margin: 0;
+    padding: 0;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 10mm;
+    margin-bottom: 8pt;
+}
+
+.logo {
+    width: 25mm;
+    height: auto;
+}
+
+.title {
+    font-size: 14pt;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 6pt;
+    overflow: hidden;
+    margin-bottom: 12pt;
+    box-shadow: 0 1pt 3pt rgba(0,0,0,0.08);
+}
+
+th {
+    background: #e6f5ed;
+    color: #016c30;
+    font-weight: 600;
+    font-size: 8pt;
+    text-align: center;
+    padding: 4pt 3pt;
+    border: 0.5pt solid #ccc;
+    border-bottom: 1.5pt solid #016c30;
+}
+
+th:first-child {
+    border-radius: 4pt 0 0 0;
+}
+
+th:last-child {
+    border-radius: 0 4pt 0 0;
+}
+
+.date-row {
+    background: #e8e8e8;
+    font-weight: 600;
+    font-size: 9pt;
+    padding: 3pt 3pt;
+    border: 0.5pt solid #ccc;
+    border-top: 0.75pt solid #016c30;
+}
+
+td {
+    padding: 2pt 3pt;
+    border: 0.5pt solid #eeeeee;
+    text-align: left;
+    vertical-align: middle;
+    font-size: 8pt;
+}
+
+td.center {
+    text-align: center;
+}
+
+td.bold {
+    font-weight: 600;
+}
+
+td.time {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+td.team {
+    text-align: center;
+}
+
+tr:nth-child(even) td {
+    background: #f8f9fc;
+}
+
+tr.date-row td {
+    background: #e8e8e8 !important;
+}
+
+td.unassigned {
+    font-style: italic;
+    color: #aaaaaa;
+    text-align: center;
+}
+
+.summary-title {
+    font-size: 12pt;
+    font-weight: 600;
+    margin: 12pt 0 6pt 0;
+    color: #1a1a2e;
+}
+
+.summary-table th {
+    background: #e6f5ed;
+    color: #016c30;
+}
+
+.summary-table td {
+    text-align: center;
+}
+
+.summary-table td:first-child {
+    text-align: left;
+}
+
+.summary-table td:last-child {
+    font-weight: 600;
+}
+
+.calendar-link {
+    color: #016c30;
+    text-decoration: none;
+    font-size: 7pt;
+    vertical-align: middle;
+}
+
+.calendar-link:hover {
+    text-decoration: underline;
+}
+"""
 
 
 def export_schedule_pdf(season: Season) -> bytes:
-    """Generate a PDF of the task schedule for a season.
-
-    Returns raw PDF bytes.
-    """
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=20 * mm,
-        leftMargin=20 * mm,
-        topMargin=15 * mm,
-        bottomMargin=15 * mm,
+    """Generate a compact, date-grouped PDF of the task schedule."""
+    html_content = _build_html(season)
+    # Use SITE_URL as base so relative links resolve to absolute URLs
+    base_url = getattr(settings, "SITE_URL", "http://localhost:5173")
+    html = HTML(string=html_content, base_url=base_url)
+    font_config = FontConfiguration()
+    # Use a custom URL fetcher that doesn't actually fetch external URLs
+    # (WeasyPrint strips links if it can't resolve the URL)
+    return html.write_pdf(
+        font_config=font_config,
+        url_fetcher=NoFetchURLFetcher(),
+        uncompressed_pdf=True,
     )
 
-    elements = _build_elements(season, STYLES)
-    doc.build(elements)
-    return buffer.getvalue()
+
+class NoFetchURLFetcher(URLFetcher):
+    """URL fetcher that returns empty responses for external URLs,
+    preventing WeasyPrint from stripping links it can't fetch."""
+
+    def fetch(self, url, headers=None):
+        if url.startswith("http"):
+            return URLFetcherResponse(url, body=b"", status=200)
+        return super().fetch(url, headers)
 
 
-def _build_elements(season: Season, styles: dict[str, Any]) -> list[Any]:
-    """Build the list of platypus elements for the PDF."""
-    base_styles = getSampleStyleSheet()
-    for name, config in styles.items():
-        base_styles.add(ParagraphStyle(name=name, **config))
+def _build_html(season: Season) -> str:
+    """Build the HTML content for the PDF."""
+    games = list(season.games.all().order_by("half", "date", "time", "court"))
 
-    elements: list[Any] = []
-
-    # Title
-    title_text = f"Task Schedule — {season.name}"
-    elements.append(Paragraph(title_text, base_styles[STYLE_HEADER]))
-    elements.append(Spacer(1, 6 * mm))
-
-    # Games sorted by date+time
-    games = list(season.games.all().order_by("date", "time", "court"))
-
+    # Group games by date
+    by_date: dict[date_type, list[Game]] = {}
     for game in games:
-        elements.append(_game_header(game))
-        elements.append(_task_table(game, base_styles))
-        elements.append(Spacer(1, 4 * mm))
+        by_date.setdefault(game.date, []).append(game)
 
-    return elements
-
-
-def _game_header(game) -> Paragraph:
-    from datetime import datetime
-
-    date_str = datetime.combine(game.date, game.time).strftime("%a %d %b %H:%M")
-    match_str = f"{game.home_team.name} vs {game.away_team}"
-    meta_str = f"{date_str}  •  Court {game.court}"
-    title = f"{match_str}  •  {meta_str}"
-    return Paragraph(
-        title,
-        ParagraphStyle(
-            "GameHeader",
-            fontName="Helvetica-Bold",
-            fontSize=10,
-            leading=12,
-            spaceAfter=2,
-        ),
+    # Pre-fetch all tasks and assignments
+    game_ids = [g.id for g in games]
+    tasks = Task.objects.filter(game__id__in=game_ids).order_by(
+        "game", "task_type", "slot_number"
     )
-
-
-def _task_table(game, base_styles) -> Table:
-    """Create a table of tasks and assigned players for a game."""
-    tasks = Task.objects.filter(game=game).order_by("task_type", "slot_number")
-
-    # Pre-fetch all assignments for these tasks
     task_ids = [t.id for t in tasks]
     assignments = TaskAssignment.objects.filter(task__id__in=task_ids).select_related(
-        "player"
+        "player", "player__team"
     )
 
-    # Build lookup: task_id -> [player_names]
-    assigned: dict[int, list[str]] = {}
+    # Build lookup: (game_id, task_type) -> [(name, team)]
+    assigned: dict[tuple[int, str], list[tuple[str, str]]] = {}
+    for t in tasks:
+        for a in assignments:
+            if a.task.id == t.id:
+                key = (t.game.id, t.task_type)
+                assigned.setdefault(key, []).append(
+                    (a.player.full_name, a.player.team.name)
+                )
+
+    # Determine max referees needed
+    max_referees = 0
+    for t in tasks:
+        if t.task_type == TaskType.REFEREE:
+            max_referees = max(max_referees, t.slot_number)
+    max_referees = max(max_referees, 2)
+
+    has_24sec = any(t.task_type == TaskType.SECOND_24_OPERATOR for t in tasks)
+
+    # Build header row
+    headers = ["Datum", "Tijd", "Thuis", "Uit"]
+    for i in range(1, max_referees + 1):
+        suffix = f" #{i}" if i > 1 else ""
+        headers.append(f"Scheidsr{suffix}")
+        headers.append("Team")
+    headers.extend(["Scorer", "Team", "Timer", "Team"])
+    if has_24sec:
+        headers.extend(["24 sec", "Team"])
+
+    # Logo
+    logo_html = ""
+    if os.path.exists(LOGO_PATH):
+        logo_url = f"file://{LOGO_PATH.absolute()}"
+        logo_html = f'<img src="{logo_url}" class="logo" alt="Logo">'
+
+    html_parts = [
+        "<!DOCTYPE html>",
+        "<html>",
+        "<head>",
+        f"<style>{CSS_STYLES}</style>",
+        "</head>",
+        "<body>",
+        f'<div class="header">{logo_html}'
+        f'<span class="title">Task Schedule — {season.name}</span></div>',
+        "<table>",
+        "<thead>",
+        "<tr>",
+    ]
+
+    for h in headers:
+        html_parts.append(f"<th>{h}</th>")
+
+    html_parts.extend(["</tr>", "</thead>", "<tbody>"])
+
+    for game_date in sorted(by_date.keys()):
+        # Date header row — keep with following game rows
+        date_str = game_date.strftime("%d-%m-%Y")
+        html_parts.append(
+            f'<tr class="date-row" style="page-break-inside: avoid">'
+            f'<td colspan="2">{date_str}</td>'
+        )
+        for _ in range(2, len(headers)):
+            html_parts.append("<td></td>")
+        html_parts.append("</tr>")
+
+        # Game rows — keep each game row together
+        for game in by_date[game_date]:
+            html_parts.append(
+                f'<tr style="page-break-inside: avoid">'
+                f"{_build_game_row_html(game, assigned, max_referees, has_24sec)}"
+                f"</tr>"
+            )
+
+    html_parts.extend(["</tbody>", "</table>"])
+
+    # Player summary
+    summary_html = _build_player_summary_html(season)
+    html_parts.append(summary_html)
+
+    html_parts.extend(["</body>", "</html>"])
+
+    return "\n".join(html_parts)
+
+
+def _build_game_row_html(
+    game: Game,
+    assigned: dict[tuple[int, str], list[tuple[str, str]]],
+    max_referees: int,
+    has_24sec: bool,
+) -> str:
+    """Build a single HTML row for a game."""
+    time_str = game.time.strftime("%H:%M")
+    home = game.home_team.name
+    away = game.away_team
+
+    cells = [
+        '<td class="center"></td>',  # Datum (filled by date header)
+        f'<td class="time">{time_str}</td>',
+        f'<td class="bold">{home}</td>',
+        f"<td>{away}</td>",
+    ]
+
+    # Calendar event link for this game
+    ics_url = f"http://localhost:5173/api/seasons/game_ics/?game_id={game.id}"
+
+    # Referee columns
+    for i in range(1, max_referees + 1):
+        key = (game.id, TaskType.REFEREE)
+        players = assigned.get(key, [])
+        if i <= len(players):
+            name, team = players[i - 1]
+            cells.append(
+                f'<td class="center">{name} '
+                f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+            )
+            cells.append(f'<td class="team">{team}</td>')
+        else:
+            cells.append('<td class="unassigned">—</td>')
+            cells.append("<td></td>")
+
+    # Scorer
+    scorer_key = (game.id, TaskType.SCORER)
+    scorers = assigned.get(scorer_key, [])
+    if scorers:
+        name, team = scorers[0]
+        cells.append(
+            f'<td class="center">{name} '
+            f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+        )
+        cells.append(f'<td class="team">{team}</td>')
+    else:
+        cells.append('<td class="unassigned">—</td>')
+        cells.append("<td></td>")
+
+    # Timer
+    timer_key = (game.id, TaskType.TIMER)
+    timers = assigned.get(timer_key, [])
+    if timers:
+        name, team = timers[0]
+        cells.append(
+            f'<td class="center">{name} '
+            f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+        )
+        cells.append(f'<td class="team">{team}</td>')
+    else:
+        cells.append('<td class="unassigned">—</td>')
+        cells.append("<td></td>")
+
+    # 24-sec operator
+    if has_24sec:
+        op_key = (game.id, TaskType.SECOND_24_OPERATOR)
+        ops = assigned.get(op_key, [])
+        if ops:
+            name, team = ops[0]
+            cells.append(
+                f'<td class="center">{name} '
+                f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+            )
+            cells.append(f'<td class="team">{team}</td>')
+        else:
+            cells.append('<td class="unassigned">—</td>')
+            cells.append("<td></td>")
+
+    return "".join(cells)
+
+
+def _build_player_summary_html(season: Season) -> str:
+    """Build player summary HTML section."""
+    assignments = TaskAssignment.objects.filter(
+        task__game__season=season
+    ).select_related("player", "player__team", "task")
+
+    # Count assignments per player per task type
+    player_counts: dict[str, dict[str, int]] = {}
     for a in assignments:
-        assigned.setdefault(a.task.id, []).append(a.player.full_name)
+        name = a.player.full_name
+        if name not in player_counts:
+            player_counts[name] = {}
+        task_label = TASK_LABELS.get(a.task.task_type, a.task.task_type)
+        player_counts[name][task_label] = player_counts[name].get(task_label, 0) + 1
 
-    # Table data
-    headers = ["Task", "Assigned"]
-    header_style = ParagraphStyle(
-        "ColHeader",
-        fontName="Helvetica-Bold",
-        fontSize=8,
-        leading=10,
-    )
-    data = [[Paragraph(h, header_style) for h in headers]]
+    if not player_counts:
+        return ""
 
-    for task in tasks:
-        label = TASK_LABELS.get(task.task_type, task.task_type)
-        if task.slot_number > 1:
-            label = f"{label} #{task.slot_number}"
+    # Sort by last name
+    sorted_players = sorted(player_counts.keys(), key=lambda x: x.lower())
 
-        players = assigned.get(task.id, [])
-        player_text = ", ".join(players) if players else "<i>unassigned</i>"
+    html_parts = [
+        '<div class="summary-title">Player Summary</div>',
+        '<table class="summary-table">',
+        "<thead>",
+        "<tr>",
+        "<th>Player</th>",
+    ]
 
-        data.append(
-            [
-                Paragraph(label, base_styles[STYLE_SMALL]),
-                Paragraph(player_text, base_styles[STYLE_SMALL]),
-            ]
-        )
+    for label in TASK_LABELS.values():
+        html_parts.append(f"<th>{label}</th>")
 
-    # Table styling
-    table = Table(data, colWidths=[50 * mm, 100 * mm])
-    table.setStyle(
-        TableStyle(
-            [
-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f0f0f0")),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cccccc")),
-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 2),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-                ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-            ]
-        )
-    )
+    html_parts.extend(["<th>Total</th>", "</tr>", "</thead>", "<tbody>"])
 
-    return table
+    for name in sorted_players:
+        counts = player_counts[name]
+        total = 0
+        cells = [f"<td>{name}</td>"]
+        for label in TASK_LABELS.values():
+            count = counts.get(label, 0)
+            total += count
+            cells.append(f"<td>{count}</td>")
+        cells.append(f"<td>{total}</td>")
+        html_parts.append(f"<tr>{''.join(cells)}</tr>")
+
+    html_parts.extend(["</tbody>", "</table>"])
+
+    return "\n".join(html_parts)

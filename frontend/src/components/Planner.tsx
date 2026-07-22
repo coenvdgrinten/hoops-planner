@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getGames, exportSeasonCsv, exportSeasonPdf } from "../api";
+import { getGames, exportSeasonCsv, exportSeasonPdf, exportSeasonIcs } from "../api";
 import type { Season, Game } from "../types";
 import type { TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
@@ -92,6 +92,13 @@ export function Planner({ season, onSelectTask }: Props) {
             onClick={() => exportSeasonPdf(season.id, season.name)}
           >
             Export PDF
+          </button>
+          <button
+            data-testid="export-ics-btn"
+            className={styles["btn-export"]}
+            onClick={() => exportSeasonIcs(season.id, season.name)}
+          >
+            Calendar
           </button>
           <button className={styles["btn-add-game"]} onClick={() => setShowCreateModal(true)}>
             + Add Game

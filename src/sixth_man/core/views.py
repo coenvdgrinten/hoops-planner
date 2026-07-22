@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sixth_man.core import statistics as stats_logic
 from sixth_man.core import suggestions as suggestion_logic
+from sixth_man.core.calendar_export import export_schedule_ics
 from sixth_man.core.csv_export import export_schedule_csv
 from sixth_man.core.eligibility import get_eligible_players_with_indicator
 from sixth_man.core.importers import import_members, import_schedule
@@ -91,6 +92,48 @@ class SeasonViewSet(viewsets.ModelViewSet):
             headers={
                 "Content-Disposition": (
                     f'attachment; filename="schedule_{season.name}.pdf"'
+                ),
+            },
+        )
+
+    @action(detail=True, methods=["get"])
+    def export_ics(self, request, pk=None):
+        """Export the task schedule as an .ics calendar file."""
+        season = self.get_object()
+        ics_bytes = export_schedule_ics(season)
+        return HttpResponse(
+            ics_bytes,
+            content_type="text/calendar; charset=utf-8",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="schedule_{season.name}.ics"'
+                ),
+            },
+        )
+
+    @action(detail=False, methods=["get"])
+    def game_ics(self, request):
+        """Export a single game as an .ics calendar event."""
+        game_id = request.query_params.get("game_id")
+        if not game_id:
+            return Response(
+                {"error": "game_id parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            game = Game.objects.get(pk=game_id)
+        except Game.DoesNotExist:
+            return Response(
+                {"error": "Game not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        ics_bytes = _generate_single_game_ics(game)
+        return HttpResponse(
+            ics_bytes,
+            content_type="text/calendar; charset=utf-8",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="game_{game.id}.ics"'
                 ),
             },
         )
@@ -385,3 +428,28 @@ class AvailabilityViewSet(viewsets.ViewSet):
             for date, games in sorted(by_date.items())
         ]
         return Response(data)
+
+
+def _generate_single_game_ics(game: Game) -> bytes:
+    """Generate a .ics file for a single game."""
+    from datetime import datetime, timedelta
+
+    dtstart = datetime.combine(game.date, game.time)
+    dtend = dtstart + timedelta(hours=2)
+    summary = f"{game.home_team} vs {game.away_team}"
+
+    ics_content = (
+        "BEGIN:VCALENDAR\n"
+        "VERSION:2.0\n"
+        "PRODID:-//Hoops Planner//Game Event//EN\n"
+        "BEGIN:VEVENT\n"
+        f"DTSTART:{dtstart.strftime('%Y%m%dT%H%M%S')}\n"
+        f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}\n"
+        f"SUMMARY:{summary}\n"
+        f"LOCATION:Court {game.court}\n"
+        "STATUS:CONFIRMED\n"
+        "END:VEVENT\n"
+        "END:VCALENDAR\n"
+    )
+
+    return ics_content.encode("utf-8")

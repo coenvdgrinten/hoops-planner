@@ -45,6 +45,10 @@ class Team(models.Model):
         default=False,
         help_text="Whether a 24-second operator slot is required.",
     )
+    parent_responsible = models.BooleanField(
+        default=False,
+        help_text="Whether parents (not players) are responsible for scorer and timer tasks on this team.",
+    )
 
     class Meta:
         ordering = ["age_category", "name"]

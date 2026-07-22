@@ -159,10 +159,15 @@ export async function exportSeasonPdf(seasonId: number, seasonName: string) {
   return downloadSeasonExport(seasonId, seasonName, "pdf");
 }
 
+/** Download the season's task schedule as an .ics calendar file (triggers a browser download). */
+export async function exportSeasonIcs(seasonId: number, seasonName: string) {
+  return downloadSeasonExport(seasonId, seasonName, "ics");
+}
+
 async function downloadSeasonExport(
   seasonId: number,
   seasonName: string,
-  format: "csv" | "pdf",
+  format: "csv" | "pdf" | "ics",
 ) {
   const token = getToken();
   const res = await fetch(`${API}/seasons/${seasonId}/export_${format}/`, {

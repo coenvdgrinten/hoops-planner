@@ -25,6 +25,7 @@ class TeamSerializer(serializers.ModelSerializer):
             "require_scorer",
             "require_timer",
             "requires_24_second_operator",
+            "parent_responsible",
         ]
 
 

@@ -75,7 +75,7 @@ export function GameCard({
           </div>
           <div className={styles["game-teams"]}>
             <span className="home">{homeTeam.name}</span>
-            <span className="vs">vs.</span>
+            <span className="vs">vs. </span>
             <span className="away">{awayTeam}</span>
           </div>
           <div className={styles["game-meta"]}>
