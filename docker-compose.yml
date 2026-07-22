@@ -6,10 +6,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - SECRET_KEY=dev-secret-key-change-in-production
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - PYTHONPATH=/app/src
       - DB_PATH=/data/db.sqlite3
+      - SITE_URL=${SITE_URL:-http://localhost:5173}
     volumes:
       - ./src:/app/src          # Mount source for hot-reload
       - db-data:/data           # Persist SQLite DB
@@ -21,7 +22,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://backend:8000
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
     volumes:
       - ./frontend/src:/app/src  # Mount source for hot-reload
     depends_on:
