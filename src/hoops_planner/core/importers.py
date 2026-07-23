@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from typing import Any
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Season,

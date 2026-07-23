@@ -3,11 +3,11 @@
 import pytest
 from rest_framework import serializers
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Player,
     TaskAssignment,
 )
-from sixth_man.core.serializers import (
+from hoops_planner.core.serializers import (
     TaskAssignmentSerializer,
 )
 

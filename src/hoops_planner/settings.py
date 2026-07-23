@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
-    "sixth_man.core",
+    "hoops_planner.core",
 ]
 
 MIDDLEWARE = [
@@ -39,7 +39,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "sixth_man.urls"
+ROOT_URLCONF = "hoops_planner.urls"
 
 TEMPLATES = [
     {

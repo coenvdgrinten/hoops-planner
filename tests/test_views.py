@@ -4,7 +4,7 @@ import datetime as dt
 
 import pytest
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Season,
@@ -115,7 +115,7 @@ class TestSeasonViewSet:
     def test_export_csv(self, api_client, season, team_x14, player):
         from datetime import date, time
 
-        from sixth_man.core.models import Game, Task, TaskAssignment
+        from hoops_planner.core.models import Game, Task, TaskAssignment
 
         game = Game.objects.create(
             season=season,
@@ -144,7 +144,7 @@ class TestSeasonViewSet:
     def test_export_pdf(self, api_client, season, team_x14, player):
         from datetime import date, time
 
-        from sixth_man.core.models import Game, Task, TaskAssignment
+        from hoops_planner.core.models import Game, Task, TaskAssignment
 
         game = Game.objects.create(
             season=season,

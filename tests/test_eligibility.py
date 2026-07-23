@@ -4,12 +4,12 @@ import datetime as dt
 
 import pytest
 
-from sixth_man.core.eligibility import (
+from hoops_planner.core.eligibility import (
     get_eligible_players,
     get_eligible_players_with_indicator,
     is_eligible,
 )
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Task,
@@ -423,7 +423,7 @@ class TestRefereeCertificationRule:
 class TestCoachConsistency:
     def test_indicator_excludes_coaches_like_get_eligible_players(self, coach, task):
         """The indicator list must exclude coaches, matching get_eligible_players."""
-        from sixth_man.core.eligibility import get_eligible_players
+        from hoops_planner.core.eligibility import get_eligible_players
 
         indicator_players = {p.id for p, _ in get_eligible_players_with_indicator(task)}
         eligible_players = {p.id for p in get_eligible_players(task)}

@@ -9,7 +9,7 @@ from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
-from sixth_man.core.models import Game, Season, Task, TaskAssignment, TaskType
+from hoops_planner.core.models import Game, Season, Task, TaskAssignment, TaskType
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Referee",

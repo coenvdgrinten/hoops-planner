@@ -3,7 +3,7 @@
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Season,

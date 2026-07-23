@@ -4,13 +4,13 @@ import datetime as dt
 
 import pytest
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Task,
     TaskType,
     Team,
 )
-from sixth_man.core.pdf_export import export_schedule_pdf
+from hoops_planner.core.pdf_export import export_schedule_pdf
 
 
 @pytest.mark.django_db

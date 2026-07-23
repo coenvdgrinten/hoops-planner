@@ -2,8 +2,8 @@
 
 import pytest
 
-from sixth_man.core.importers import import_members, import_schedule
-from sixth_man.core.models import (
+from hoops_planner.core.importers import import_members, import_schedule
+from hoops_planner.core.models import (
     Game,
     Player,
     Season,

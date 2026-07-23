@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from sixth_man.core.models import Season, Task, TaskAssignment, TaskType
+from hoops_planner.core.models import Season, Task, TaskAssignment, TaskType
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Referee",

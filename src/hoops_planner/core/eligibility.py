@@ -2,7 +2,7 @@
 
 from django.db import models
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Task,

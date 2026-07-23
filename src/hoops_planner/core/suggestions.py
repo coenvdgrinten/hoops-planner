@@ -13,8 +13,8 @@ from typing import Any
 
 from django.db import models
 
-from sixth_man.core.eligibility import get_eligible_players
-from sixth_man.core.models import Game, Player, Task, Team
+from hoops_planner.core.eligibility import get_eligible_players
+from hoops_planner.core.models import Game, Player, Task, Team
 
 # Team ordering for display (oldest to youngest), matching the MemberView.
 CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X12", "X10"]
@@ -95,7 +95,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     - players: list of dicts with player, eligible, task_count, at_gym
     - eligible_count: number of eligible players in this team
     """
-    from sixth_man.core.eligibility import get_ineligibility_reason, is_eligible
+    from hoops_planner.core.eligibility import get_ineligibility_reason, is_eligible
 
     all_players = (
         Player.objects.exclude(

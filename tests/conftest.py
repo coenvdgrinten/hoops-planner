@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient  # noqa: F401
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Season,

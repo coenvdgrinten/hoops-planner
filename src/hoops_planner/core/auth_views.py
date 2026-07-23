@@ -14,7 +14,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from sixth_man.core.models import EmailVerificationToken
+from hoops_planner.core.models import EmailVerificationToken
 
 
 @api_view(["POST"])

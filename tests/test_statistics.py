@@ -4,7 +4,7 @@ import datetime as dt
 
 import pytest
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Season,
@@ -13,7 +13,7 @@ from sixth_man.core.models import (
     TaskType,
     Team,
 )
-from sixth_man.core.statistics import (
+from hoops_planner.core.statistics import (
     get_leaderboard,
     get_player_stats,
     get_season_stats,

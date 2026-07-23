@@ -4,7 +4,7 @@ import csv
 import io
 from typing import Any
 
-from sixth_man.core.models import Season, Task, TaskAssignment, TaskType
+from hoops_planner.core.models import Season, Task, TaskAssignment, TaskType
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Referee",

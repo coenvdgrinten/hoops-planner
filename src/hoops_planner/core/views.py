@@ -5,13 +5,13 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from sixth_man.core import statistics as stats_logic
-from sixth_man.core import suggestions as suggestion_logic
-from sixth_man.core.calendar_export import export_schedule_ics
-from sixth_man.core.csv_export import export_schedule_csv
-from sixth_man.core.eligibility import get_eligible_players_with_indicator
-from sixth_man.core.importers import import_members, import_schedule
-from sixth_man.core.models import (
+from hoops_planner.core import statistics as stats_logic
+from hoops_planner.core import suggestions as suggestion_logic
+from hoops_planner.core.calendar_export import export_schedule_ics
+from hoops_planner.core.csv_export import export_schedule_csv
+from hoops_planner.core.eligibility import get_eligible_players_with_indicator
+from hoops_planner.core.importers import import_members, import_schedule
+from hoops_planner.core.models import (
     Game,
     Player,
     Season,
@@ -19,8 +19,8 @@ from sixth_man.core.models import (
     TaskAssignment,
     Team,
 )
-from sixth_man.core.pdf_export import export_schedule_pdf
-from sixth_man.core.serializers import (
+from hoops_planner.core.pdf_export import export_schedule_pdf
+from hoops_planner.core.serializers import (
     GameSerializer,
     PlayerSerializer,
     SeasonSerializer,
@@ -259,7 +259,7 @@ class GameViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         game = serializer.save()
         # Auto-create task slots for new games
-        from sixth_man.core.importers import _ensure_task_slots
+        from hoops_planner.core.importers import _ensure_task_slots
 
         _ensure_task_slots(game)
 

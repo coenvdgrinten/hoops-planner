@@ -3,8 +3,8 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from sixth_man.core import auth_views
-from sixth_man.core.views import (
+from hoops_planner.core import auth_views
+from hoops_planner.core.views import (
     AvailabilityViewSet,
     GameViewSet,
     PlayerViewSet,

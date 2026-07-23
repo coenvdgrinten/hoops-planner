@@ -5,7 +5,7 @@ from django.contrib.auth.models import User  # noqa: F401
 from django.contrib.auth.tokens import default_token_generator
 from rest_framework.test import APIClient
 
-from sixth_man.core.models import EmailVerificationToken
+from hoops_planner.core.models import EmailVerificationToken
 
 
 @pytest.fixture

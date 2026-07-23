@@ -4,7 +4,7 @@ import datetime as dt
 
 import pytest
 
-from sixth_man.core.models import (
+from hoops_planner.core.models import (
     Game,
     Player,
     Task,
@@ -12,7 +12,7 @@ from sixth_man.core.models import (
     TaskType,
     Team,
 )
-from sixth_man.core.suggestions import (
+from hoops_planner.core.suggestions import (
     get_candidate_details,
     suggest_candidates,
 )
@@ -277,7 +277,7 @@ class TestAlreadyAtGymPriority:
         )
         # Player A is not at gym (10:00 is 4 hours before 14:00, outside 2h window)
         # So player_a should NOT have an adjacent game position — check via details.
-        from sixth_man.core.suggestions import get_candidate_details
+        from hoops_planner.core.suggestions import get_candidate_details
 
         details = get_candidate_details(task)
         player_a_details = [d for d in details if d[0] == player_a]

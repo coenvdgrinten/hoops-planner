@@ -44,7 +44,7 @@ unsupported-operator = "ignore"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-DJANGO_SETTINGS_MODULE = "sixth_man.settings"
+DJANGO_SETTINGS_MODULE = "hoops_planner.settings"
 
 [tool.django]
-settings = "sixth_man.settings"
+settings = "hoops_planner.settings"
