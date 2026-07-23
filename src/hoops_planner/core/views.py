@@ -450,7 +450,9 @@ def _generate_single_game_ics(game: Game) -> bytes:
         for a in assignments:
             label = TASK_LABELS.get(a.task.task_type, a.task.task_type)
             type_counts[label] = type_counts.get(label, 0) + 1
-        desc_parts = [f"{label}: {count} assigned" for label, count in type_counts.items()]
+        desc_parts = [
+            f"{label}: {count} assigned" for label, count in type_counts.items()
+        ]
         description = " | ".join(desc_parts)
     else:
         description = "No tasks assigned yet"
