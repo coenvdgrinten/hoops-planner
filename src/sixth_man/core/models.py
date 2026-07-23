@@ -47,7 +47,10 @@ class Team(models.Model):
     )
     parent_responsible = models.BooleanField(
         default=False,
-        help_text="Whether parents (not players) are responsible for scorer and timer tasks on this team.",
+        help_text=(
+            "Whether parents (not players) are responsible for "
+            "scorer and timer tasks on this team."
+        ),
     )
 
     class Meta:
