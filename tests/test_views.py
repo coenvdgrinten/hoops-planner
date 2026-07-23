@@ -198,6 +198,56 @@ class TestSeasonViewSet:
         assert "Vido X14-1" in body
         assert "John Doe" in body
 
+    def test_game_ics_public_access(self, season, team_x14, player):
+        """The game_ics endpoint should be accessible without authentication."""
+        from datetime import date, time
+
+        from rest_framework.test import APIClient
+
+        from hoops_planner.core.models import Game, Task, TaskAssignment
+
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=date(2025, 10, 1),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(game=game, task_type="SCORER", slot_number=1)
+        TaskAssignment.objects.create(task=task, player=player)
+
+        # Use an unauthenticated client
+        anon_client = APIClient()
+        response = anon_client.get(f"/api/game_ics/?game_id={game.id}")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/calendar; charset=utf-8"
+        body = response.content.decode("utf-8")
+        assert "BEGIN:VCALENDAR" in body
+        assert "BEGIN:VEVENT" in body
+        assert "END:VCALENDAR" in body
+        assert "Vido X14-1" in body
+        # Public endpoint must NOT expose player names (PII)
+        assert "John Doe" not in body
+        assert "Scorer: 1 assigned" in body
+
+    def test_game_ics_missing_game_id(self):
+        """The game_ics endpoint should return 400 when game_id is missing."""
+        from rest_framework.test import APIClient
+
+        anon_client = APIClient()
+        response = anon_client.get("/api/game_ics/")
+        assert response.status_code == 400
+
+    def test_game_ics_invalid_game_id(self):
+        """The game_ics endpoint should return 404 for non-existent game."""
+        from rest_framework.test import APIClient
+
+        anon_client = APIClient()
+        response = anon_client.get("/api/game_ics/?game_id=99999")
+        assert response.status_code == 404
+
     def test_import_schedule_creates_season_and_games(self, api_client):
         csv_text = (
             "date,time,court,home_team,away_team\n"

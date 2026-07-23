@@ -13,6 +13,7 @@ from hoops_planner.core.views import (
     TaskAssignmentViewSet,
     TaskViewSet,
     TeamViewSet,
+    game_ics,
 )
 
 router = DefaultRouter()
@@ -49,4 +50,5 @@ urlpatterns = [
         auth_views.verify_email_confirm,
         name="verify_email_confirm",
     ),
+    path("game_ics/", game_ics, name="game_ics"),
 ] + router.urls

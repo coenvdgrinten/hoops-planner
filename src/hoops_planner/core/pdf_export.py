@@ -326,7 +326,7 @@ def _build_game_row_html(
     ]
 
     # Calendar event link for this game
-    ics_url = f"http://localhost:5173/api/seasons/game_ics/?game_id={game.id}"
+    ics_url = f"http://localhost:5173/api/game_ics/?game_id={game.id}"
 
     # Referee columns
     for i in range(1, max_referees + 1):

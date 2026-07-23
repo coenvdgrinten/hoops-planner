@@ -2,7 +2,8 @@
 
 from django.http import HttpResponse
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from hoops_planner.core import statistics as stats_logic
@@ -108,31 +109,6 @@ class SeasonViewSet(viewsets.ModelViewSet):
                 "Content-Disposition": (
                     f'attachment; filename="schedule_{season.name}.ics"'
                 ),
-            },
-        )
-
-    @action(detail=False, methods=["get"])
-    def game_ics(self, request):
-        """Export a single game as an .ics calendar event."""
-        game_id = request.query_params.get("game_id")
-        if not game_id:
-            return Response(
-                {"error": "game_id parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            game = Game.objects.get(pk=game_id)
-        except Game.DoesNotExist:
-            return Response(
-                {"error": "Game not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        ics_bytes = _generate_single_game_ics(game)
-        return HttpResponse(
-            ics_bytes,
-            content_type="text/calendar; charset=utf-8",
-            headers={
-                "Content-Disposition": (f'attachment; filename="game_{game.id}.ics"'),
             },
         )
 
@@ -428,13 +404,56 @@ class AvailabilityViewSet(viewsets.ViewSet):
         return Response(data)
 
 
+@permission_classes([AllowAny])
+def game_ics(request):
+    """Export a single game as an .ics calendar event (public endpoint)."""
+    game_id = request.GET.get("game_id")
+    if not game_id:
+        return HttpResponse(
+            "game_id parameter is required",
+            status=400,
+            content_type="text/plain",
+        )
+    try:
+        game = Game.objects.get(pk=game_id)
+    except Game.DoesNotExist:
+        return HttpResponse(
+            "Game not found",
+            status=404,
+            content_type="text/plain",
+        )
+    ics_bytes = _generate_single_game_ics(game)
+    return HttpResponse(
+        ics_bytes,
+        content_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": (f'attachment; filename="game_{game.id}.ics"'),
+        },
+    )
+
+
 def _generate_single_game_ics(game: Game) -> bytes:
-    """Generate a .ics file for a single game."""
+    """Generate a .ics file for a single game (public endpoint \u2014 no PII)."""
     from datetime import datetime, timedelta
+
+    from hoops_planner.core.models import TaskAssignment
+    from hoops_planner.core.calendar_export import TASK_LABELS
 
     dtstart = datetime.combine(game.date, game.time)
     dtend = dtstart + timedelta(hours=2)
     summary = f"{game.home_team} vs {game.away_team}"
+
+    # Count assigned tasks by type only \u2014 never expose player names publicly
+    assignments = TaskAssignment.objects.filter(task__game=game).select_related("task")
+    if assignments:
+        type_counts: dict[str, int] = {}
+        for a in assignments:
+            label = TASK_LABELS.get(a.task.task_type, a.task.task_type)
+            type_counts[label] = type_counts.get(label, 0) + 1
+        desc_parts = [f"{label}: {count} assigned" for label, count in type_counts.items()]
+        description = " | ".join(desc_parts)
+    else:
+        description = "No tasks assigned yet"
 
     ics_content = (
         "BEGIN:VCALENDAR\n"
@@ -444,6 +463,7 @@ def _generate_single_game_ics(game: Game) -> bytes:
         f"DTSTART:{dtstart.strftime('%Y%m%dT%H%M%S')}\n"
         f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}\n"
         f"SUMMARY:{summary}\n"
+        f"DESCRIPTION:{description}\n"
         f"LOCATION:Court {game.court}\n"
         "STATUS:CONFIRMED\n"
         "END:VEVENT\n"
