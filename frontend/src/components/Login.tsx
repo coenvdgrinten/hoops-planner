@@ -121,12 +121,12 @@ export function Login({ onLogin }: Props) {
 
           {(mode === "login" || mode === "register") && (
             <div className="form-group">
-              <label>Username or Email</label>
+              <label>{mode === "login" ? "Username or Email" : "Username"}</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username or email"
+                placeholder={mode === "login" ? "Enter your username or email" : "Choose a username"}
                 required
                 autoComplete="username"
               />
