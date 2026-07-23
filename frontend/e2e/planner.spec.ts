@@ -144,4 +144,26 @@ test.describe("Planner", () => {
     }
     expect(pdf).toContain("%PDF");
   });
+
+  test("exports the schedule as calendar (.ics)", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByTestId("export-ics-btn").click();
+    const download = await downloadPromise;
+
+    expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.ics`);
+
+    const stream = await download.createReadStream();
+    let ics = "";
+    for await (const chunk of stream) {
+      ics += chunk.toString();
+    }
+    expect(ics).toContain("BEGIN:VCALENDAR");
+    expect(ics).toContain("BEGIN:VEVENT");
+    expect(ics).toContain("END:VCALENDAR");
+    expect(ics).toContain("Team A");
+    expect(ics).toContain("Team B");
+  });
 });

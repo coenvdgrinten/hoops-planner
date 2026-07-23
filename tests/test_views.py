@@ -167,6 +167,37 @@ class TestSeasonViewSet:
         )
         assert response.content.startswith(b"%PDF")
 
+    def test_export_ics(self, api_client, season, team_x14, player):
+        from datetime import date, time
+
+        from hoops_planner.core.models import Game, Task, TaskAssignment
+
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=date(2025, 10, 1),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(game=game, task_type="SCORER", slot_number=1)
+        TaskAssignment.objects.create(task=task, player=player)
+
+        response = api_client.get(f"/api/seasons/{season.id}/export_ics/")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/calendar; charset=utf-8"
+        assert (
+            response["Content-Disposition"]
+            == f'attachment; filename="schedule_{season.name}.ics"'
+        )
+        body = response.content.decode("utf-8")
+        assert "BEGIN:VCALENDAR" in body
+        assert "BEGIN:VEVENT" in body
+        assert "END:VCALENDAR" in body
+        assert "Vido X14-1" in body
+        assert "John Doe" in body
+
     def test_import_schedule_creates_season_and_games(self, api_client):
         csv_text = (
             "date,time,court,home_team,away_team\n"
