@@ -55,9 +55,9 @@ def suggest_candidates(
         else:
             no_game.append(player)
 
-    # Sort each group by effective task count.
-    has_game.sort(key=lambda p: _effective_task_count(p))
-    no_game.sort(key=lambda p: _effective_task_count(p))
+    # Sort each group by effective task count (penalizes same-day tasks).
+    has_game.sort(key=lambda p: _effective_task_count(p, task.game.date))
+    no_game.sort(key=lambda p: _effective_task_count(p, task.game.date))
 
     # Prefer players with an adjacent game, then fall back to others.
     ranked = has_game + no_game
@@ -78,7 +78,7 @@ def get_candidate_details(
     results: list[tuple[Player, float, str | None, str]] = []
     for player in eligible:
         position = _player_game_position(player, task.game)
-        count = _effective_task_count(player)
+        count = _effective_task_count(player, task.game.date)
         reason = _get_suggestion_reason(position, count)
         results.append((player, count, position, reason))
 
@@ -127,7 +127,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
             eligible = is_eligible(player, task)
             reason = get_ineligibility_reason(player, task)
             position = _player_game_position(player, task.game)
-            count = _effective_task_count(player)
+            count = _effective_task_count(player, task.game.date)
             players.append(
                 {
                     "player": player,
@@ -207,10 +207,12 @@ def _player_game_position(player: Player, game: Game) -> str | None:
     return "before" if adjacent_game.time < game.time else "after"
 
 
-def _effective_task_count(player: Player) -> float:
+def _effective_task_count(player: Player, game_date: dt.date) -> float:
     """Calculate the player's effective task count.
 
     Tasks assigned on days the player has no game get a 2x multiplier.
+    Tasks assigned on the same day as `game_date` get a 3x multiplier
+    to deprioritize players who already have a task that day.
     """
     assignments = player.assignments.select_related("task__game").all()
     # Pre-fetch all dates any of the player's teams has a home game.
@@ -221,7 +223,12 @@ def _effective_task_count(player: Player) -> float:
     )
     total = 0.0
     for assignment in assignments:
-        game = assignment.task.game
-        multiplier = 1.0 if game.date in team_game_dates else 2.0
+        task_game_date = assignment.task.game.date
+        if task_game_date == game_date:
+            multiplier = 3.0
+        elif task_game_date in team_game_dates:
+            multiplier = 1.0
+        else:
+            multiplier = 2.0
         total += multiplier
     return total
