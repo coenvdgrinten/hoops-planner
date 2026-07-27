@@ -157,23 +157,28 @@ export function AssignmentPanel({
           {fetchedTask.assignments.length === 0 && (
             <p className={styles["empty-msg"]}>No one assigned yet</p>
           )}
-          {fetchedTask.assignments.map((a) => (
-            <div key={a.id} className={styles["assigned-player"]}>
-              <div className={styles["player-info"]}>
-                <span className={styles["player-name"]}>{a.player.full_name}</span>
-                <span className={styles["player-team"]}>
-                  {a.player.team.name}
-                </span>
+          {fetchedTask.assignments.map((a) => {
+            const displayName = a.is_parent
+              ? `Ouder van ${a.player.team.name}`
+              : a.player.full_name;
+            return (
+              <div key={a.id} className={styles["assigned-player"]}>
+                <div className={styles["player-info"]}>
+                  <span className={styles["player-name"]}>{displayName}</span>
+                  <span className={styles["player-team"]}>
+                    {a.player.team.name}
+                  </span>
+                </div>
+                <button
+                  className={styles["remove-btn"]}
+                  onClick={() => unassign(a.id)}
+                  title="Remove"
+                >
+                  ×
+                </button>
               </div>
-              <button
-                className={styles["remove-btn"]}
-                onClick={() => unassign(a.id)}
-                title="Remove"
-              >
-                ×
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

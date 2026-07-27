@@ -38,20 +38,17 @@ def get_ineligibility_reason(player: Player, task: Task) -> str | None:
         return "Already assigned to this game"
     if _already_assigned_at_same_time(player, task.game):
         return "Already assigned to another task at this time"
+    if _player_team_involved_in_game(player, task.game):
+        return "Cannot be assigned to own team's game"
     if _team_has_home_game_at_same_time(player, task.game):
         return "Team has a home game at the same time"
     if _team_has_away_game_on_same_day(player, task.game):
         return "Team has an away game on the same day"
-    if _player_team_involved_in_game(player, task.game):
-        return "Cannot be assigned to own team's game"
     if task.task_type == TaskType.REFEREE:
         if _player_team_is_lower_age_than_game_team(player, task.game):
             return "Player's team is younger than game team"
         if _player_lacks_required_referee_certification(player, task.game):
             return "Missing required referee certification"
-    if task.task_type in (TaskType.SCORER, TaskType.TIMER):
-        if _player_on_parent_responsible_team(player):
-            return "Parents are responsible for this task type"
     return None
 
 

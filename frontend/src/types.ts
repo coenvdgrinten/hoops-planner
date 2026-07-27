@@ -71,6 +71,7 @@ export interface TaskAssignment {
   task: number;
   player: Player;
   assigned_at: string;
+  is_parent: boolean;
 }
 
 export interface EligiblePlayer {

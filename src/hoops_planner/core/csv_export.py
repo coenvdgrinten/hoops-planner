@@ -58,12 +58,22 @@ def export_schedule_csv(season: Season) -> str:
     return buffer.getvalue()
 
 
+def _is_parent_assignment(task: Task, assignment: TaskAssignment) -> bool:
+    """True when the player is acting as a parent for this task."""
+    if task.task_type not in (TaskType.SCORER, TaskType.TIMER):
+        return False
+    return any(t.parent_responsible for t in assignment.player.all_teams)
+
+
 def _row(game: Any, task: Any, assignment: TaskAssignment | None) -> list[str]:
     player_name = ""
     player_team = ""
     if assignment is not None and assignment.player is not None:
-        player_name = assignment.player.full_name
         player_team = assignment.player.team.name if assignment.player.team else ""
+        if _is_parent_assignment(task, assignment):
+            player_name = f"Ouder van {player_team}"
+        else:
+            player_name = assignment.player.full_name
     return [
         game.date.isoformat() if game.date else "",
         game.time.strftime("%H:%M") if game.time else "",

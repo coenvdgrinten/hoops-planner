@@ -229,9 +229,11 @@ def _build_html(season: Season) -> str:
         for a in assignments:
             if a.task.id == t.id:
                 key = (t.game.id, t.task_type)
-                assigned.setdefault(key, []).append(
-                    (a.player.full_name, a.player.team.name)
-                )
+                name = a.player.full_name
+                if t.task_type in (TaskType.SCORER, TaskType.TIMER):
+                    if any(tr.parent_responsible for tr in a.player.all_teams):
+                        name = f"Ouder van {a.player.team.name}"
+                assigned.setdefault(key, []).append((name, a.player.team.name))
 
     # Determine max referees needed
     max_referees = 0

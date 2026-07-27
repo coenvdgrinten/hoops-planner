@@ -84,7 +84,10 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
         message = json.detail;
       }
     } catch {
-      // Not JSON, keep raw text
+      // Not JSON — if it's HTML, show a friendly message instead of raw markup
+      if (text.trim().startsWith("<")) {
+        message = `Request failed (${res.status})`;
+      }
     }
     throw new Error(message);
   }

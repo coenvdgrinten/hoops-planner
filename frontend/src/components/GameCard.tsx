@@ -108,6 +108,10 @@ export function GameCard({
           const isOptionalRef =
             task.task_type === "REFEREE" && task.optional;
 
+          const displayName = assigned[0]?.is_parent
+            ? `Ouder van ${assigned[0].player.team.name}`
+            : assigned[0]?.player?.full_name;
+
           return (
             <div
               data-testid={`task-chip-${task.id}`}
@@ -124,7 +128,7 @@ export function GameCard({
               <span className={styles["chip-label"]}>{displayLabel}</span>
               {assigned.length > 0 ? (
                 <span className={styles["chip-player"]}>
-                  {assigned[0]?.player?.full_name}
+                  {displayName}
                   {assigned.length > 1 && <span className={styles["chip-more"]}> +{assigned.length - 1}</span>}
                 </span>
               ) : (

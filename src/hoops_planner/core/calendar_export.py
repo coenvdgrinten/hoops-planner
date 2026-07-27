@@ -26,7 +26,7 @@ def export_schedule_ics(season: Season) -> bytes:
     )
     task_ids = [t.id for t in tasks]
     assignments = TaskAssignment.objects.filter(task__id__in=task_ids).select_related(
-        "player"
+        "player", "player__team"
     )
 
     # Build lookup: game_id -> list of (task_type_label, player_name)
@@ -34,8 +34,12 @@ def export_schedule_ics(season: Season) -> bytes:
     for t in tasks:
         for a in assignments:
             if a.task.id == t.id:
+                name = a.player.full_name
+                if t.task_type in (TaskType.SCORER, TaskType.TIMER):
+                    if any(tr.parent_responsible for tr in a.player.all_teams):
+                        name = f"Ouder van {a.player.team.name}"
                 game_tasks.setdefault(t.game.id, []).append(
-                    (TASK_LABELS.get(t.task_type, t.task_type), a.player.full_name)
+                    (TASK_LABELS.get(t.task_type, t.task_type), name)
                 )
 
     lines = [

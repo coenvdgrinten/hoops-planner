@@ -64,7 +64,6 @@ class SeasonSerializer(serializers.ModelSerializer):
         fields = ["id", "name"]
 
 
-
 class GameSerializer(serializers.ModelSerializer):
     home_team = TeamSerializer(read_only=True)
     home_team_id = serializers.PrimaryKeyRelatedField(
@@ -122,6 +121,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         source="player",
         write_only=True,
     )
+    is_parent = serializers.SerializerMethodField()
 
     class Meta:
         model = TaskAssignment
@@ -132,14 +132,19 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             "player",
             "player_id",
             "assigned_at",
+            "is_parent",
         ]
+
+    def get_is_parent(self, obj: TaskAssignment) -> bool:
+        """True when the player is acting as a parent for this task."""
+        if obj.task.task_type not in ("SCORER", "TIMER"):
+            return False
+        return any(t.parent_responsible for t in obj.player.all_teams)
 
     def create(self, validated_data):
         task = validated_data["task"]
         player = validated_data["player"]
 
-        # Enforce the no-double-booking rules at the model level so they hold
-        # for any write path, not only this serializer.
         assignment = TaskAssignment(task=task, player=player)
         try:
             assignment.full_clean(exclude=["assigned_at"])
