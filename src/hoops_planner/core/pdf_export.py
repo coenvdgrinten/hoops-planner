@@ -1,7 +1,8 @@
 """PDF export for the task schedule — HTML/CSS-based layout using WeasyPrint."""
 
+import base64
 import os
-from datetime import date as date_type
+from datetime import date as date_type, datetime, timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -309,6 +310,47 @@ def _build_html(season: Season) -> str:
     return "\n".join(html_parts)
 
 
+def _make_ics_data_uri(
+    game: Game,
+    assigned: dict[tuple[int, str], list[tuple[str, str]]],
+) -> str:
+    """Generate a data: URI containing the ICS content for a single game."""
+    dtstart = datetime.combine(game.date, game.time)
+    dtend = dtstart + timedelta(hours=2)
+    summary = f"{game.home_team.name} vs {game.away_team}"
+    location = game.court.label if hasattr(game.court, "label") else str(game.court)
+
+    # Collect task assignments
+    task_lines = []
+    for task_type in (
+        TaskType.REFEREE,
+        TaskType.SCORER,
+        TaskType.TIMER,
+        TaskType.SECOND_24_OPERATOR,
+    ):
+        key = (game.id, task_type)
+        for name, _team in assigned.get(key, []):
+            label = TASK_LABELS.get(task_type, task_type)
+            task_lines.append(f"{label}: {name}")
+
+    description = "\n".join(task_lines) if task_lines else "No tasks assigned"
+
+    ics = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Hoops Planner//EN
+BEGIN:VEVENT
+DTSTART:{dtstart.strftime("%Y%m%dT%H%M%S")}
+DTEND:{dtend.strftime("%Y%m%dT%H%M%S")}
+SUMMARY:{summary}
+LOCATION:{location}
+DESCRIPTION:{description.replace(chr(10), chr(10) + " ")}
+END:VEVENT
+END:VCALENDAR"""
+
+    encoded = base64.b64encode(ics.encode("utf-8")).decode("ascii")
+    return f"data:text/calendar;base64,{encoded}"
+
+
 def _build_game_row_html(
     game: Game,
     assigned: dict[tuple[int, str], list[tuple[str, str]]],
@@ -327,8 +369,8 @@ def _build_game_row_html(
         f"<td>{away}</td>",
     ]
 
-    # Calendar event link for this game
-    ics_url = f"http://localhost:5173/api/game_ics/?game_id={game.id}"
+    # Calendar event link — embed ICS data directly so it works offline
+    ics_url = _make_ics_data_uri(game, assigned)
 
     # Referee columns
     for i in range(1, max_referees + 1):
@@ -338,7 +380,7 @@ def _build_game_row_html(
             name, team = players[i - 1]
             cells.append(
                 f'<td class="center">{name} '
-                f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+                f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
             )
             cells.append(f'<td class="team">{team}</td>')
         else:
@@ -352,7 +394,7 @@ def _build_game_row_html(
         name, team = scorers[0]
         cells.append(
             f'<td class="center">{name} '
-            f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+            f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
         )
         cells.append(f'<td class="team">{team}</td>')
     else:
@@ -366,7 +408,7 @@ def _build_game_row_html(
         name, team = timers[0]
         cells.append(
             f'<td class="center">{name} '
-            f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+            f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
         )
         cells.append(f'<td class="team">{team}</td>')
     else:
@@ -381,7 +423,7 @@ def _build_game_row_html(
             name, team = ops[0]
             cells.append(
                 f'<td class="center">{name} '
-                f'<a href="{ics_url}" class="calendar-link">📅</a></td>'
+                f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
             )
             cells.append(f'<td class="team">{team}</td>')
         else:
