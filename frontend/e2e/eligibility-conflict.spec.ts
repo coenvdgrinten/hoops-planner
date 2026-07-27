@@ -91,4 +91,46 @@ test.describe("Eligibility - same time conflict", () => {
     const aliceInPanel = panel.getByText("Alice");
     await expect(aliceInPanel).not.toBeVisible();
   });
+
+  test("backend rejects assignment of player whose team has a game at the same time", async ({ request }) => {
+    // Get the tasks for Team A's game
+    const seasonsRes = await request.get(`${API}/seasons/`, {
+      headers: { Authorization: `Token ${token}` },
+    });
+    const seasonsData = await seasonsRes.json();
+    const seasonsList = Array.isArray(seasonsData) ? seasonsData : seasonsData.results ?? [];
+    const season = seasonsList.find((s: { name: string }) => s.name === seasonName);
+
+    const gamesRes = await request.get(`${API}/games/?season=${season.id}`, {
+      headers: { Authorization: `Token ${token}` },
+    });
+    const gamesData = await gamesRes.json();
+    const gamesList = Array.isArray(gamesData) ? gamesData : gamesData.results ?? [];
+    const teamAGame = gamesList.find((g: { home_team: { name: string } }) => g.home_team.name === "Team A");
+
+    const tasksRes = await request.get(`${API}/tasks/?game=${teamAGame.id}`, {
+      headers: { Authorization: `Token ${token}` },
+    });
+    const tasksData = await tasksRes.json();
+    const tasksList = Array.isArray(tasksData) ? tasksData : tasksData.results ?? [];
+    const task = tasksList[0];
+
+    // Find Bob (Team B player)
+    const playersRes = await request.get(`${API}/players/`, {
+      headers: { Authorization: `Token ${token}` },
+    });
+    const playersData = await playersRes.json();
+    const playersList = Array.isArray(playersData) ? playersData : playersData.results ?? [];
+    const bob = playersList.find((p: { first_name: string }) => p.first_name === "Bob");
+
+    // Attempt to assign Bob to Team A's task — should be rejected (endpoint is /assignments/)
+    const assignRes = await request.post(`${API}/assignments/`, {
+      headers: { Authorization: `Token ${token}` },
+      data: { task_id: task.id, player_id: bob.id },
+    });
+
+    // Backend must return 400 because Bob's team has a game at the same time
+    const responseText = await assignRes.text();
+    expect(assignRes.status(), `Expected 400, got: ${responseText.slice(0, 200)}`).toBe(400);
+  });
 });

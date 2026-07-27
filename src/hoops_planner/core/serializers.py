@@ -3,6 +3,7 @@
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
+from hoops_planner.core.eligibility import get_ineligibility_reason
 from hoops_planner.core.models import (
     Game,
     Player,
@@ -144,6 +145,10 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         task = validated_data["task"]
         player = validated_data["player"]
+
+        reason = get_ineligibility_reason(player, task)
+        if reason:
+            raise serializers.ValidationError(reason)
 
         assignment = TaskAssignment(task=task, player=player)
         try:
