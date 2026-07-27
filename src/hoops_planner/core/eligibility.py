@@ -38,12 +38,12 @@ def get_ineligibility_reason(player: Player, task: Task) -> str | None:
         return "Already assigned to this game"
     if _already_assigned_at_same_time(player, task.game):
         return "Already assigned to another task at this time"
-    if _player_team_involved_in_game(player, task.game):
-        return "Cannot be assigned to own team's game"
     if _team_has_home_game_at_same_time(player, task.game):
         return "Team has a home game at the same time"
     if _team_has_away_game_on_same_day(player, task.game):
         return "Team has an away game on the same day"
+    if _player_team_involved_in_game(player, task.game):
+        return "Cannot be assigned to own team's game"
     if task.task_type == TaskType.REFEREE:
         if _player_team_is_lower_age_than_game_team(player, task.game):
             return "Player's team is younger than game team"
@@ -128,9 +128,13 @@ def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
 
     If the player's team (or a coached team) has an away game on the same day
     as this game, they can't be available for this task.
+
+    For AWAY games the player's team is stored in the away_team CharField,
+    not the home_team FK.
     """
+    team_names = [t.name for t in player.all_teams]
     return Game.objects.filter(
-        home_team__in=player.all_teams,
+        away_team__in=team_names,
         game_type=Game.GameType.AWAY,
         date=game.date,
     ).exists()
