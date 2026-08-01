@@ -85,12 +85,16 @@
 }
 
 .game-teams {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 15px;
   font-weight: 600;
   color: #1a1a2e;
 }
 
 .game-teams .vs {
+  display: inline-block;
   margin: 0 6px;
   color: #c7c9d4;
   font-weight: 400;
