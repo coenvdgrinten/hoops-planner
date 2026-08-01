@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-echo "Starting Hoops Plannernner..."
+echo "Starting Hoops Planner
 
 # Build and start containers in background
 docker compose up --build -d
@@ -18,8 +18,8 @@ for i in {1..30}; do
 done
 
 # Run migrations (only needed if DB is fresh)
-docker compose exec --T backend uv run manage.py migrate --check >/dev/null 2>&1 || \
-  docker compose exec --T backend uv run manage.py migrate
+docker compose exec backend uv run manage.py migrate --check >/dev/null 2>&1 || \
+  docker compose exec backend uv run manage.py migrate
 
 echo ""
 echo "✓ Ready!"
