@@ -16,10 +16,10 @@ AGE_CATEGORY_ORDER = [
     "X12",
     "X14",
     "X16",
-    "VSE",
     "M16",
     "M18",
     "M22",
+    "VSE",
     "MSE",
 ]
 
