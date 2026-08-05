@@ -9,7 +9,7 @@
 
 A task planning application for basketball clubs. Assign referees, scorers, timers, and 24-second operators to games while automatically enforcing eligibility rules and distributing tasks fairly across your roster.
 
-> **Built for BC Vido** — a basketball club in Roeselare, Belgium — but designed to work for any club.
+> **Built for BC Vido** — a basketball club in Veldhoven, The Netherlands — but designed to work for any club.
 
 ---
 
