@@ -103,10 +103,16 @@ export function GameCard({
       <div className={styles["task-chips"]}>
         {[...tasks]
           .sort((a, b) => {
-            // Put 24-sec operator last
-            if (a.task_type === "SECOND_24_OPERATOR") return 1;
-            if (b.task_type === "SECOND_24_OPERATOR") return -1;
-            return 0;
+            const order: Record<string, number> = {
+              REFEREE: 0,
+              SCORER: 1,
+              TIMER: 2,
+              SECOND_24_OPERATOR: 3,
+            };
+            const aOrder = order[a.task_type] ?? 99;
+            const bOrder = order[b.task_type] ?? 99;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return a.slot_number - b.slot_number;
           })
           .map((task) => {
           const assigned = task.assignments;
