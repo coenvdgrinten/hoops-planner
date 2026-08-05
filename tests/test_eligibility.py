@@ -420,6 +420,166 @@ class TestRefereeCertificationRule:
 
 
 @pytest.mark.django_db
+class TestParentResponsible:
+    def test_parent_allowed_for_scorer_on_own_team_game(self, season):
+        """Parent can be scorer on their kid's team game when parent_responsible=True."""
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+            parent_responsible=True,
+        )
+        player = Player.objects.create(
+            first_name="Parent",
+            last_name="Player",
+            team=team,
+        )
+        other_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=other_team,
+            away_team="Vido X14-1",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        assert is_eligible(player, task) is True
+
+    def test_parent_allowed_for_timer_on_own_team_game(self, season):
+        """Parent can be timer on their kid's team game when parent_responsible=True."""
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+            parent_responsible=True,
+        )
+        player = Player.objects.create(
+            first_name="Parent",
+            last_name="Player",
+            team=team,
+        )
+        other_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=other_team,
+            away_team="Vido X14-1",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.TIMER,
+            slot_number=1,
+        )
+        assert is_eligible(player, task) is True
+
+    def test_parent_not_allowed_for_referee_on_own_team_game(self, season):
+        """Parent cannot be referee on their kid's team game even with parent_responsible."""
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+            parent_responsible=True,
+        )
+        player = Player.objects.create(
+            first_name="Parent",
+            last_name="Player",
+            team=team,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        other_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=other_team,
+            away_team="Vido X14-1",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        assert is_eligible(player, task) is False
+
+    def test_parent_not_allowed_when_parent_responsible_false(self, season):
+        """Parent cannot be scorer on their kid's team game when parent_responsible=False."""
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+            parent_responsible=False,
+        )
+        player = Player.objects.create(
+            first_name="Parent",
+            last_name="Player",
+            team=team,
+        )
+        other_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=other_team,
+            away_team="Vido X14-1",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        assert is_eligible(player, task) is False
+
+    def test_parent_allowed_when_home_team(self, season):
+        """Parent can be scorer when their team is the home team and parent_responsible=True."""
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+            parent_responsible=True,
+        )
+        player = Player.objects.create(
+            first_name="Parent",
+            last_name="Player",
+            team=team,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        assert is_eligible(player, task) is True
+
+
+@pytest.mark.django_db
 class TestCoachConsistency:
     def test_indicator_excludes_coaches_like_get_eligible_players(self, coach, task):
         """The indicator list must exclude coaches, matching get_eligible_players."""

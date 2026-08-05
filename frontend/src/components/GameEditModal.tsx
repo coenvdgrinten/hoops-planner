@@ -20,6 +20,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
   const [date, setDate] = useState(game?.date || "");
   const [time, setTime] = useState(game?.time || "");
   const [court, setCourt] = useState(game?.court || "1");
+  const [location, setLocation] = useState(game?.location || "Den Ekkerman");
   const [half, setHalf] = useState(game?.half || "1");
   const [homeTeamId, setHomeTeamId] = useState(game?.home_team.id || 0);
   const [awayTeam, setAwayTeam] = useState(game?.away_team || "");
@@ -48,6 +49,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
         date,
         time,
         court,
+        location,
         half,
         game_type: gameType,
       }),
@@ -67,6 +69,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
         date,
         time,
         court,
+        location,
         half,
         away_team: awayTeam,
         game_type: gameType,
@@ -171,6 +174,15 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
                   <option value="1">Court 1</option>
                   <option value="2">Court 2</option>
                 </select>
+              </div>
+              <div className="form-group">
+                <label>Location:</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Den Ekkerman"
+                />
               </div>
               <div className="form-group">
                 <label>Half:</label>

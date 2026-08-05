@@ -85,6 +85,7 @@ class GameSerializer(serializers.ModelSerializer):
             "date",
             "time",
             "court",
+            "location",
             "half",
         ]
 

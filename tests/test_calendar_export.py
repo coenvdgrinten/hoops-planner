@@ -56,7 +56,8 @@ class TestExportScheduleIcs:
         assert "John Doe" in ics_text
         assert "Scorer" in ics_text
 
-        # Location should mention the court
+        # Location should mention the venue and court
+        assert "Den Ekkerman" in ics_text
         assert "Court 1" in ics_text
 
     def test_empty_season(self, season):
@@ -99,3 +100,28 @@ class TestExportScheduleIcs:
         # Both opponents should be present
         assert "Opponent A" in ics_text
         assert "Opponent B" in ics_text
+
+    def test_custom_location_in_ics(self, season, team_x14, player):
+        """Custom location should appear in the ICS output."""
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Achilles '71",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+            location="De Kempencampus",
+        )
+        scorer_task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(task=scorer_task, player=player)
+
+        ics_bytes = export_schedule_ics(season)
+        ics_text = ics_bytes.decode("utf-8")
+
+        assert "De Kempencampus" in ics_text
+        assert "Court 1" in ics_text

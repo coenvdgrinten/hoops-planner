@@ -85,7 +85,7 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
               required
               placeholder={
                 type === "schedule"
-                  ? "date, time, court, home_team, away_team, half\n2025-10-01, 14:00, 1, Vido X14-1, BC Roeselare, 1"
+                  ? "date, time, court, home_team, away_team, location, half\n2025-10-01, 14:00, 1, Vido X14-1, BC Roeselare, Den Ekkerman, 1"
                   : "first_name, last_name, team, is_coach, referee_certification, coached_teams\nJan, Janssens, Vido X14-1, False, NONE,"
               }
             />

@@ -42,7 +42,7 @@ def get_ineligibility_reason(player: Player, task: Task) -> str | None:
         return "Team has a home game at the same time"
     if _team_has_away_game_on_same_day(player, task.game):
         return "Team has an away game on the same day"
-    if _player_team_involved_in_game(player, task.game):
+    if _player_team_involved_in_game(player, task.game, task.task_type):
         return "Cannot be assigned to own team's game"
     if task.task_type == TaskType.REFEREE:
         if _player_team_is_lower_age_than_game_team(player, task.game):
@@ -140,12 +140,29 @@ def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
     ).exists()
 
 
-def _player_team_involved_in_game(player: Player, game: Game) -> bool:
+def _player_team_involved_in_game(
+    player: Player, game: Game, task_type: str
+) -> bool:
     """Any team the player is responsible for is involved in this game.
 
     Players should not be assigned to any task on a game where their own
     team or a coached team is playing.
+
+    Exception: when the task is SCORER or TIMER and the team has
+    `parent_responsible=True`, the player is eligible because parents are
+    expected to fill those roles for their kid's team.
     """
+    if task_type in (TaskType.SCORER, TaskType.TIMER):
+        # Check if the player's team is involved AND has parent_responsible
+        involved_teams = [t for t in player.all_teams if t in (game.home_team,)]
+        involved_teams += [
+            t for t in player.all_teams if t.name == game.away_team
+        ]
+        if involved_teams and all(
+            t.parent_responsible for t in involved_teams
+        ):
+            return False
+
     if game.home_team in player.all_teams:
         return True
     if game.away_team in [t.name for t in player.all_teams]:

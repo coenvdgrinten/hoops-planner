@@ -81,6 +81,13 @@ def import_schedule(
             else Game.GameType.HOME
         )
 
+        # Parse optional location column
+        location_raw = row.get("location")
+        if location_raw is not None:
+            location_value = location_raw.strip() or "Den Ekkerman"
+        else:
+            location_value = "Den Ekkerman"
+
         # Build game data from CSV
         game_data = {
             "season": season,
@@ -89,6 +96,7 @@ def import_schedule(
             "date": row["date"].strip(),
             "time": row["time"].strip(),
             "court": row["court"].strip(),
+            "location": location_value,
             "half": half_value,
             "game_type": game_type_value,
         }
@@ -116,7 +124,7 @@ def import_schedule(
                 # type mismatches (TimeField stores datetime.time, not str).
                 # Skip fields used for matching (season, date, home_team).
                 changed = False
-                updatable = ("court", "half", "away_team", "game_type")
+                updatable = ("court", "location", "half", "away_team", "game_type")
                 for key in updatable:
                     value = game_data[key]
                     if getattr(game, key) != value:

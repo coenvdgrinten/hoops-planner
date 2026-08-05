@@ -16,6 +16,7 @@ interface Props {
   date: string;
   time: string;
   court: string;
+  location?: string;
   half?: string;
   onSelectTask: (task: TaskWithAssignments, gameId: number) => void;
   onEditGame: (gameId: number) => void;
@@ -34,6 +35,7 @@ export function GameCard({
   awayTeam,
   date,
   time,
+  location,
   half,
   onSelectTask,
   onEditGame,
@@ -81,7 +83,7 @@ export function GameCard({
           <div className={styles["game-meta"]}>
             <span>{formattedTime}</span>
             <span>·</span>
-            <span>Home Gym</span>
+            <span>{location || "Home Gym"}</span>
           </div>
         </div>
         <div className={styles["game-card-right"]}>
@@ -99,7 +101,14 @@ export function GameCard({
       </div>
 
       <div className={styles["task-chips"]}>
-        {tasks.map((task) => {
+        {[...tasks]
+          .sort((a, b) => {
+            // Put 24-sec operator last
+            if (a.task_type === "SECOND_24_OPERATOR") return 1;
+            if (b.task_type === "SECOND_24_OPERATOR") return -1;
+            return 0;
+          })
+          .map((task) => {
           const assigned = task.assignments;
           const label = TASK_LABELS[task.task_type] ?? task.task_type;
           const displayLabel = task.slot_number > 1 ? `${label} #${task.slot_number}` : label;

@@ -148,6 +148,44 @@ class TestImportScheduleGameType:
             Game.objects.get(away_team="Achilles '71").game_type == Game.GameType.AWAY
         )
 
+
+@pytest.mark.django_db
+class TestImportScheduleLocation:
+    def test_defaults_to_den_ekkerman(self):
+        """Games without a location column should default to Den Ekkerman."""
+        import_schedule(SCHEDULE_CSV, "2025-2026")
+        for game in Game.objects.all():
+            assert game.location == "Den Ekkerman"
+
+    def test_imports_location_from_csv(self):
+        """Games with a location column should use the provided value."""
+        csv_text = (
+            "date,time,court,home_team,away_team,location\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,Den Ekkerman\n"
+            "2025-10-01,16:00,2,Vido X10-1,Jumping Giants,De Kempencampus\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game1 = Game.objects.get(away_team="Achilles '71")
+        game2 = Game.objects.get(away_team="Jumping Giants")
+        assert game1.location == "Den Ekkerman"
+        assert game2.location == "De Kempencampus"
+
+    def test_updates_location_on_smart_import(self):
+        """Re-importing with a new location should update existing games."""
+        import_schedule(SCHEDULE_CSV, "2025-2026")
+        game = Game.objects.get(away_team="Achilles '71")
+        assert game.location == "Den Ekkerman"
+
+        csv_text = (
+            "date,time,court,home_team,away_team,location\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71,De Kempencampus\n"
+            "2025-10-01,14:00,2,Vido X10-1,Jumping Giants\n"
+            "2025-10-01,16:00,1,Vido X14-1,Attacus\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        game.refresh_from_db()
+        assert game.location == "De Kempencampus"
+
     def test_invalid_game_type_defaults_to_home(self):
         csv_text = (
             "date,time,court,home_team,away_team,game_type\n"

@@ -41,11 +41,12 @@ def get_player_stats(
         assignments = assignments.filter(task__game__half=half)
 
     # Pre-fetch all dates any of the player's teams has a home game.
-    team_game_dates = set(
-        Game.objects.filter(home_team__in=player.all_teams).values_list(
-            "date", flat=True
-        )
-    )
+    team_dates_qs = Game.objects.filter(home_team__in=player.all_teams)
+    if season:
+        team_dates_qs = team_dates_qs.filter(season=season)
+    if half:
+        team_dates_qs = team_dates_qs.filter(half=half)
+    team_game_dates = set(team_dates_qs.values_list("date", flat=True))
 
     total = 0
     effective = 0.0

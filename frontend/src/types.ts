@@ -46,6 +46,7 @@ export interface Game {
   date: string;
   time: string;
   court: string;
+  location: string;
   half: string;
 }
 

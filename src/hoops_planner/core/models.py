@@ -161,6 +161,11 @@ class Game(models.Model):
         max_length=1,
         choices=Court.choices,
     )
+    location = models.CharField(
+        max_length=100,
+        default="Den Ekkerman",
+        help_text="Venue where the game is played.",
+    )
     half = models.CharField(
         max_length=1,
         choices=Half.choices,

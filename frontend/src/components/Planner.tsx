@@ -143,6 +143,7 @@ export function Planner({ season, onSelectTask }: Props) {
                                 date={game.date}
                                 time={game.time}
                                 court={game.court}
+                                location={game.location}
                                 half={game.half}
                                 onSelectTask={handleSelectTask}
                                 onEditGame={handleEditGame}

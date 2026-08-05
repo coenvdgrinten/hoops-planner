@@ -301,6 +301,7 @@ export function createGame(data: {
   date: string;
   time: string;
   court: string;
+  location?: string;
   half: string;
   game_type: "HOME" | "AWAY";
 }) {
@@ -318,6 +319,7 @@ export function updateGame(
     date: string;
     time: string;
     court: string;
+    location: string;
     half: string;
     game_type: "HOME" | "AWAY";
   }>,

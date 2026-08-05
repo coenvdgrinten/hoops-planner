@@ -466,7 +466,7 @@ def _generate_single_game_ics(game: Game) -> bytes:
         f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}\n"
         f"SUMMARY:{summary}\n"
         f"DESCRIPTION:{description}\n"
-        f"LOCATION:Court {game.court}\n"
+        f"LOCATION:{game.location or 'Den Ekkerman'} - Court {game.court}\n"
         "STATUS:CONFIRMED\n"
         "END:VEVENT\n"
         "END:VCALENDAR\n"

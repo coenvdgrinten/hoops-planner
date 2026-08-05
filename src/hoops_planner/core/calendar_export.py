@@ -69,7 +69,7 @@ def export_schedule_ics(season: Season) -> bytes:
                 f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}",
                 f"SUMMARY:{game.home_team} vs {game.away_team}",
                 f"DESCRIPTION:{description}",
-                f"LOCATION:Court {game.court}",
+                f"LOCATION:{game.location or 'Den Ekkerman'} - Court {game.court}",
                 "STATUS:CONFIRMED",
                 "END:VEVENT",
             ]

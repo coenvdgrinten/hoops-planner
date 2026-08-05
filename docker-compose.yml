@@ -13,6 +13,7 @@ services:
       - SITE_URL=${SITE_URL:-http://localhost:5173}
     volumes:
       - ./src:/app/src          # Mount source for hot-reload
+      - ./tests:/app/tests      # Mount tests
       - db-data:/data           # Persist SQLite DB
       - media-data:/app/media   # Persist uploaded files
 
