@@ -1,5 +1,7 @@
 # Hoops Planner
 
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial-7057ff.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0)
+
 Task planning application for basketball clubs. Assign referees, scorers, timers, and 24-second operators to games while automatically enforcing eligibility rules and distributing tasks fairly across your roster.
 
 ## Features
