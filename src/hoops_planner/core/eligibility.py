@@ -169,7 +169,15 @@ def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool
 
     Checks the highest age category among all teams the player is responsible for
     (own team + coached teams).
+
+    Adult teams (VSE, MSE) are always eligible to referee any game regardless of
+    age category.
     """
+    player_categories = {t.age_category for t in player.all_teams}
+    # Adult teams can referee anything
+    if player_categories & {"VSE", "MSE"}:
+        return False
+
     highest_player_order = max(
         _age_category_index(t.age_category) for t in player.all_teams
     )
