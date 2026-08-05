@@ -244,7 +244,7 @@ def _build_html(season: Season) -> str:
     has_24sec = any(t.task_type == TaskType.SECOND_24_OPERATOR for t in tasks)
 
     # Build header row
-    headers = ["Datum", "Tijd", "Thuis", "Uit"]
+    headers = ["Datum", "Tijd", "Thuis", "Uit", "Locatie"]
     for i in range(1, max_referees + 1):
         suffix = f" #{i}" if i > 1 else ""
         headers.append(f"Scheidsr{suffix}")
@@ -333,6 +333,7 @@ def _build_game_row_html(
         f'<td class="time">{time_str}</td>',
         f'<td class="bold">{home}</td>',
         f"<td>{away}</td>",
+        f'<td class="center">{game.location or "Den Ekkerman"}</td>',
     ]
 
     # Calendar event link for this game
