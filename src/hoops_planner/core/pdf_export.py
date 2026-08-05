@@ -307,6 +307,13 @@ def _build_html(season: Season) -> str:
     html_parts.extend(["</tr>", "</thead>", "<tbody>"])
 
     for game_date in sorted(by_date.keys()):
+        # Force page break before each game day (except the first)
+        if game_date != sorted(by_date.keys())[0]:
+            html_parts.append(
+                '<tr style="page-break-before: always">'
+                '<td colspan="99"></td></tr>'
+            )
+
         # Date header row — keep with following game rows
         date_str = game_date.strftime("%d-%m-%Y")
         html_parts.append(
