@@ -209,10 +209,7 @@ def get_leaderboard(
     Returns:
         List of dicts with player info and stats, sorted by effective_tasks desc.
     """
-    players = (
-        Player.objects.all()
-        .select_related("team")
-    )
+    players = Player.objects.all().select_related("team")
     leaderboard: list[dict[str, Any]] = []
 
     for player in players:

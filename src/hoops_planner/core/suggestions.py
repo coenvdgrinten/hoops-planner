@@ -95,10 +95,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     """
     from hoops_planner.core.eligibility import get_ineligibility_reason, is_eligible
 
-    all_players = (
-        Player.objects.all()
-        .select_related("team")
-    )
+    all_players = Player.objects.all().select_related("team")
     # Teams ordered by custom category order (oldest first), then name.
     all_teams = Team.objects.all().order_by("name")
     all_teams = sorted(

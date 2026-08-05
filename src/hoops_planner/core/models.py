@@ -295,15 +295,30 @@ class TaskAssignment(models.Model):
             )
 
         # Players must not be assigned to their own team's games.
+        # Exception: SCORER/TIMER when parent_responsible=True.
         game = self.task.game
-        if game.home_team_id == self.player.team_id:
-            raise ValidationError(
-                "A player cannot be assigned to their own team's game."
-            )
-        if game.away_team == self.player.team.name:
-            raise ValidationError(
-                "A player cannot be assigned to their own team's game."
-            )
+        is_own_team = (
+            game.home_team_id == self.player.team_id
+            or game.away_team == self.player.team.name
+        )
+        if is_own_team:
+            if self.task.task_type in (TaskType.SCORER, TaskType.TIMER):
+                if game.home_team_id == self.player.team_id:
+                    if not game.home_team.parent_responsible:
+                        raise ValidationError(
+                            "A player cannot be assigned to their own team's game."
+                        )
+                elif not any(
+                    t.name == game.away_team and t.parent_responsible
+                    for t in self.player.all_teams
+                ):
+                    raise ValidationError(
+                        "A player cannot be assigned to their own team's game."
+                    )
+            else:
+                raise ValidationError(
+                    "A player cannot be assigned to their own team's game."
+                )
 
     def __str__(self) -> str:
         return f"{self.player} -> {self.task}"
