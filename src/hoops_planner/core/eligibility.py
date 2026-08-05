@@ -140,9 +140,7 @@ def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
     ).exists()
 
 
-def _player_team_involved_in_game(
-    player: Player, game: Game, task_type: str
-) -> bool:
+def _player_team_involved_in_game(player: Player, game: Game, task_type: str) -> bool:
     """Any team the player is responsible for is involved in this game.
 
     Players should not be assigned to any task on a game where their own
@@ -155,12 +153,8 @@ def _player_team_involved_in_game(
     if task_type in (TaskType.SCORER, TaskType.TIMER):
         # Check if the player's team is involved AND has parent_responsible
         involved_teams = [t for t in player.all_teams if t in (game.home_team,)]
-        involved_teams += [
-            t for t in player.all_teams if t.name == game.away_team
-        ]
-        if involved_teams and all(
-            t.parent_responsible for t in involved_teams
-        ):
+        involved_teams += [t for t in player.all_teams if t.name == game.away_team]
+        if involved_teams and all(t.parent_responsible for t in involved_teams):
             return False
 
     if game.home_team in player.all_teams:
