@@ -26,16 +26,6 @@ CSS_STYLES = """
 @page {
     size: A4 landscape;
     margin: 15mm;
-    @bottom-left {
-        content: "Generated on " strftime("%Y-%m-%d") " • hoops-planner";
-        font-size: 8pt;
-        color: #666;
-    }
-    @bottom-right {
-        content: "Page " counter(page);
-        font-size: 8pt;
-        color: #666;
-    }
 }
 
 body {
@@ -175,6 +165,15 @@ td.unassigned {
 .calendar-link:hover {
     text-decoration: underline;
 }
+
+.footer {
+    text-align: center;
+    font-size: 8pt;
+    color: #666;
+    margin-top: 12pt;
+    padding-top: 6pt;
+    border-top: 0.5pt solid #ddd;
+}
 """
 
 
@@ -303,6 +302,13 @@ def _build_html(season: Season) -> str:
     # Player summary
     summary_html = _build_player_summary_html(season)
     html_parts.append(summary_html)
+
+    # Footer
+    from datetime import date as _date
+    html_parts.append(
+        f'<div class="footer">Generated on {_date.today().strftime("%Y-%m-%d")} '
+        f'• <a href="https://github.com/coenvdgrinten/hoops-planner">github.com/coenvdgrinten/hoops-planner</a></div>'
+    )
 
     html_parts.extend(["</body>", "</html>"])
 
