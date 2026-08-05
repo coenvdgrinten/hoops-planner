@@ -4,8 +4,6 @@ from collections import defaultdict
 from datetime import date
 from typing import Any
 
-from django.db import models
-
 from hoops_planner.core.models import (
     Game,
     Player,
@@ -212,10 +210,7 @@ def get_leaderboard(
         List of dicts with player info and stats, sorted by effective_tasks desc.
     """
     players = (
-        Player.objects.exclude(
-            models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
-        )
-        .distinct()
+        Player.objects.all()
         .select_related("team")
     )
     leaderboard: list[dict[str, Any]] = []

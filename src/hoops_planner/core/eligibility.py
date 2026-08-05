@@ -1,7 +1,5 @@
 """Eligibility checks for task assignments."""
 
-from django.db import models
-
 from hoops_planner.core.models import (
     Game,
     Player,
@@ -54,21 +52,17 @@ def get_ineligibility_reason(player: Player, task: Task) -> str | None:
 
 def get_eligible_players(task: Task) -> list[Player]:
     """Return all eligible players for a task."""
-    all_players = Player.objects.exclude(
-        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
-    ).distinct()
+    all_players = Player.objects.all()
     return [p for p in all_players if is_eligible(p, task)]
 
 
 def get_eligible_players_with_indicator(task: Task) -> list[tuple[Player, bool]]:
     """Return all eligible players with an eligibility indicator.
 
-    Each tuple is (player, is_eligible). Coaches are excluded, matching the
-    behaviour of ``get_eligible_players`` (coaches are never assignable).
+    Each tuple is (player, is_eligible). Coaches are included and can be
+    assigned voluntarily.
     """
-    all_players = Player.objects.exclude(
-        models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
-    ).distinct()
+    all_players = Player.objects.all()
     return [(p, is_eligible(p, task)) for p in all_players]
 
 

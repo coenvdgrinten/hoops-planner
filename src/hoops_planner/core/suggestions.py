@@ -11,8 +11,6 @@ The suggestion algorithm ranks eligible players by:
 import datetime as dt
 from typing import Any
 
-from django.db import models
-
 from hoops_planner.core.eligibility import get_eligible_players
 from hoops_planner.core.models import Game, Player, Task, Team
 
@@ -98,10 +96,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     from hoops_planner.core.eligibility import get_ineligibility_reason, is_eligible
 
     all_players = (
-        Player.objects.exclude(
-            models.Q(is_coach=True) | models.Q(coached_teams__isnull=False)
-        )
-        .distinct()
+        Player.objects.all()
         .select_related("team")
     )
     # Teams ordered by custom category order (oldest first), then name.
