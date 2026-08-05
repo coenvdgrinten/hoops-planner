@@ -305,9 +305,11 @@ def _build_html(season: Season) -> str:
 
     # Footer
     from datetime import date as _date
+
     html_parts.append(
         f'<div class="footer">Generated on {_date.today().strftime("%Y-%m-%d")} '
-        f'• <a href="https://github.com/coenvdgrinten/hoops-planner">Hoops Planner</a></div>'
+        f'• <a href="https://github.com/coenvdgrinten/hoops-planner">'
+        f"Hoops Planner</a></div>"
     )
 
     html_parts.extend(["</body>", "</html>"])

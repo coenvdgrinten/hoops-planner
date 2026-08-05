@@ -1,4 +1,4 @@
-# Hoops Planner
+# Hoops Planner 🏀
 
 [![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial-7057ff.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0)
 [![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
@@ -7,18 +7,53 @@
 [![Type Check](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/typecheck.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/typecheck.yml)
 [![Tests](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/test.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/test.yml)
 
-Task planning application for basketball clubs. Assign referees, scorers, timers, and 24-second operators to games while automatically enforcing eligibility rules and distributing tasks fairly across your roster.
+A task planning application for basketball clubs. Assign referees, scorers, timers, and 24-second operators to games while automatically enforcing eligibility rules and distributing tasks fairly across your roster.
+
+> **Built for BC Vido** — a basketball club in Roeselare, Belgium — but designed to work for any club.
+
+---
+
+## Screenshots
+
+### Schedule Planner
+
+![Schedule Planner](docs/screenshots/planner.png)
+
+### Member Roster
+
+![Member Roster](docs/screenshots/members.png)
+
+### Statistics
+
+![Statistics](docs/screenshots/statistics.png)
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Development](#development)
+- [Configuration](#configuration)
+- [Project Structure](#project-structure)
+- [Task Types](#task-types)
+- [Eligibility Rules](#eligibility-rules)
+- [License](#license)
+
+---
 
 ## Features
 
-- **CSV Import** — upload season schedules and member lists
-- **Interactive Planner** — drag-and-drop task assignment with smart candidate suggestions
-- **Eligibility Rules** — automatic conflict detection (team games, age category, certification level)
-- **Fair Distribution** — task counter with multipliers rewards members already at the gym
-- **Statistics** — per-player and per-team task tracking with export
-- **Member View** — mobile-friendly read-only view for checking upcoming duties
-- **PDF Export** — print-ready schedule output
-- **Auth** — password reset and email verification
+- **📅 Interactive Planner** — visual game schedule with click-to-assign task cards and smart candidate suggestions
+- **📥 CSV Import** — upload season schedules and member lists in one click
+- **🔒 Eligibility Rules** — automatic conflict detection (team games, age category, certification level)
+- **⚖️ Fair Distribution** — task counter with multipliers rewards members already at the gym
+- **📊 Statistics** — per-player and per-team task tracking with fill-rate analytics
+- **👥 Member Roster** — manage teams, players, coaches, and certifications
+- **📱 Member View** — mobile-friendly read-only view for checking upcoming duties
+- **📄 PDF & CSV Export** — print-ready schedule output and spreadsheet export
+- **📅 Calendar Export** — `.ics` download for individual games or full season
+- **🔐 Auth** — registration, password reset, and email verification
 
 ## Tech Stack
 
@@ -30,7 +65,10 @@ Task planning application for basketball clubs. Assign referees, scorers, timers
 | Testing    | pytest (backend), Playwright (e2e)                 |
 | Linting    | Ruff (Python), ESLint (frontend)                   |
 | Type Check | ty (Python), tsc (frontend)                        |
+| PDF        | WeasyPrint                                         |
 | Packaging  | uv (Python), pnpm (frontend)                       |
+
+---
 
 ## Quick Start
 
@@ -46,12 +84,14 @@ docker compose up --build
 - Frontend: <http://localhost:5173>
 - Backend API: <http://localhost:8000/api/>
 
+---
+
 ## Development
 
 ### Backend
 
 ```bash
-# Create virtual environment and install dependencies
+# Install dependencies
 uv sync
 
 # Run migrations
@@ -61,7 +101,7 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 
 # Run tests
-uv run pytest
+PYTHONPATH=src uv run pytest
 
 # Lint and type-check
 uv run ruff check src tests
@@ -88,19 +128,23 @@ pnpm build
 pnpm test:e2e
 ```
 
+---
+
 ## Configuration
 
 Set via environment variables (or `.env`):
 
-| Variable            | Default                              | Description                          |
-| ------------------- | ------------------------------------ | ------------------------------------ |
-| `DEBUG`             | `False`                              | Django debug mode                    |
-| `SECRET_KEY`        | *(required)*                         | Django secret key                    |
-| `DB_PATH`           | `/data/db.sqlite3`                   | SQLite database path                 |
-| `SITE_URL`          | `http://localhost:5173`              | Base URL for email links             |
-| `EMAIL_BACKEND`     | `django.core.mail.backends.console`  | Email backend for dev/prod           |
-| `DEFAULT_FROM_EMAIL`| `noreply@example.com`                | Sender address for outgoing emails   |
-| `VITE_API_URL`      | `http://backend:8000`                | Frontend → backend API URL           |
+| Variable               | Default                                  | Description                                  |
+| ---------------------- | ---------------------------------------- | -------------------------------------------- |
+| `DEBUG`                | `False`                                  | Django debug mode                            |
+| `SECRET_KEY`           | *(required)*                             | Django secret key                            |
+| `DB_PATH`              | `/data/db.sqlite3`                       | SQLite database path                         |
+| `SITE_URL`             | `http://localhost:5173`                  | Base URL for email links                     |
+| `EMAIL_BACKEND`        | `django.core.mail.backends.console`      | Email backend for dev/prod                   |
+| `DEFAULT_FROM_EMAIL`   | `noreply@example.com`                    | Sender address for outgoing emails           |
+| `VITE_API_URL`         | `http://backend:8000`                    | Frontend → backend API URL                   |
+
+---
 
 ## Project Structure
 
@@ -116,7 +160,7 @@ Set via environment variables (or `.env`):
 │   │   └── components/
 │   └── e2e/
 ├── src/
-│   └── sixth_man/  # package name (Django module)
+│   └── hoops_planner/
 │       ├── settings.py
 │       ├── urls.py
 │       └── core/
@@ -128,9 +172,12 @@ Set via environment variables (or `.env`):
 │           ├── suggestions.py
 │           ├── statistics.py
 │           ├── importers.py
+│           ├── pdf_export.py
 │           └── migrations/
 └── tests/
 ```
+
+---
 
 ## Task Types
 
@@ -140,6 +187,8 @@ Set via environment variables (or `.env`):
 | **Scorer**          | Live scorekeeping on a tablet                  |
 | **Timer**           | Physical scoreboard operator                   |
 | **24s Operator**    | 24-second clock (configurable per team)        |
+
+---
 
 ## Eligibility Rules
 
@@ -153,6 +202,8 @@ A member is ineligible if:
 
 Coaches are exempt from mandatory tasks but can still volunteer.
 
+---
+
 ## License
 
-Private
+[PolyForm Noncommercial 1.0.0](LICENSE) — free for non-commercial use.
