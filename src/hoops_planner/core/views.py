@@ -270,7 +270,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         data = [
             {
                 "player": PlayerSerializer(player).data,
-                "task_count": task_count,
+                "task_count": player.assignments.count(),
                 "at_gym": position,
                 "suggestion_reason": reason,
             }
@@ -293,7 +293,7 @@ class TaskViewSet(viewsets.ModelViewSet):
                             "player": PlayerSerializer(p["player"]).data,
                             "eligible": p["eligible"],
                             "ineligible_reason": p.get("ineligible_reason"),
-                            "task_count": p["task_count"],
+                            "task_count": p["player"].assignments.count(),
                             "at_gym": p["at_gym"],
                         }
                         for p in team_result["players"]
