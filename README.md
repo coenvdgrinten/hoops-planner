@@ -1,6 +1,11 @@
 # Hoops Planner
 
 [![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial-7057ff.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/downloads/release/python-3130/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Lint](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/lint.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/lint.yml)
+[![Type Check](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/typecheck.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/typecheck.yml)
+[![Tests](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/test.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/test.yml)
 
 Task planning application for basketball clubs. Assign referees, scorers, timers, and 24-second operators to games while automatically enforcing eligibility rules and distributing tasks fairly across your roster.
 
