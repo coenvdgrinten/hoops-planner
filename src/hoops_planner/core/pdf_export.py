@@ -333,6 +333,9 @@ def _build_html(season: Season) -> str:
         "(counts 2× toward fair distribution)</div>"
     )
 
+    # Force page break before player summary
+    html_parts.append('<div style="page-break-before: always"></div>')
+
     # Player summary
     summary_html = _build_player_summary_html(season)
     html_parts.append(summary_html)
