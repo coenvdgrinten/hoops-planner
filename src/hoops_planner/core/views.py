@@ -436,8 +436,8 @@ def _generate_single_game_ics(game: Game) -> bytes:
     """Generate a .ics file for a single game (public endpoint \u2014 no PII)."""
     from datetime import datetime, timedelta
 
-    from hoops_planner.core.models import TaskAssignment
     from hoops_planner.core.calendar_export import TASK_LABELS
+    from hoops_planner.core.models import TaskAssignment
 
     dtstart = datetime.combine(game.date, game.time)
     dtend = dtstart + timedelta(hours=2)

@@ -7,11 +7,9 @@ import pytest
 from hoops_planner.core.calendar_export import export_schedule_ics
 from hoops_planner.core.models import (
     Game,
-    Player,
     Task,
     TaskAssignment,
     TaskType,
-    Team,
 )
 
 

@@ -422,7 +422,7 @@ class TestRefereeCertificationRule:
 @pytest.mark.django_db
 class TestParentResponsible:
     def test_parent_allowed_for_scorer_on_own_team_game(self, season):
-        """Parent can be scorer on their kid's team game when parent_responsible=True."""
+        """Parent can be scorer when parent_responsible=True."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -486,7 +486,7 @@ class TestParentResponsible:
         assert is_eligible(player, task) is True
 
     def test_parent_not_allowed_for_referee_on_own_team_game(self, season):
-        """Parent cannot be referee on their kid's team game even with parent_responsible."""
+        """Parent cannot be referee even with parent_responsible."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -519,7 +519,7 @@ class TestParentResponsible:
         assert is_eligible(player, task) is False
 
     def test_parent_not_allowed_when_parent_responsible_false(self, season):
-        """Parent cannot be scorer on their kid's team game when parent_responsible=False."""
+        """Parent cannot be scorer when parent_responsible=False."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -551,7 +551,7 @@ class TestParentResponsible:
         assert is_eligible(player, task) is False
 
     def test_parent_allowed_when_home_team(self, season):
-        """Parent can be scorer when their team is the home team and parent_responsible=True."""
+        """Parent can be scorer when home team and parent_responsible=True."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,

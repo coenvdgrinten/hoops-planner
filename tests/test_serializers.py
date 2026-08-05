@@ -9,7 +9,6 @@ from hoops_planner.core.models import (
     Game,
     Player,
     TaskAssignment,
-    Team,
 )
 from hoops_planner.core.serializers import (
     GameSerializer,
