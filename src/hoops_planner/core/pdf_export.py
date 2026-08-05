@@ -27,7 +27,7 @@ CSS_STYLES = """
     size: A4 landscape;
     margin: 15mm;
     @bottom-left {
-        content: "Generated on {{date}}";
+        content: "Generated on " strftime("%Y-%m-%d");
         font-size: 8pt;
         color: #666;
     }
