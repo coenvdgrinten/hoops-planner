@@ -179,6 +179,14 @@ td.unassigned {
     padding-top: 6pt;
     border-top: 0.5pt solid #ddd;
 }
+
+.legend {
+    text-align: right;
+    font-size: 7pt;
+    color: #999;
+    margin-top: 2pt;
+    margin-bottom: 4pt;
+}
 """
 
 
@@ -245,7 +253,9 @@ def _build_html(season: Season) -> str:
                         season=t.game.season,
                         date=t.game.date,
                         home_team=player_team,
-                    ).exclude(pk=t.game.id).exists()
+                    )
+                    .exclude(pk=t.game.id)
+                    .exists()
                     and t.game.away_team != player_team.name
                 )
                 assigned.setdefault(key, []).append(
@@ -317,6 +327,12 @@ def _build_html(season: Season) -> str:
 
     html_parts.extend(["</tbody>", "</table>"])
 
+    # Legend
+    html_parts.append(
+        '<div class="legend">Red = task on a day the member\'s team has no game '
+        "(counts 2× toward fair distribution)</div>"
+    )
+
     # Player summary
     summary_html = _build_player_summary_html(season)
     html_parts.append(summary_html)
@@ -363,7 +379,7 @@ def _build_game_row_html(
         players = assigned.get(key, [])
         if i <= len(players):
             name, team, is_away = players[i - 1]
-            away_class = ' away-day' if is_away else ''
+            away_class = " away-day" if is_away else ""
             cells.append(
                 f'<td class="center{away_class}">{name} '
                 f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
@@ -378,7 +394,7 @@ def _build_game_row_html(
     scorers = assigned.get(scorer_key, [])
     if scorers:
         name, team, is_away = scorers[0]
-        away_class = ' away-day' if is_away else ''
+        away_class = " away-day" if is_away else ""
         cells.append(
             f'<td class="center{away_class}">{name} '
             f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
@@ -393,7 +409,7 @@ def _build_game_row_html(
     timers = assigned.get(timer_key, [])
     if timers:
         name, team, is_away = timers[0]
-        away_class = ' away-day' if is_away else ''
+        away_class = " away-day" if is_away else ""
         cells.append(
             f'<td class="center{away_class}">{name} '
             f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
@@ -409,7 +425,7 @@ def _build_game_row_html(
         ops = assigned.get(op_key, [])
         if ops:
             name, team, is_away = ops[0]
-            away_class = ' away-day' if is_away else ''
+            away_class = " away-day" if is_away else ""
             cells.append(
                 f'<td class="center{away_class}">{name} '
                 f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
