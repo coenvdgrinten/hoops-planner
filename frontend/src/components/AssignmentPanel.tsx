@@ -159,7 +159,7 @@ export function AssignmentPanel({
           )}
           {fetchedTask.assignments.map((a) => {
             const displayName = a.is_parent
-              ? `Ouder van ${a.player.team.name}`
+              ? `Ouder van ${a.player.first_name} ${a.player.last_name}`
               : a.player.full_name;
             return (
               <div key={a.id} className={styles["assigned-player"]}>

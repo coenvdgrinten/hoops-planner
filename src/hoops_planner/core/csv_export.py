@@ -72,7 +72,7 @@ def _row(game: Any, task: Any, assignment: TaskAssignment | None) -> list[str]:
     if assignment is not None and assignment.player is not None:
         player_team = assignment.player.team.name if assignment.player.team else ""
         if _is_parent_assignment(task, assignment):
-            player_name = f"Ouder van {player_team}"
+            player_name = f"Ouder van {player_name}"
         else:
             player_name = assignment.player.full_name
     return [

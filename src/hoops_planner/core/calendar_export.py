@@ -37,7 +37,7 @@ def export_schedule_ics(season: Season) -> bytes:
                 name = a.player.full_name
                 if t.task_type in (TaskType.SCORER, TaskType.TIMER):
                     if any(tr.parent_responsible for tr in a.player.all_teams):
-                        name = f"Ouder van {a.player.team.name}"
+                        name = f"Ouder van {a.player.full_name}"
                 game_tasks.setdefault(t.game.id, []).append(
                     (TASK_LABELS.get(t.task_type, t.task_type), name)
                 )

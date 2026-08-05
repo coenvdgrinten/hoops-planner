@@ -118,7 +118,7 @@ export function GameCard({
             task.task_type === "REFEREE" && task.optional;
 
           const displayName = assigned[0]?.is_parent
-            ? `Ouder van ${assigned[0].player.team.name}`
+            ? `Ouder van ${assigned[0].player.first_name} ${assigned[0].player.last_name}`
             : assigned[0]?.player?.full_name;
 
           return (

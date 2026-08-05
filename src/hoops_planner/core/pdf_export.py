@@ -244,7 +244,7 @@ def _build_html(season: Season) -> str:
                 name = a.player.full_name
                 if t.task_type in (TaskType.SCORER, TaskType.TIMER):
                     if any(tr.parent_responsible for tr in a.player.all_teams):
-                        name = f"Ouder van {a.player.team.name}"
+                        name = f"Ouder van {a.player.full_name}"
                 # Away day = player's team has no game on this date → 2x multiplier
                 player_team = a.player.team
                 is_away_day = (
