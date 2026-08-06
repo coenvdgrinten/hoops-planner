@@ -57,9 +57,10 @@ class TestSuggestCandidates:
         results = suggest_candidates(task)
         assert young_player not in results
 
-    def test_excludes_coaches(self, coach, task):
+    def test_includes_coaches(self, coach, task):
+        """Coaches can be voluntarily assigned so they appear in candidates."""
         results = suggest_candidates(task)
-        assert coach not in results
+        assert coach in results
 
     def test_respects_limit(self, season):
         team = Team.objects.create(

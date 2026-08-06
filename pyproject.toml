@@ -44,6 +44,7 @@ unsupported-operator = "ignore"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 DJANGO_SETTINGS_MODULE = "hoops_planner.settings"
 
 [tool.django]

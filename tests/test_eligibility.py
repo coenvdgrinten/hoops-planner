@@ -581,34 +581,32 @@ class TestParentResponsible:
 
 @pytest.mark.django_db
 class TestCoachConsistency:
-    def test_indicator_excludes_coaches_like_get_eligible_players(self, coach, task):
-        """The indicator list must exclude coaches, matching get_eligible_players."""
+    def test_indicator_includes_coaches_like_get_eligible_players(self, coach, task):
+        """The indicator list and get_eligible_players must be consistent."""
         from hoops_planner.core.eligibility import get_eligible_players
 
         indicator_players = {p.id for p, _ in get_eligible_players_with_indicator(task)}
         eligible_players = {p.id for p in get_eligible_players(task)}
 
-        assert coach.id not in indicator_players
         assert indicator_players == eligible_players
 
-    def test_indicator_marks_coach_ineligible(self, coach, task):
+    def test_indicator_includes_coach(self, coach, task):
         results = get_eligible_players_with_indicator(task)
         coach_entry = next((p for p, e in results if p.id == coach.id), None)
-        assert coach_entry is None
+        assert coach_entry is not None
 
 
 @pytest.mark.django_db
 class TestCoachExemption:
-    def test_coach_not_in_eligible_list(self, coach, task):
+    def test_coach_in_eligible_list(self, coach, task):
+        """Coaches can be voluntarily assigned — they appear in the eligible list."""
         eligible = get_eligible_players(task)
-        assert coach not in eligible
+        assert coach in eligible
 
-    def test_coach_not_in_indicator_list(self, coach, task):
-        # The indicator list must be consistent with get_eligible_players,
-        # which excludes coaches.
+    def test_coach_in_indicator_list(self, coach, task):
         results = get_eligible_players_with_indicator(task)
         names = [p.full_name for p, _ in results]
-        assert coach.full_name not in names
+        assert coach.full_name in names
 
 
 @pytest.mark.django_db

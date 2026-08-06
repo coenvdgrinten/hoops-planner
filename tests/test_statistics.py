@@ -458,7 +458,7 @@ class TestGetLeaderboard:
         TaskAssignment.objects.create(player=coach, task=task)
 
         result = get_leaderboard(season)
-        assert result == []
+        assert any(r["player_id"] == coach.id for r in result)
 
     def test_respects_top_limit(self, season):
         team = Team.objects.create(
