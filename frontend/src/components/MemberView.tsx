@@ -63,6 +63,11 @@ export function MemberView() {
   // Player management state
   const [addingPlayerForTeam, setAddingPlayerForTeam] = useState<number | null>(null);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: "team" | "player";
+    id: number;
+    name: string;
+  } | null>(null);
   const [newPlayer, setNewPlayer] = useState<{
     first_name: string;
     last_name: string;
@@ -297,9 +302,7 @@ export function MemberView() {
                     className={styles["icon-delete"]}
                     title="Delete team"
                     onClick={() => {
-                      if (window.confirm(`Delete team "${team.name}"? This also removes its players.`)) {
-                        teamMutation.mutate({ kind: "delete", id: team.id });
-                      }
+                      setDeleteConfirm({ type: "team", id: team.id, name: team.name });
                     }}
                   >
                     🗑
@@ -624,9 +627,7 @@ export function MemberView() {
                                   className={styles["icon-delete"]}
                                   title="Delete player"
                                   onClick={() => {
-                                    if (window.confirm(`Delete ${player.full_name}?`)) {
-                                      playerMutation.mutate({ kind: "delete", id: player.id });
-                                    }
+                                    setDeleteConfirm({ type: "player", id: player.id, name: player.full_name });
                                   }}
                                 >
                                   🗑
@@ -644,6 +645,36 @@ export function MemberView() {
           );
         })}
       </div>
+
+      {/* Delete confirmation dialog */}
+      {deleteConfirm && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>
+              {deleteConfirm.type === "team" ? "Delete team" : "Delete player"}
+            </h2>
+            <p>
+              {deleteConfirm.type === "team"
+                ? `Delete team "${deleteConfirm.name}"? This also removes its players.`
+                : `Delete ${deleteConfirm.name}?`}
+            </p>
+            <div className="modal-actions">
+              <button onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button
+                onClick={() => {
+                  if (deleteConfirm.type === "team") {
+                    teamMutation.mutate({ kind: "delete", id: deleteConfirm.id });
+                  } else {
+                    playerMutation.mutate({ kind: "delete", id: deleteConfirm.id });
+                  }
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
