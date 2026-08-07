@@ -5,11 +5,12 @@ import styles from "./Login.module.css";
 
 interface Props {
   onLogin: () => void;
+  initialVerifyToken?: string;
 }
 
 type Mode = "login" | "register" | "password_reset" | "password_reset_confirm" | "verify_email";
 
-export function Login({ onLogin }: Props) {
+export function Login({ onLogin, initialVerifyToken }: Props) {
   const [mode, setMode] = useState<Mode>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +20,31 @@ export function Login({ onLogin }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Handle verification token from URL
+  useEffect(() => {
+    if (initialVerifyToken) {
+      verifyToken(initialVerifyToken);
+    }
+  }, [initialVerifyToken]);
+
+  const verifyToken = async (token: string) => {
+    setLoading(true);
+    try {
+      await verifyEmailConfirm(token);
+      setSuccess(
+        "Email verified successfully! " +
+        "An admin will review and approve your account. " +
+        "You can log in once approved."
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to verify email."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

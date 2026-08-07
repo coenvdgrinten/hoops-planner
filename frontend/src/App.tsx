@@ -64,6 +64,18 @@ export function App() {
     setSelectedTask(null);
   }, []);
 
+  // Handle email verification from URL
+  const hash = window.location.hash;
+  const verifyMatch = hash.match(/^\/verify-email\/(.+)$/);
+  if (verifyMatch && verifyMatch[1] && !authenticated) {
+    return (
+      <Login
+        onLogin={handleLogin}
+        initialVerifyToken={decodeURIComponent(verifyMatch[1])}
+      />
+    );
+  }
+
   if (!authenticated) {
     return <Login onLogin={handleLogin} />;
   }
