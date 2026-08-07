@@ -45,14 +45,6 @@ export function AssignmentPanel({
     }
   }, [task?.id]);
 
-  // Hide panel when not open (keeps component mounted so cache persists)
-  return (
-    <aside
-      data-testid="assignment-panel"
-      className={styles["assignment-panel"]}
-      style={{ display: open ? undefined : "none" }}
-    >
-
   // Fetch task data — stays in sync after mutations via invalidation
   const { data: currentTask } = useQuery({
     queryKey: ["tasks-with-assignments", gameId],
@@ -133,8 +125,13 @@ export function AssignmentPanel({
   const label = TASK_LABELS[fetchedTask.task_type] ?? fetchedTask.task_type;
   const title = fetchedTask.slot_number > 1 ? `${label} #${fetchedTask.slot_number}` : label;
 
+  // Hide panel when not open (keeps component mounted so cache persists)
   return (
-    <aside data-testid="assignment-panel" className={styles["assignment-panel"]}>
+    <aside
+      data-testid="assignment-panel"
+      className={styles["assignment-panel"]}
+      style={{ display: open ? undefined : "none" }}
+    >
       <div className={styles["panel-header"]}>
         <div>
           <h3>{title}</h3>
