@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTasksWithAssignments, clearGameAssignments } from "../api";
 import type { TaskWithAssignments } from "../types";
@@ -41,6 +41,7 @@ export function GameCard({
   onEditGame,
 }: Props) {
   const queryClient = useQueryClient();
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks-with-assignments", id],
     queryFn: () => getTasksWithAssignments(id),
@@ -59,13 +60,17 @@ export function GameCard({
   const handleClear = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!confirm("Clear all task assignments for this game?")) return;
-      clearGameAssignments(id).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", id] });
-      });
+      setShowClearConfirm(true);
     },
-    [id, queryClient]
+    []
   );
+
+  const handleClearConfirm = useCallback(() => {
+    setShowClearConfirm(false);
+    clearGameAssignments(id).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", id] });
+    });
+  }, [id, queryClient]);
 
   const handleSelectTask = useCallback(
     (task: TaskWithAssignments) => {
@@ -180,6 +185,20 @@ export function GameCard({
           );
         })}
       </div>
+
+      {/* Clear confirmation dialog */}
+      {showClearConfirm && (
+        <div className="modal-overlay" onClick={() => setShowClearConfirm(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Clear assignments</h2>
+            <p>Clear all task assignments for this game?</p>
+            <div className="modal-actions">
+              <button onClick={() => setShowClearConfirm(false)}>Cancel</button>
+              <button onClick={handleClearConfirm}>Clear</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
