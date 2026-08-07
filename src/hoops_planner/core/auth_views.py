@@ -267,10 +267,9 @@ def register(request):
                 "Click the button below to verify your email address."
             ),
             "button_text": "Verify Email",
-            "button_url": f"{settings.SITE_URL}/verify-email/{token_value}",
+            "button_url": f"{settings.SITE_URL}/#/verify-email/{token_value}",
             "footer": (
-                "After verification, "
-                "an admin will review and approve your account."
+                "After verification, an admin will review and approve your account."
             ),
         },
     )
@@ -404,7 +403,7 @@ def verify_email_request(request):
             "title": "Verify Your Email",
             "message": "Click the button below to verify your email address.",
             "button_text": "Verify Email",
-            "button_url": f"{settings.SITE_URL}/verify-email/{token_value}",
+            "button_url": f"{settings.SITE_URL}/#/verify-email/{token_value}",
             "footer": "If you didn't request this, you can safely ignore this email.",
         },
     )
