@@ -103,47 +103,63 @@
 }
 
 .btn-approve {
-  padding: 4px 12px;
-  border: 1px solid #016c30;
-  border-radius: 6px;
-  background: #016c30;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #016c30 0%, #004d1f 100%);
   color: white;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(1, 108, 48, 0.3);
 }
 
 .btn-approve:hover {
-  background: #004d1f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(1, 108, 48, 0.4);
+}
+
+.btn-approve:active {
+  transform: translateY(0);
 }
 
 .btn-approve:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-reject {
-  padding: 4px 12px;
-  border: 1px solid #e0e2ea;
-  border-radius: 6px;
+  padding: 6px 16px;
+  border: 1.5px solid #e0e2ea;
+  border-radius: 8px;
   background: white;
-  color: #4b5068;
-  font-size: 12px;
+  color: #6b7088;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-reject:hover {
   border-color: #dc3545;
   color: #dc3545;
   background: #fef2f2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.15);
+}
+
+.btn-reject:active {
+  transform: translateY(0);
 }
 
 .btn-reject:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .empty-msg {
