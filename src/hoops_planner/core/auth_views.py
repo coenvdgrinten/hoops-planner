@@ -11,7 +11,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from hoops_planner.core.models import EmailVerificationToken
@@ -36,7 +36,7 @@ def send_html_email(subject, to, context):
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{context['title']}</title>
+    <title>{context["title"]}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 0;">
@@ -55,16 +55,16 @@ def send_html_email(subject, to, context):
                     <!-- Content -->
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 16px; color: #1a1a1a; font-size: 22px; font-weight: 600;">{context['title']}</h2>
-                            <p style="margin: 0 0 24px; color: #555555; font-size: 16px; line-height: 1.5;">{context['message']}</p>
+                            <h2 style="margin: 0 0 16px; color: #1a1a1a; font-size: 22px; font-weight: 600;">{context["title"]}</h2>
+                            <p style="margin: 0 0 24px; color: #555555; font-size: 16px; line-height: 1.5;">{context["message"]}</p>
                             <table cellpadding="0" cellspacing="0" style="margin: 32px auto;">
                                 <tr>
                                     <td style="border-radius: 8px; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">
-                                        <a href="{context['button_url']}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">{context['button_text']}</a>
+                                        <a href="{context["button_url"]}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">{context["button_text"]}</a>
                                     </td>
                                 </tr>
                             </table>
-                            <p style="margin: 24px 0 0; color: #888888; font-size: 14px; line-height: 1.5;">{context['footer']}</p>
+                            <p style="margin: 24px 0 0; color: #888888; font-size: 14px; line-height: 1.5;">{context["footer"]}</p>
                         </td>
                     </tr>
                     <!-- Footer -->
@@ -181,8 +181,8 @@ def register(request):
             "message": "Thanks for signing up! Click the button below to verify your email address.",
             "button_text": "Verify Email",
             "button_url": f"{settings.SITE_URL}/verify-email/{token_value}",
-            "footer": "After verification, an admin will review and approve your account."
-        }
+            "footer": "After verification, an admin will review and approve your account.",
+        },
     )
 
     return Response(
@@ -233,8 +233,8 @@ def password_reset_request(request):
             "message": "Click the button below to reset your password.",
             "button_text": "Reset Password",
             "button_url": f"{settings.SITE_URL}/password-reset/{token}/{user.pk}",
-            "footer": "If you didn't request this, you can safely ignore this email."
-        }
+            "footer": "If you didn't request this, you can safely ignore this email.",
+        },
     )
     # Also return the token so the frontend can use it directly in dev
     return Response(
@@ -281,7 +281,7 @@ def password_reset_confirm(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def verify_email_request(request):
     """Send an email verification link to the current user."""
     user = request.user
@@ -304,16 +304,16 @@ def verify_email_request(request):
         expires_at=expires,
     )
 
-    send_mail(
-        subject="Hoops Planner — Verify Your Email",
-        message=(
-            f"Click the link below to verify your email address:\n\n"
-            f"{settings.SITE_URL}/verify-email/{token_value}\n\n"
-            "If you didn't request this, ignore this email."
-        ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com"),
-        recipient_list=[email],
-        fail_silently=True,
+    send_html_email(
+        subject="Verify Your Email — Hoops Planner",
+        to=[email],
+        context={
+            "title": "Verify Your Email",
+            "message": "Click the button below to verify your email address.",
+            "button_text": "Verify Email",
+            "button_url": f"{settings.SITE_URL}/verify-email/{token_value}",
+            "footer": "If you didn't request this, you can safely ignore this email.",
+        },
     )
 
     # Return token for dev/frontend use
