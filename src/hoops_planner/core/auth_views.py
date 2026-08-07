@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -15,6 +15,75 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from hoops_planner.core.models import EmailVerificationToken
+
+
+def send_html_email(subject, to, context):
+    """Send a styled HTML email with plain text fallback."""
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com")
+
+    # Plain text fallback
+    text_content = (
+        f"{context['title']}\n\n"
+        f"{context['message']}\n\n"
+        f"{context['button_url']}\n\n"
+        f"{context['footer']}"
+    )
+
+    # HTML template
+    html_content = f"""\
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{context['title']}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); padding: 40px 40px 30px; text-align: center;">
+                            <a href="https://github.com/coenvdgrinten/hoops-planner" style="text-decoration: none; display: inline-block;">
+                                <div style="font-size: 48px; margin-bottom: 8px;">🏀</div>
+                                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">Hoops Planner</h1>
+                            </a>
+                        </td>
+                    </tr>
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="margin: 0 0 16px; color: #1a1a1a; font-size: 22px; font-weight: 600;">{context['title']}</h2>
+                            <p style="margin: 0 0 24px; color: #555555; font-size: 16px; line-height: 1.5;">{context['message']}</p>
+                            <table cellpadding="0" cellspacing="0" style="margin: 32px auto;">
+                                <tr>
+                                    <td style="border-radius: 8px; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">
+                                        <a href="{context['button_url']}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">{context['button_text']}</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 24px 0 0; color: #888888; font-size: 14px; line-height: 1.5;">{context['footer']}</p>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 24px 40px; background-color: #f9f9f9; text-align: center; border-top: 1px solid #eeeeee;">
+                            <p style="margin: 0; color: #999999; font-size: 12px;">&copy; {timezone.now().year} Hoops Planner</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, to)
+    msg.attach_alternative(html_content, "text/html")
+    msg.send(fail_silently=False)
 
 
 @api_view(["POST"])
@@ -43,7 +112,9 @@ def login(request):
 
     if not user.is_active:
         return Response(
-            {"detail": "Account is pending approval. Please wait for an admin to approve your account."},
+            {
+                "detail": "Account is pending approval. Please wait for an admin to approve your account."
+            },
             status=status.HTTP_403_FORBIDDEN,
         )
 
@@ -102,16 +173,16 @@ def register(request):
         expires_at=expires,
     )
 
-    send_mail(
-        subject="Hoops Planner — Verify Your Email",
-        message=(
-            f"Click the link below to verify your email address:\n\n"
-            f"{settings.SITE_URL}/verify-email/{token_value}\n\n"
-            "After verification, an admin will review and approve your account."
-        ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com"),
-        recipient_list=[email],
-        fail_silently=True,
+    send_html_email(
+        subject="Verify Your Email — Hoops Planner",
+        to=[email],
+        context={
+            "title": "Verify Your Email",
+            "message": "Thanks for signing up! Click the button below to verify your email address.",
+            "button_text": "Verify Email",
+            "button_url": f"{settings.SITE_URL}/verify-email/{token_value}",
+            "footer": "After verification, an admin will review and approve your account."
+        }
     )
 
     return Response(
@@ -154,16 +225,16 @@ def password_reset_request(request):
         return Response({"detail": "If the email exists, a reset link has been sent."})
 
     token = default_token_generator.make_token(user)
-    send_mail(
-        subject="Hoops Planner — Password Reset",
-        message=(
-            f"Click the link below to reset your password:\n\n"
-            f"{settings.SITE_URL}/password-reset/{token}/{user.pk}\n\n"
-            "If you didn't request this, ignore this email."
-        ),
-        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com"),
-        recipient_list=[email],
-        fail_silently=True,
+    send_html_email(
+        subject="Reset Your Password — Hoops Planner",
+        to=[email],
+        context={
+            "title": "Reset Your Password",
+            "message": "Click the button below to reset your password.",
+            "button_text": "Reset Password",
+            "button_url": f"{settings.SITE_URL}/password-reset/{token}/{user.pk}",
+            "footer": "If you didn't request this, you can safely ignore this email."
+        }
     )
     # Also return the token so the frontend can use it directly in dev
     return Response(
@@ -278,28 +349,36 @@ def verify_email_confirm(request):
 
     # Email verified — user still needs admin approval
     verification.delete()
-    return Response({"detail": "Email verified successfully. An admin will review your account."})
+    return Response(
+        {"detail": "Email verified successfully. An admin will review your account."}
+    )
 
 
 @api_view(["GET"])
 def pending_users(request):
     """List users awaiting admin approval (inactive + verified email)."""
     # Get inactive users who have verified their email (no pending tokens)
-    pending = User.objects.filter(
-        is_active=False,
-    ).exclude(
-        pk__in=EmailVerificationToken.objects.values_list("user_id", flat=True)
-    ).order_by("-date_joined")
+    pending = (
+        User.objects.filter(
+            is_active=False,
+        )
+        .exclude(
+            pk__in=EmailVerificationToken.objects.values_list("user_id", flat=True)
+        )
+        .order_by("-date_joined")
+    )
 
-    return Response([
-        {
-            "id": u.id,
-            "username": u.username,
-            "email": u.email,
-            "date_joined": u.date_joined,
-        }
-        for u in pending
-    ])
+    return Response(
+        [
+            {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "date_joined": u.date_joined,
+            }
+            for u in pending
+        ]
+    )
 
 
 @api_view(["POST"])

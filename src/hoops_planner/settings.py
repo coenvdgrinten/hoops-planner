@@ -80,9 +80,13 @@ CORS_ALLOW_CREDENTIALS = True
 SITE_URL = os.getenv("SITE_URL", "http://localhost:5173")
 
 # Email backend (console for development, SMTP for production)
-EMAIL_CONFIG = os.getenv("EMAIL_BACKEND", "").startswith("django.core.mail.backends.smtp")
+EMAIL_CONFIG = os.getenv("EMAIL_BACKEND", "").startswith(
+    "django.core.mail.backends.smtp"
+)
 if EMAIL_CONFIG:
-    EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+    EMAIL_BACKEND = os.getenv(
+        "EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"
+    )
     EMAIL_HOST = os.getenv("EMAIL_HOST", "")
     EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
     EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
