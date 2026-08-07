@@ -70,10 +70,10 @@ export function AssignmentPanel({
 
   // Assign mutation
   const { mutate: assign, isPending: assigning } = useMutation({
-    mutationFn: (player: Player) => createAssignment(task.id, player.id),
+    mutationFn: (player: Player) => createAssignment(task!.id, player.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
-      queryClient.invalidateQueries({ queryKey: ["team-eligibility", task.id] });
+      queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
     },
     onError: (err) => {
       console.error("Failed to assign player:", err);
@@ -86,7 +86,7 @@ export function AssignmentPanel({
     mutationFn: (assignmentId: number) => deleteAssignment(assignmentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
-      queryClient.invalidateQueries({ queryKey: ["team-eligibility", task.id] });
+      queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
     },
     onError: (err) => {
       console.error("Failed to unassign player:", err);
@@ -95,7 +95,7 @@ export function AssignmentPanel({
   });
 
   // Get assigned player IDs for quick lookup
-  const assignedIds = new Set(fetchedTask.assignments.map((a) => a.player.id));
+  const assignedIds = new Set((fetchedTask?.assignments ?? []).map((a) => a.player.id));
 
   // Filter teams and players by search query
   const filteredTeams = useMemo(() => {
@@ -122,8 +122,8 @@ export function AssignmentPanel({
     });
   };
 
-  const label = TASK_LABELS[fetchedTask.task_type] ?? fetchedTask.task_type;
-  const title = fetchedTask.slot_number > 1 ? `${label} #${fetchedTask.slot_number}` : label;
+  const label = TASK_LABELS[fetchedTask?.task_type ?? ""] ?? fetchedTask?.task_type ?? "";
+  const title = fetchedTask && fetchedTask.slot_number > 1 ? `${label} #${fetchedTask.slot_number}` : label;
 
   // Hide panel when not open (keeps component mounted so cache persists)
   return (
@@ -136,7 +136,7 @@ export function AssignmentPanel({
         <div>
           <h3>{title}</h3>
           <p className={styles["panel-subtitle"]}>
-            {fetchedTask.assignments.length} assigned
+            {fetchedTask?.assignments.length ?? 0} assigned
           </p>
         </div>
         <button data-testid="assignment-panel-close" className={styles["close-btn"]} onClick={onClose} title="Close">
@@ -164,10 +164,10 @@ export function AssignmentPanel({
       <div className={styles["panel-section"]}>
         <h4>Assigned</h4>
         <div className={styles["assigned-list"]}>
-          {fetchedTask.assignments.length === 0 && (
+          {fetchedTask?.assignments.length === 0 && (
             <p className={styles["empty-msg"]}>No one assigned yet</p>
           )}
-          {fetchedTask.assignments.map((a) => {
+          {fetchedTask?.assignments.map((a) => {
             const displayName = a.is_parent
               ? `Ouder van ${a.player.first_name} ${a.player.last_name}`
               : a.player.full_name;
