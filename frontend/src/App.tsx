@@ -65,8 +65,7 @@ export function App() {
   }, []);
 
   // Handle email verification from URL
-  const hash = window.location.hash;
-  const verifyMatch = hash.match(/^\/verify-email\/(.+)$/);
+  const verifyMatch = window.location.hash.match(/^#\/verify-email\/(.+)$/);
   if (verifyMatch && verifyMatch[1] && !authenticated) {
     return (
       <Login
