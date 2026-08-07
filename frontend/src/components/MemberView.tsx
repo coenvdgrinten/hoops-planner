@@ -74,11 +74,20 @@ export function MemberView() {
     last_name: string;
     is_coach: boolean;
     referee_certification: string;
-  }>({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE" });
+    is_exempt: boolean;
+  }>({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE", is_exempt: false });
 
   const certMutation = useMutation({
     mutationFn: ({ playerId, cert }: { playerId: number; cert: string }) =>
       updatePlayerCert(playerId, cert),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["players"] });
+    },
+  });
+
+  const exemptMutation = useMutation({
+    mutationFn: ({ playerId, isExempt }: { playerId: number; isExempt: boolean }) =>
+      updatePlayer(playerId, { is_exempt: isExempt }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["players"] });
     },
@@ -123,12 +132,16 @@ export function MemberView() {
       queryClient.invalidateQueries({ queryKey: ["players"] });
       setAddingPlayerForTeam(null);
       setEditingPlayerId(null);
-      setNewPlayer({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE" });
+      setNewPlayer({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE", is_exempt: false });
     },
   });
 
   const handleCertChange = (playerId: number, cert: string) => {
     certMutation.mutate({ playerId, cert });
+  };
+
+  const handleExemptChange = (playerId: number, isExempt: boolean) => {
+    exemptMutation.mutate({ playerId, isExempt });
   };
 
   const startEditCoachedTeams = (playerId: number, currentTeams: number[]) => {
@@ -342,6 +355,7 @@ export function MemberView() {
                         last_name: "",
                         is_coach: false,
                         referee_certification: "NONE",
+                        is_exempt: false,
                       });
                     }}
                   >
@@ -375,6 +389,16 @@ export function MemberView() {
                           }
                         />
                         Coach
+                      </label>
+                      <label className={styles["inline-check"]}>
+                        <input
+                          type="checkbox"
+                          checked={newPlayer.is_exempt ?? false}
+                          onChange={(e) =>
+                            setNewPlayer((p) => ({ ...p, is_exempt: e.target.checked }))
+                          }
+                        />
+                        Exempt
                       </label>
                       <select
                         value={newPlayer.referee_certification}
@@ -445,6 +469,16 @@ export function MemberView() {
                                   }
                                 />
                                 Coach
+                              </label>
+                              <label className={styles["inline-check"]}>
+                                <input
+                                  type="checkbox"
+                                  checked={editPlayer.is_exempt ?? false}
+                                  onChange={(e) =>
+                                    setEditPlayer((p) => ({ ...p, is_exempt: e.target.checked }))
+                                  }
+                                />
+                                Exempt
                               </label>
                               <select
                                 value={editPlayer.referee_certification}
@@ -557,6 +591,15 @@ export function MemberView() {
                                   ))}
                                 </select>
                               </div>
+                              <div className={styles["exempt-editor"]}>
+                                <span className={styles["exempt-label"]}>Exempt</span>
+                                <input
+                                  type="checkbox"
+                                  checked={player.is_exempt ?? false}
+                                  onChange={(e) => handleExemptChange(player.id, e.target.checked)}
+                                  className={styles["exempt-checkbox"]}
+                                />
+                              </div>
                               <div className={styles["member-actions"]}>
                                 <button
                                   data-testid={`player-edit-${player.id}`}
@@ -570,6 +613,7 @@ export function MemberView() {
                                       last_name: player.last_name,
                                       is_coach: player.is_coach,
                                       referee_certification: player.referee_certification,
+                                      is_exempt: player.is_exempt ?? false,
                                     });
                                   }}
                                 >
