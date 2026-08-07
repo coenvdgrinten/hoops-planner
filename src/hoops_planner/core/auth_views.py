@@ -38,39 +38,120 @@ def send_html_email(subject, to, context):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{context["title"]}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 0;">
+<body style="
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        Roboto, Helvetica, Arial, sans-serif;
+">
+    <table
+        width="100%"
+        cellpadding="0"
+        cellspacing="0"
+        style="background-color: #f5f5f5; padding: 0;"
+    >
         <tr>
             <td align="center">
-                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <table
+                    width="600"
+                    cellpadding="0"
+                    cellspacing="0"
+                    style="
+                        max-width: 600px;
+                        background-color: #ffffff;
+                        border-radius: 12px;
+                        overflow: hidden;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    "
+                >
                     <!-- Header -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%); padding: 40px 40px 30px; text-align: center;">
-                            <a href="https://github.com/coenvdgrinten/hoops-planner" style="text-decoration: none; display: inline-block;">
-                                <div style="font-size: 48px; margin-bottom: 8px;">🏀</div>
-                                <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">Hoops Planner</h1>
+                        <td style="
+                            background: linear-gradient(
+                                135deg, #ff6b35 0%, #f7931e 100%
+                            );
+                            padding: 40px 40px 30px;
+                            text-align: center;
+                        ">
+                            <a href="
+                                https://github.com/coenvdgrinten/hoops-planner
+                            " style="text-decoration: none; display: inline-block;">
+                                <div style="font-size: 48px; margin-bottom: 8px;">
+                                    🏀
+                                </div>
+                                <h1 style="
+                                    margin: 0;
+                                    color: #ffffff;
+                                    font-size: 24px;
+                                    font-weight: 600;
+                                ">
+                                    Hoops Planner
+                                </h1>
                             </a>
                         </td>
                     </tr>
                     <!-- Content -->
                     <tr>
                         <td style="padding: 40px;">
-                            <h2 style="margin: 0 0 16px; color: #1a1a1a; font-size: 22px; font-weight: 600;">{context["title"]}</h2>
-                            <p style="margin: 0 0 24px; color: #555555; font-size: 16px; line-height: 1.5;">{context["message"]}</p>
-                            <table cellpadding="0" cellspacing="0" style="margin: 32px auto;">
+                            <h2 style="
+                                margin: 0 0 16px;
+                                color: #1a1a1a;
+                                font-size: 22px;
+                                font-weight: 600;
+                            ">{context["title"]}</h2>
+                            <p style="
+                                margin: 0 0 24px;
+                                color: #555555;
+                                font-size: 16px;
+                                line-height: 1.5;
+                            ">{context["message"]}</p>
+                            <table
+                                cellpadding="0"
+                                cellspacing="0"
+                                style="margin: 32px auto;"
+                            >
                                 <tr>
-                                    <td style="border-radius: 8px; background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);">
-                                        <a href="{context["button_url"]}" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600;">{context["button_text"]}</a>
+                                    <td style="
+                                        border-radius: 8px;
+                                        background: linear-gradient(
+                                            135deg, #ff6b35 0%, #f7931e 100%
+                                        );
+                                    ">
+                                        <a href="{context["button_url"]}" style="
+                                            display: inline-block;
+                                            padding: 14px 32px;
+                                            color: #ffffff;
+                                            text-decoration: none;
+                                            font-size: 16px;
+                                            font-weight: 600;
+                                        ">{context["button_text"]}</a>
                                     </td>
                                 </tr>
                             </table>
-                            <p style="margin: 24px 0 0; color: #888888; font-size: 14px; line-height: 1.5;">{context["footer"]}</p>
+                            <p style="
+                                margin: 24px 0 0;
+                                color: #888888;
+                                font-size: 14px;
+                                line-height: 1.5;
+                            ">{context["footer"]}</p>
                         </td>
                     </tr>
                     <!-- Footer -->
                     <tr>
-                        <td style="padding: 24px 40px; background-color: #f9f9f9; text-align: center; border-top: 1px solid #eeeeee;">
-                            <p style="margin: 0; color: #999999; font-size: 12px;">&copy; {timezone.now().year} Hoops Planner</p>
+                        <td style="
+                            padding: 24px 40px;
+                            background-color: #f9f9f9;
+                            text-align: center;
+                            border-top: 1px solid #eeeeee;
+                        ">
+                            <p style="
+                                margin: 0;
+                                color: #999999;
+                                font-size: 12px;
+                            ">
+                                &copy; {timezone.now().year} Hoops Planner
+                            </p>
                         </td>
                     </tr>
                 </table>
@@ -113,7 +194,10 @@ def login(request):
     if not user.is_active:
         return Response(
             {
-                "detail": "Account is pending approval. Please wait for an admin to approve your account."
+                "detail": (
+                    "Account is pending approval. "
+                    "Please wait for an admin to approve your account."
+                )
             },
             status=status.HTTP_403_FORBIDDEN,
         )
@@ -178,16 +262,25 @@ def register(request):
         to=[email],
         context={
             "title": "Verify Your Email",
-            "message": "Thanks for signing up! Click the button below to verify your email address.",
+            "message": (
+                "Thanks for signing up! "
+                "Click the button below to verify your email address."
+            ),
             "button_text": "Verify Email",
             "button_url": f"{settings.SITE_URL}/verify-email/{token_value}",
-            "footer": "After verification, an admin will review and approve your account.",
+            "footer": (
+                "After verification, "
+                "an admin will review and approve your account."
+            ),
         },
     )
 
     return Response(
         {
-            "detail": "Account created. Please check your email to verify your address. An admin will then review your account.",
+            "detail": (
+                "Account created. Please check your email to verify "
+                "your address. An admin will then review your account."
+            ),
             "token": token_value,
         },
         status=status.HTTP_201_CREATED,

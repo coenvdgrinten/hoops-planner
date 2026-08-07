@@ -53,7 +53,7 @@ class TestLogin:
         assert response.status_code == 401
 
     def test_login_blocked_for_inactive_user(self, auth_client):
-        user = User.objects.create_user(
+        User.objects.create_user(
             username="inactiveuser",
             password="pass123",
             is_active=False,
