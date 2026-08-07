@@ -21,13 +21,6 @@ export function Login({ onLogin, initialVerifyToken }: Props) {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Handle verification token from URL
-  useEffect(() => {
-    if (initialVerifyToken) {
-      verifyToken(initialVerifyToken);
-    }
-  }, [initialVerifyToken]);
-
   const verifyToken = async (token: string) => {
     setLoading(true);
     try {
@@ -45,6 +38,13 @@ export function Login({ onLogin, initialVerifyToken }: Props) {
       setLoading(false);
     }
   };
+
+  // Handle verification token from URL
+  useEffect(() => {
+    if (initialVerifyToken) {
+      verifyToken(initialVerifyToken);
+    }
+  }, [initialVerifyToken]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
