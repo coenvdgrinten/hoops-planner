@@ -130,7 +130,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         # We need coached_teams too – prefetch them
     # Re-fetch players with coached_teams prefetched
     player_coached = {
-        p.id: list(p.coached_teams.values("id"))
+        p.id: [ct.id for ct in p.coached_teams.all()]
         for p in Player.objects.filter(
             id__in=[p.id for p in all_players]
         ).prefetch_related("coached_teams")
