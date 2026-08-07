@@ -203,14 +203,13 @@ export function App() {
           )}
         </main>
 
-        {/* Right Panel */}
-        {selectedTask && (
-          <AssignmentPanel
-            task={selectedTask.task}
-            gameId={selectedTask.gameId}
-            onClose={handleClosePanel}
-          />
-        )}
+        {/* Right Panel — always mounted so query cache stays warm */}
+        <AssignmentPanel
+          task={selectedTask?.task}
+          gameId={selectedTask?.gameId}
+          open={!!selectedTask}
+          onClose={handleClosePanel}
+        />
       </div>
 
       {importType && (

@@ -11,8 +11,9 @@ import {
 import styles from "./AssignmentPanel.module.css";
 
 interface Props {
-  task: TaskWithAssignments;
-  gameId: number;
+  task: TaskWithAssignments | undefined;
+  gameId: number | undefined;
+  open: boolean;
   onClose: () => void;
 }
 
@@ -26,41 +27,53 @@ const TASK_LABELS: Record<string, string> = {
 export function AssignmentPanel({
   task,
   gameId,
+  open,
   onClose,
 }: Props) {
   const [search, setSearch] = useState("");
   const [lastError, setLastError] = useState<string | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
   const queryClient = useQueryClient();
-  const prevTaskId = useRef(task.id);
+  const prevTaskId = useRef<number | undefined>(undefined);
 
   // Reset search and error when switching to a different task
   useEffect(() => {
-    if (task.id !== prevTaskId.current) {
-      prevTaskId.current = task.id;
+    if (task?.id !== prevTaskId.current) {
+      prevTaskId.current = task?.id;
       setSearch("");
       setLastError(null);
     }
-  }, [task.id]);
+  }, [task?.id]);
+
+  // Hide panel when not open (keeps component mounted so cache persists)
+  return (
+    <aside
+      data-testid="assignment-panel"
+      className={styles["assignment-panel"]}
+      style={{ display: open ? undefined : "none" }}
+    >
 
   // Fetch task data — stays in sync after mutations via invalidation
   const { data: currentTask } = useQuery({
     queryKey: ["tasks-with-assignments", gameId],
-    queryFn: () => getTasksWithAssignments(gameId),
+    queryFn: () => getTasksWithAssignments(gameId!),
+    enabled: open && !!gameId,
   });
 
-  const fetchedTask = currentTask?.find((t) => t.id === task.id) ?? task;
+  const fetchedTask = currentTask?.find((t) => t.id === task?.id) ?? task;
 
   // Fetch team eligibility data
   const { data: teamEligibility = [] } = useQuery({
-    queryKey: ["team-eligibility", task.id],
-    queryFn: () => getTeamEligibility(task.id),
+    queryKey: ["team-eligibility", task?.id],
+    queryFn: () => getTeamEligibility(task!.id),
+    enabled: open && !!task?.id,
   });
 
   // Fetch suggested candidates
   const { data: candidates = [] } = useQuery({
-    queryKey: ["candidate-details", task.id],
-    queryFn: () => getCandidateDetails(task.id),
+    queryKey: ["candidate-details", task?.id],
+    queryFn: () => getCandidateDetails(task!.id),
+    enabled: open && !!task?.id,
   });
 
   // Assign mutation

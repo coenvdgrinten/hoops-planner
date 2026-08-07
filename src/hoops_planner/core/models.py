@@ -96,8 +96,7 @@ class Player(models.Model):
     is_exempt = models.BooleanField(
         default=False,
         help_text=(
-            "Whether this player is exempt from task assignments "
-            "(e.g., board members)."
+            "Whether this player is exempt from task assignments (e.g., board members)."
         ),
     )
 
