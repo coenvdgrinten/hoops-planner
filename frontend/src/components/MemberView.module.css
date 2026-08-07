@@ -201,6 +201,28 @@
   flex-shrink: 0;
 }
 
+.exempt-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.exempt-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8b8fa3;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.exempt-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #016c30;
+}
+
 .cert-label {
   font-size: 10px;
   font-weight: 600;
