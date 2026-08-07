@@ -108,15 +108,6 @@ export function GameCard({
           {allAssigned && (
             <span className={styles["staffed-badge"]}>FULLY STAFFED</span>
           )}
-          {totalAssignments > 0 && (
-            <button
-              className={styles["game-clear-btn"]}
-              onClick={handleClear}
-              title="Clear all assignments"
-            >
-              ✕
-            </button>
-          )}
           <button
             className={styles["game-edit-btn"]}
             onClick={() => onEditGame(id)}
@@ -124,6 +115,15 @@ export function GameCard({
           >
             ✎
           </button>
+          {totalAssignments > 0 && (
+            <button
+              className={styles["game-clear-btn"]}
+              onClick={handleClear}
+              title="Clear all assignments"
+            >
+              ↺
+            </button>
+          )}
         </div>
       </div>
 
