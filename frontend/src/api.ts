@@ -434,10 +434,35 @@ export function login(username: string, password: string) {
 }
 
 export function register(username: string, password: string, email: string) {
-  return request<AuthResponse>("/auth/register/", {
+  return request<{ detail: string; token: string }>("/auth/register/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password, email }),
+  });
+}
+
+export interface PendingUser {
+  id: number;
+  username: string;
+  email: string;
+  date_joined: string;
+}
+
+export function getPendingUsers() {
+  return request<PendingUser[]>("/auth/pending_users/");
+}
+
+export function approveUser(userId: number) {
+  return request<{ detail: string }>("/auth/approve_user/", {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId }),
+  });
+}
+
+export function rejectUser(userId: number) {
+  return request<{ detail: string }>("/auth/reject_user/", {
+    method: "DELETE",
+    body: JSON.stringify({ user_id: userId }),
   });
 }
 

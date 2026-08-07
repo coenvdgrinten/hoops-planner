@@ -45,9 +45,9 @@ export function Login({ onLogin }: Props) {
           break;
         }
         case "register": {
-          const result: AuthResponse = await register(username, password, email);
-          setAuth(result.token, result.user);
-          onLogin();
+          await register(username, password, email);
+          setSuccess("Account created. Please check your email to verify your address. An admin will then review your account.");
+          setMode("login");
           break;
         }
         case "password_reset": {

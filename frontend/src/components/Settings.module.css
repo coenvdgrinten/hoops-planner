@@ -87,3 +87,67 @@
   color: #6b7088;
   font-size: 14px;
 }
+
+.settings-section {
+  margin-top: 32px;
+}
+
+.settings-section h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.pending-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-approve {
+  padding: 4px 12px;
+  border: 1px solid #016c30;
+  border-radius: 6px;
+  background: #016c30;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-approve:hover {
+  background: #004d1f;
+}
+
+.btn-approve:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-reject {
+  padding: 4px 12px;
+  border: 1px solid #e0e2ea;
+  border-radius: 6px;
+  background: white;
+  color: #4b5068;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-reject:hover {
+  border-color: #dc3545;
+  color: #dc3545;
+  background: #fef2f2;
+}
+
+.btn-reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.empty-msg {
+  color: #7a7e94;
+  font-size: 13px;
+  font-style: italic;
+}

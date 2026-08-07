@@ -50,5 +50,8 @@ urlpatterns = [
         auth_views.verify_email_confirm,
         name="verify_email_confirm",
     ),
+    path("auth/pending_users/", auth_views.pending_users, name="pending_users"),
+    path("auth/approve_user/", auth_views.approve_user, name="approve_user"),
+    path("auth/reject_user/", auth_views.reject_user, name="reject_user"),
     path("game_ics/", game_ics, name="game_ics"),
 ] + router.urls

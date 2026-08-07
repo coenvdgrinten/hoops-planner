@@ -52,6 +52,19 @@ class TestLogin:
         )
         assert response.status_code == 401
 
+    def test_login_blocked_for_inactive_user(self, auth_client):
+        user = User.objects.create_user(
+            username="inactiveuser",
+            password="pass123",
+            is_active=False,
+        )
+        response = auth_client.post(
+            "/api/auth/login/",
+            {"username": "inactiveuser", "password": "pass123"},
+            format="json",
+        )
+        assert response.status_code == 403
+
     def test_login_missing_fields(self, auth_client):
         response = auth_client.post(
             "/api/auth/login/",
@@ -75,9 +88,33 @@ class TestRegister:
         )
         assert response.status_code == 201
         data = response.json()
-        assert "token" in data
-        assert data["user"]["username"] == "newuser"
-        assert User.objects.filter(username="newuser").exists()
+        assert "detail" in data
+        assert "token" in data  # email verification token
+        user = User.objects.get(username="newuser")
+        assert not user.is_active  # pending approval
+
+    def test_register_missing_email(self, auth_client):
+        response = auth_client.post(
+            "/api/auth/register/",
+            {
+                "username": "newuser",
+                "password": "newpass123",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_register_duplicate_email(self, auth_client, test_user):
+        response = auth_client.post(
+            "/api/auth/register/",
+            {
+                "username": "newuser",
+                "password": "newpass123",
+                "email": test_user.email,
+            },
+            format="json",
+        )
+        assert response.status_code == 400
 
     def test_register_duplicate_username(self, auth_client, test_user):
         response = auth_client.post(
@@ -373,4 +410,4 @@ class TestEmailVerification:
         )
         assert response.status_code == 200
         inactive_user.refresh_from_db()
-        assert inactive_user.is_active
+        assert not inactive_user.is_active  # still needs admin approval

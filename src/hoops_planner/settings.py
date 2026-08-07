@@ -79,10 +79,17 @@ CORS_ALLOW_CREDENTIALS = True
 # Site URL for password reset / email verification links
 SITE_URL = os.getenv("SITE_URL", "http://localhost:5173")
 
-# Email backend (console for development)
-EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
+# Email backend (console for development, SMTP for production)
+EMAIL_CONFIG = os.getenv("EMAIL_BACKEND", "").startswith("django.core.mail.backends.smtp")
+if EMAIL_CONFIG:
+    EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+    EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+    EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+    EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "hoops-planner@localhost")
 
 # REST framework settings

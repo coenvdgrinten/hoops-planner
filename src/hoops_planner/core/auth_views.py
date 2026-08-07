@@ -41,6 +41,12 @@ def login(request):
             status=status.HTTP_401_UNAUTHORIZED,
         )
 
+    if not user.is_active:
+        return Response(
+            {"detail": "Account is pending approval. Please wait for an admin to approve your account."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     token, _ = Token.objects.get_or_create(user=user)
     return Response(
         {
@@ -58,14 +64,14 @@ def login(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
-    """Create a new user and return their token."""
+    """Create a new user pending email verification and admin approval."""
     username = request.data.get("username", "").strip()
     password = request.data.get("password", "")
     email = request.data.get("email", "").strip()
 
-    if not username or not password:
+    if not username or not password or not email:
         return Response(
-            {"detail": "Username and password are required."},
+            {"detail": "Username, password, and email are required."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -75,18 +81,43 @@ def register(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    user = User.objects.create_user(username=username, password=password, email=email)
-    token = Token.objects.create(user=user)
+    if User.objects.filter(email=email).exists():
+        return Response(
+            {"detail": "A user with that email already exists."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Create user as inactive — needs email verification + admin approval
+    user = User.objects.create_user(
+        username=username, password=password, email=email, is_active=False
+    )
+
+    # Send verification email
+    EmailVerificationToken.objects.filter(user=user).delete()
+    token_value = secrets.token_urlsafe(32)
+    expires = timezone.now() + timedelta(hours=24)
+    EmailVerificationToken.objects.create(
+        user=user,
+        token=token_value,
+        expires_at=expires,
+    )
+
+    send_mail(
+        subject="Hoops Planner — Verify Your Email",
+        message=(
+            f"Click the link below to verify your email address:\n\n"
+            f"{settings.SITE_URL}/verify-email/{token_value}\n\n"
+            "After verification, an admin will review and approve your account."
+        ),
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@example.com"),
+        recipient_list=[email],
+        fail_silently=True,
+    )
 
     return Response(
         {
-            "token": token.key,
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "is_staff": user.is_staff,
-            },
+            "detail": "Account created. Please check your email to verify your address. An admin will then review your account.",
+            "token": token_value,
         },
         status=status.HTTP_201_CREATED,
     )
@@ -245,10 +276,84 @@ def verify_email_confirm(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Mark user as active if they weren't already
-    if not verification.user.is_active:
-        verification.user.is_active = True
-        verification.user.save(update_fields=["is_active"])
-
+    # Email verified — user still needs admin approval
     verification.delete()
-    return Response({"detail": "Email verified successfully."})
+    return Response({"detail": "Email verified successfully. An admin will review your account."})
+
+
+@api_view(["GET"])
+def pending_users(request):
+    """List users awaiting admin approval (inactive + verified email)."""
+    # Get inactive users who have verified their email (no pending tokens)
+    pending = User.objects.filter(
+        is_active=False,
+    ).exclude(
+        pk__in=EmailVerificationToken.objects.values_list("user_id", flat=True)
+    ).order_by("-date_joined")
+
+    return Response([
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "date_joined": u.date_joined,
+        }
+        for u in pending
+    ])
+
+
+@api_view(["POST"])
+def approve_user(request):
+    """Approve a pending user (admin only)."""
+    user_id = request.data.get("user_id")
+    if not user_id:
+        return Response(
+            {"detail": "user_id is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response(
+            {"detail": "User not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    user.is_active = True
+    user.save(update_fields=["is_active"])
+
+    # Create auth token so they can log in
+    Token.objects.get_or_create(user=user)
+
+    return Response({"detail": f"User {user.username} has been approved."})
+
+
+@api_view(["DELETE"])
+def reject_user(request):
+    """Reject and delete a pending user (admin only)."""
+    user_id = request.data.get("user_id")
+    if not user_id:
+        return Response(
+            {"detail": "user_id is required."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response(
+            {"detail": "User not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if user.is_active:
+        return Response(
+            {"detail": "User is already active."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    username = user.username
+    user.delete()
+
+    return Response({"detail": f"User {username} has been rejected."})

@@ -2,8 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getTeamSettings,
   updateTeamSettings,
+  getPendingUsers,
+  approveUser,
+  rejectUser,
 } from "../api";
 import type { Team } from "../types";
+import type { PendingUser } from "../api";
 import styles from "./Settings.module.css";
 
 export function Settings() {
@@ -11,6 +15,11 @@ export function Settings() {
   const { data: teams = [], isLoading, error } = useQuery({
     queryKey: ["team-settings"],
     queryFn: getTeamSettings,
+  });
+
+  const { data: pendingUsers = [] } = useQuery({
+    queryKey: ["pending-users"],
+    queryFn: getPendingUsers,
   });
 
   const teamMutation = useMutation({
@@ -23,6 +32,20 @@ export function Settings() {
     }) => updateTeamSettings(teamId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-settings"] });
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: approveUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-users"] });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: rejectUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pending-users"] });
     },
   });
 
@@ -122,6 +145,57 @@ export function Settings() {
           ))}
         </tbody>
       </table>
+
+      {/* Pending Users */}
+      <div className={styles["settings-section"]}>
+        <h3>Pending Users</h3>
+        <p className={styles["settings-subtitle"]}>
+          Users who have registered and verified their email, awaiting your approval.
+        </p>
+        {pendingUsers.length === 0 ? (
+          <p className={styles["empty-msg"]}>No pending users</p>
+        ) : (
+          <table className={styles["settings-table"]}>
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Registered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingUsers.map((u) => (
+                <tr key={u.id}>
+                  <td className={styles["settings-member-name"]}>{u.username}</td>
+                  <td>{u.email}</td>
+                  <td>{new Date(u.date_joined).toLocaleDateString()}</td>
+                  <td className={styles["pending-actions"]}>
+                    <button
+                      className={styles["btn-approve"]}
+                      onClick={() => approveMutation.mutate(u.id)}
+                      disabled={approveMutation.isPending}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className={styles["btn-reject"]}
+                      onClick={() => {
+                        if (confirm(`Reject user "${u.username}"?`)) {
+                          rejectMutation.mutate(u.id);
+                        }
+                      }}
+                      disabled={rejectMutation.isPending}
+                    >
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
