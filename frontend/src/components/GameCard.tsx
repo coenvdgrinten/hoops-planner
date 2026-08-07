@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getTasksWithAssignments } from "../api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getTasksWithAssignments, clearGameAssignments } from "../api";
 import type { TaskWithAssignments } from "../types";
 import styles from "./GameCard.module.css";
 
@@ -40,6 +40,7 @@ export function GameCard({
   onSelectTask,
   onEditGame,
 }: Props) {
+  const queryClient = useQueryClient();
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks-with-assignments", id],
     queryFn: () => getTasksWithAssignments(id),
@@ -48,6 +49,23 @@ export function GameCard({
   // Check if all tasks are assigned
   const allAssigned =
     tasks.length > 0 && tasks.every((t) => t.assignments.length > 0);
+
+  // Count total assignments for this game
+  const totalAssignments = tasks.reduce(
+    (sum, t) => sum + t.assignments.length,
+    0
+  );
+
+  const handleClear = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!confirm("Clear all task assignments for this game?")) return;
+      clearGameAssignments(id).then(() => {
+        queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", id] });
+      });
+    },
+    [id, queryClient]
+  );
 
   const handleSelectTask = useCallback(
     (task: TaskWithAssignments) => {
@@ -89,6 +107,15 @@ export function GameCard({
         <div className={styles["game-card-right"]}>
           {allAssigned && (
             <span className={styles["staffed-badge"]}>FULLY STAFFED</span>
+          )}
+          {totalAssignments > 0 && (
+            <button
+              className={styles["game-clear-btn"]}
+              onClick={handleClear}
+              title="Clear all assignments"
+            >
+              ✕
+            </button>
           )}
           <button
             className={styles["game-edit-btn"]}

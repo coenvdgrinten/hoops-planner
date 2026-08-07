@@ -32,6 +32,8 @@ def is_eligible(player: Player, task: Task) -> bool:
 
 def get_ineligibility_reason(player: Player, task: Task) -> str | None:
     """Return the reason a player is ineligible, or None if eligible."""
+    if player.is_exempt:
+        return "Exempt from task assignments"
     if _already_assigned_to_game(player, task.game):
         return "Already assigned to this game"
     if _already_assigned_at_same_time(player, task.game):

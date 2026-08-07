@@ -247,6 +247,13 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = TaskWithAssignmentsSerializer(tasks, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["post"])
+    def clear_assignments(self, request, pk=None):
+        """Remove all task assignments for this game."""
+        game = self.get_object()
+        count, _ = TaskAssignment.objects.filter(task__game=game).delete()
+        return Response({"cleared": count})
+
 
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()

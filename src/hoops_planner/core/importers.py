@@ -264,9 +264,10 @@ def import_members(
 
     Optional CSV columns:
     coached_teams — comma-separated list of team names this player coaches
+    is_exempt — whether the player is exempt from tasks (board members)
 
     referee_certification can be: NONE, T1, T2, T3, T4, T5, T6
-    is_coach can be: True/False, yes/no, 1/0
+    is_coach / is_exempt can be: True/False, yes/no, 1/0
 
     Returns a summary dict with counts of created/updated objects.
     """
@@ -288,6 +289,7 @@ def import_members(
         first_name = row["first_name"].strip()
         last_name = row["last_name"].strip()
         is_coach = _parse_bool(row.get("is_coach", "False"))
+        is_exempt = _parse_bool(row.get("is_exempt", "False"))
         cert = row.get("referee_certification", "NONE").strip().upper()
 
         # Validate certification value
@@ -318,6 +320,7 @@ def import_members(
                 defaults={
                     "team": team,
                     "is_coach": is_coach,
+                    "is_exempt": is_exempt,
                     "referee_certification": cert,
                 },
             )
@@ -326,6 +329,7 @@ def import_members(
             if not is_new:
                 player.team = team
                 player.is_coach = is_coach
+                player.is_exempt = is_exempt
                 player.referee_certification = cert
                 player.save()
                 created["players_updated"] += 1
@@ -337,6 +341,7 @@ def import_members(
                 last_name=last_name,
                 team=team,
                 is_coach=is_coach,
+                is_exempt=is_exempt,
                 referee_certification=cert,
             )
             if coached_teams:

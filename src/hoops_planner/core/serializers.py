@@ -55,6 +55,7 @@ class PlayerSerializer(serializers.ModelSerializer):
             "is_coach",
             "coached_teams",
             "referee_certification",
+            "is_exempt",
         ]
         read_only_fields = ["full_name"]
 

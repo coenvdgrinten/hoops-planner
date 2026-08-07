@@ -35,6 +35,7 @@ export interface Player {
   is_coach: boolean;
   coached_teams: number[];
   referee_certification: string;
+  is_exempt: boolean;
 }
 
 export interface Game {

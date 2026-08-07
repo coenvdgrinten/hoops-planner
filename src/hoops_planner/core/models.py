@@ -93,6 +93,13 @@ class Player(models.Model):
         choices=RefereeCertification.choices,
         default=RefereeCertification.NONE,
     )
+    is_exempt = models.BooleanField(
+        default=False,
+        help_text=(
+            "Whether this player is exempt from task assignments "
+            "(e.g., board members)."
+        ),
+    )
 
     class Meta:
         ordering = ["last_name", "first_name"]

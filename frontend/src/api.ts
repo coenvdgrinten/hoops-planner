@@ -334,6 +334,12 @@ export function deleteGame(gameId: number) {
   return request<void>(`/games/${gameId}/`, { method: "DELETE" });
 }
 
+export function clearGameAssignments(gameId: number) {
+  return request<{ cleared: number }>(`/games/${gameId}/clear_assignments/`, {
+    method: "POST",
+  });
+}
+
 // Tasks
 export function getTasks(game: number) {
   return request<Task[]>(`/tasks/?game=${game}`);

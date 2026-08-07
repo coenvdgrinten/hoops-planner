@@ -689,3 +689,21 @@ class TestCombinedRules:
             slot_number=1,
         )
         assert is_eligible(player, task) is False
+
+
+@pytest.mark.django_db
+class TestExemptPlayers:
+    def test_exempt_player_is_not_eligible(self, player, task):
+        player.is_exempt = True
+        player.save()
+        assert is_eligible(player, task) is False
+
+    def test_exempt_player_not_in_eligible_list(self, player, task):
+        player.is_exempt = True
+        player.save()
+        assert player not in get_eligible_players(task)
+
+    def test_non_exempt_player_is_eligible(self, player, task):
+        player.is_exempt = False
+        player.save()
+        assert is_eligible(player, task) is True
