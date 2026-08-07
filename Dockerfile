@@ -28,6 +28,13 @@ RUN uv sync --frozen
 # Set Python path
 ENV PYTHONPATH=/app/src
 
+# Copy and make entrypoint executable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["uv", "run", "manage.py", "runserver", "0.0.0.0:8000"]
+
 # Create media directory and copy assets
 RUN mkdir -p /app/media/assets
 COPY media/assets/ /app/media/assets/
