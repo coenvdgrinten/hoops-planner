@@ -14,6 +14,7 @@ from hoops_planner.core.models import (
 )
 from hoops_planner.core.suggestions import (
     get_candidate_details,
+    get_team_eligibility,
     suggest_candidates,
 )
 
@@ -512,3 +513,184 @@ class TestGetCandidateDetails:
         assert (
             found[0][2] == "before"
         )  # at gym (player's game is before the task's game)
+
+
+@pytest.mark.django_db
+class TestGetTeamEligibility:
+    def test_returns_all_teams(self, season):
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        Player.objects.create(
+            first_name="PlayerA", last_name="Doe", team=team_a
+        )
+        Player.objects.create(
+            first_name="PlayerB", last_name="Doe", team=team_b
+        )
+        home_team = Team.objects.create(
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=home_team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        results = get_team_eligibility(task)
+        team_names = [r["team"].name for r in results]
+        assert team_a.name in team_names
+        assert team_b.name in team_names
+
+    def test_team_player_details(self, season):
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        player = Player.objects.create(
+            first_name="Player", last_name="Doe", team=team
+        )
+        home_team = Team.objects.create(
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=home_team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        results = get_team_eligibility(task)
+        team_result = [r for r in results if r["team"] == team][0]
+        assert len(team_result["players"]) == 1
+        p_info = team_result["players"][0]
+        assert p_info["player"] == player
+        assert p_info["eligible"] is True
+        assert p_info["task_count"] == 0
+
+    def test_exempt_player_not_eligible(self, season):
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        Player.objects.create(
+            first_name="Exempt", last_name="Player", team=team, is_exempt=True
+        )
+        home_team = Team.objects.create(
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=home_team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        results = get_team_eligibility(task)
+        team_result = [r for r in results if r["team"] == team][0]
+        p_info = team_result["players"][0]
+        assert p_info["eligible"] is False
+        assert team_result["eligible_count"] == 0
+
+    def test_eligible_count_correct(self, season):
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        Player.objects.create(
+            first_name="Eligible", last_name="Player", team=team
+        )
+        Player.objects.create(
+            first_name="Exempt", last_name="Player", team=team, is_exempt=True
+        )
+        home_team = Team.objects.create(
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=home_team,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        results = get_team_eligibility(task)
+        team_result = [r for r in results if r["team"] == team][0]
+        assert team_result["eligible_count"] == 1
+
+    def test_at_gym_flag_in_team_eligibility(self, season):
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        player = Player.objects.create(
+            first_name="AtGym", last_name="Player", team=team_a
+        )
+        # Team A has a game adjacent to the task game
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Opponent A",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(12, 0),
+            court=Game.Court.COURT_1,
+        )
+        home_team = Team.objects.create(
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=home_team,
+            away_team="Opponent B",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        results = get_team_eligibility(task)
+        team_result = [r for r in results if r["team"] == team_a][0]
+        p_info = team_result["players"][0]
+        assert p_info["at_gym"] == "before"  # Returns position string, not bool

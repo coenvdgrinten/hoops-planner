@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-echo "Starting Hoops Planner
+echo "Starting Hoops Planner..."
 
 # Build and start containers in background
 docker compose up --build -d
