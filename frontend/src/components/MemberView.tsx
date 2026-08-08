@@ -72,8 +72,9 @@ export function MemberView() {
     first_name: string;
     last_name: string;
     is_coach: boolean;
+    is_exempt: boolean;
     referee_certification: string;
-  }>({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE" });
+  }>({ first_name: "", last_name: "", is_coach: false, is_exempt: false, referee_certification: "NONE" });
   const [editPlayer, setEditPlayer] = useState<{
     first_name: string;
     last_name: string;

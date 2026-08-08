@@ -154,7 +154,7 @@ class TestVerifyEmailConfirm:
             email="verify@example.com",
             is_active=False,
         )
-        token = EmailVerificationToken.objects.create(
+        EmailVerificationToken.objects.create(
             user=user,
             token="valid_token_123",
             expires_at=timezone.now() + timezone.timedelta(hours=1),
@@ -167,9 +167,7 @@ class TestVerifyEmailConfirm:
         )
         assert response.status_code == 200
         # Token should be deleted after verification
-        assert not EmailVerificationToken.objects.filter(
-            user=user
-        ).exists()
+        assert not EmailVerificationToken.objects.filter(user=user).exists()
 
     def test_verify_invalid_token(self):
         client = APIClient()

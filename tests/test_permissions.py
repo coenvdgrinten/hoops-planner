@@ -58,9 +58,7 @@ class TestIsAuthenticatedOrReadOnly:
     def test_get_allowed_with_auth(self, factory, dummy_view):
         from django.contrib.auth.models import User
 
-        user = User.objects.create_user(
-            username="testuser", password="pass123"
-        )
+        user = User.objects.create_user(username="testuser", password="pass123")
         request = factory.get("/api/test/")
         request.user = user
         perm = IsAuthenticatedOrReadOnly()
@@ -69,9 +67,7 @@ class TestIsAuthenticatedOrReadOnly:
     def test_post_allowed_with_auth(self, factory, dummy_view):
         from django.contrib.auth.models import User
 
-        user = User.objects.create_user(
-            username="testuser", password="pass123"
-        )
+        user = User.objects.create_user(username="testuser", password="pass123")
         request = factory.post("/api/test/")
         request.user = user
         perm = IsAuthenticatedOrReadOnly()
@@ -91,9 +87,7 @@ class TestIsAuthenticated:
     def test_allowed_with_auth(self, factory, dummy_view):
         from django.contrib.auth.models import User
 
-        user = User.objects.create_user(
-            username="testuser", password="pass123"
-        )
+        user = User.objects.create_user(username="testuser", password="pass123")
         request = factory.get("/api/test/")
         request.user = user
         perm = IsAuthenticated()

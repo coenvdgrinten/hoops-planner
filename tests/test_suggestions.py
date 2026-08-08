@@ -526,12 +526,8 @@ class TestGetTeamEligibility:
             name="Vido X10-1",
             age_category=Team.AgeCategory.X10,
         )
-        Player.objects.create(
-            first_name="PlayerA", last_name="Doe", team=team_a
-        )
-        Player.objects.create(
-            first_name="PlayerB", last_name="Doe", team=team_b
-        )
+        Player.objects.create(first_name="PlayerA", last_name="Doe", team=team_a)
+        Player.objects.create(first_name="PlayerB", last_name="Doe", team=team_b)
         home_team = Team.objects.create(
             name="Vido X16-1",
             age_category=Team.AgeCategory.X16,
@@ -560,9 +556,7 @@ class TestGetTeamEligibility:
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
         )
-        player = Player.objects.create(
-            first_name="Player", last_name="Doe", team=team
-        )
+        player = Player.objects.create(first_name="Player", last_name="Doe", team=team)
         home_team = Team.objects.create(
             name="Vido X16-1",
             age_category=Team.AgeCategory.X16,
@@ -626,9 +620,7 @@ class TestGetTeamEligibility:
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
         )
-        Player.objects.create(
-            first_name="Eligible", last_name="Player", team=team
-        )
+        Player.objects.create(first_name="Eligible", last_name="Player", team=team)
         Player.objects.create(
             first_name="Exempt", last_name="Player", team=team, is_exempt=True
         )
@@ -659,7 +651,7 @@ class TestGetTeamEligibility:
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
         )
-        player = Player.objects.create(
+        Player.objects.create(
             first_name="AtGym", last_name="Player", team=team_a
         )
         # Team A has a game adjacent to the task game

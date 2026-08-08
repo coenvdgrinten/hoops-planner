@@ -254,6 +254,7 @@ export function updatePlayer(
     last_name: string;
     team_id: number;
     is_coach: boolean;
+    is_exempt: boolean;
     coached_teams: number[];
     referee_certification: string;
   }>,

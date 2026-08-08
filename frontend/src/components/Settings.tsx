@@ -7,7 +7,6 @@ import {
   rejectUser,
 } from "../api";
 import type { Team } from "../types";
-import type { PendingUser } from "../api";
 import styles from "./Settings.module.css";
 
 export function Settings() {
