@@ -651,9 +651,7 @@ class TestGetTeamEligibility:
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
         )
-        Player.objects.create(
-            first_name="AtGym", last_name="Player", team=team_a
-        )
+        Player.objects.create(first_name="AtGym", last_name="Player", team=team_a)
         # Team A has a game adjacent to the task game
         Game.objects.create(
             season=season,
