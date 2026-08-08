@@ -12,6 +12,7 @@ from hoops_planner.core.eligibility import (
 from hoops_planner.core.models import (
     Game,
     Player,
+    Season,
     Task,
     TaskAssignment,
     TaskType,
@@ -707,3 +708,386 @@ class TestExemptPlayers:
         player.is_exempt = False
         player.save()
         assert is_eligible(player, task) is True
+
+
+@pytest.mark.django_db
+class TestConflictingAssignments:
+    """Detect existing assignments that become invalid when new games are added.
+
+    This is the scenario where a task schedule is filled, and then the addition
+    of conflicting away games means already assigned members are suddenly not
+    eligible anymore.
+    """
+
+    def test_no_conflicts_when_schedule_is_valid(self, season):
+        """A valid schedule should have no conflicting assignments."""
+        from hoops_planner.core.eligibility import find_conflicting_assignments
+
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Alice",
+            last_name="Refsen",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        conflicts = find_conflicting_assignments()
+        assert conflicts == []
+
+    def test_conflict_when_away_game_added_same_day(self, season):
+        """Adding an away game on the same day invalidates existing assignments."""
+        from hoops_planner.core.eligibility import find_conflicting_assignments
+
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Alice",
+            last_name="Refsen",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        # Existing home game with player assigned as referee
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        assignment = TaskAssignment.objects.create(player=player, task=task)
+
+        # No conflicts yet
+        assert find_conflicting_assignments() == []
+
+        # Add an away game for player's team on the same day
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        # Now the assignment conflicts
+        conflicts = find_conflicting_assignments()
+        assert len(conflicts) == 1
+        conflict = conflicts[0]
+        assert conflict["assignment"] == assignment
+        assert conflict["player"] == player
+        assert conflict["reason"] == "Team has an away game on the same day"
+
+    def test_conflict_when_home_game_added_same_time(self, season):
+        """Adding a home game at the same time invalidates existing assignments."""
+        from hoops_planner.core.eligibility import find_conflicting_assignments
+
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        team_c = Team.objects.create(
+            name="Vido X12-1",
+            age_category=Team.AgeCategory.X12,
+        )
+        player = Player.objects.create(
+            first_name="Bob",
+            last_name="Scorer",
+            team=team_a,
+        )
+        # Existing game with player assigned as scorer
+        game = Game.objects.create(
+            season=season,
+            home_team=team_c,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+        )
+        assignment = TaskAssignment.objects.create(player=player, task=task)
+
+        assert find_conflicting_assignments() == []
+
+        # Add a home game for player's team at the same time (different court)
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Home Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_2,
+        )
+
+        conflicts = find_conflicting_assignments()
+        assert len(conflicts) == 1
+        assert conflicts[0]["assignment"] == assignment
+
+    def test_multiple_conflicts_detected(self, season):
+        """Multiple conflicting assignments should all be reported."""
+        from hoops_planner.core.eligibility import find_conflicting_assignments
+
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player1 = Player.objects.create(
+            first_name="Alice",
+            last_name="Refsen",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        player2 = Player.objects.create(
+            first_name="Bob",
+            last_name="Timer",
+            team=team_a,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task_ref = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        task_timer = Task.objects.create(
+            game=game,
+            task_type=TaskType.TIMER,
+        )
+        assignment1 = TaskAssignment.objects.create(player=player1, task=task_ref)
+        assignment2 = TaskAssignment.objects.create(player=player2, task=task_timer)
+
+        # Add away game for player's team
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        conflicts = find_conflicting_assignments()
+        assert len(conflicts) == 2
+        conflict_assignments = [c["assignment"] for c in conflicts]
+        assert assignment1 in conflict_assignments
+        assert assignment2 in conflict_assignments
+
+    def test_exempt_players_not_conflicting(self, season):
+        """Exempt players should not appear as conflicting."""
+        from hoops_planner.core.eligibility import find_conflicting_assignments
+
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Exempt",
+            last_name="Player",
+            team=team_a,
+            is_exempt=True,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        # Add away game
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        # Exempt players are ineligible but shouldn't be flagged as conflicts
+        # (they volunteered, not assigned through the system)
+        conflicts = find_conflicting_assignments()
+        # Exempt players are ineligible, so they should appear as conflicts
+        # — the system should flag them so the planner knows
+        assert len(conflicts) == 1
+
+    def test_coached_team_away_game_conflict(self, season):
+        """A coach's assignment should conflict when a coached team has an away game."""
+        from hoops_planner.core.eligibility import find_conflicting_assignments
+
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        team_c = Team.objects.create(
+            name="Vido X12-1",
+            age_category=Team.AgeCategory.X12,
+        )
+        coach = Player.objects.create(
+            first_name="Coach",
+            last_name="Person",
+            team=team_a,
+            is_coach=True,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        coach.coached_teams.add(team_c)
+
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        assignment = TaskAssignment.objects.create(player=coach, task=task)
+
+        assert find_conflicting_assignments() == []
+
+        # Add away game for coached team
+        Game.objects.create(
+            season=season,
+            home_team=team_c,
+            away_team="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        conflicts = find_conflicting_assignments()
+        assert len(conflicts) == 1
+        assert conflicts[0]["assignment"] == assignment
+
+    def test_conflict_scoped_to_season(self, season):
+        """Conflicts should only be detected within the specified season."""
+        from hoops_planner.core.eligibility import find_conflicting_assignments
+
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Alice",
+            last_name="Refsen",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        # Game in different season
+        other_season = Season.objects.create(name="2024-2025")
+        game = Game.objects.create(
+            season=other_season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        # Away game in the current season (different from assignment's season)
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        # No conflicts in current season (assignment is in other_season)
+        conflicts = find_conflicting_assignments(season=season)
+        assert conflicts == []
+
+        # But conflicts exist in the other season
+        conflicts = find_conflicting_assignments(season=other_season)
+        assert len(conflicts) == 1

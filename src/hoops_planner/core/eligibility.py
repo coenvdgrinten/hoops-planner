@@ -1,8 +1,11 @@
 """Eligibility checks for task assignments."""
 
+from typing import Any
+
 from hoops_planner.core.models import (
     Game,
     Player,
+    Season,
     Task,
     TaskAssignment,
     TaskType,
@@ -125,12 +128,10 @@ def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
     If the player's team (or a coached team) has an away game on the same day
     as this game, they can't be available for this task.
 
-    For AWAY games the player's team is stored in the away_team CharField,
-    not the home_team FK.
+    For AWAY games the player's team is stored in the home_team FK.
     """
-    team_names = [t.name for t in player.all_teams]
     return Game.objects.filter(
-        away_team__in=team_names,
+        home_team__in=player.all_teams,
         game_type=Game.GameType.AWAY,
         date=game.date,
     ).exists()
@@ -202,3 +203,76 @@ def _age_category_index(category: str) -> int:
 def _player_on_parent_responsible_team(player: Player) -> bool:
     """Check if any team the player belongs to has parent_responsible enabled."""
     return any(t.parent_responsible for t in player.all_teams)
+
+
+def find_conflicting_assignments(
+    season: Season | None = None,
+) -> list[dict[str, Any]]:
+    """Find existing task assignments that are no longer valid.
+
+    When new games are added (e.g., away games), previously valid assignments
+    may become invalid. This function scans all assignments and returns those
+    where the player is now ineligible.
+
+    Args:
+        season: Optional season to scope the search. If None, checks all seasons.
+
+    Returns:
+        List of dicts with keys: assignment, player, task, game, reason.
+    """
+    qs = TaskAssignment.objects.select_related("player", "task", "task__game")
+    if season is not None:
+        qs = qs.filter(task__game__season=season)
+
+    conflicts: list[dict[str, Any]] = []
+    for assignment in qs:
+        player = assignment.player
+        task = assignment.task
+        # Check all disqualification rules except "already assigned" which
+        # is expected for a valid assignment.
+        reasons = _get_conflict_reasons(player, task, assignment)
+        for reason in reasons:
+            conflicts.append({
+                "assignment": assignment,
+                "player": player,
+                "task": task,
+                "game": task.game,
+                "reason": reason,
+            })
+            break  # Report the first conflict reason
+    return conflicts
+
+
+def _get_conflict_reasons(
+    player: Player,
+    task: Task,
+    assignment: TaskAssignment,
+) -> list[str]:
+    """Return all conflict reasons for an assignment (excluding self-assignment).
+
+    This is like ``get_ineligibility_reason`` but checks *all* rules and
+    skips the "already assigned" checks that always fire for existing assignments.
+    """
+    reasons: list[str] = []
+    if player.is_exempt:
+        reasons.append("Exempt from task assignments")
+    if _team_has_home_game_at_same_time(player, task.game):
+        reasons.append("Team has a home game at the same time")
+    if _team_has_away_game_on_same_day(player, task.game):
+        reasons.append("Team has an away game on the same day")
+    if _player_team_involved_in_game(player, task.game, task.task_type):
+        reasons.append("Cannot be assigned to own team's game")
+    if task.task_type == TaskType.REFEREE:
+        if _player_team_is_lower_age_than_game_team(player, task.game):
+            reasons.append("Player's team is younger than game team")
+        if _player_lacks_required_referee_certification(player, task.game):
+            reasons.append("Missing required referee certification")
+    # Check same-time conflicts with OTHER assignments (not self)
+    other_at_time = TaskAssignment.objects.filter(
+        player=player,
+        task__game__date=task.game.date,
+        task__game__time=task.game.time,
+    ).exclude(pk=assignment.pk)
+    if other_at_time.exists():
+        reasons.append("Already assigned to another task at this time")
+    return reasons

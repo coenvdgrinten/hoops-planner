@@ -10,7 +10,10 @@ from hoops_planner.core import statistics as stats_logic
 from hoops_planner.core import suggestions as suggestion_logic
 from hoops_planner.core.calendar_export import export_schedule_ics
 from hoops_planner.core.csv_export import export_schedule_csv
-from hoops_planner.core.eligibility import get_eligible_players_with_indicator
+from hoops_planner.core.eligibility import (
+    find_conflicting_assignments,
+    get_eligible_players_with_indicator,
+)
 from hoops_planner.core.importers import import_members, import_schedule
 from hoops_planner.core.models import (
     Game,
@@ -126,6 +129,29 @@ class SeasonViewSet(viewsets.ModelViewSet):
                 ),
             },
         )
+
+    @action(detail=True, methods=["get"])
+    def conflicts(self, request, pk=None):
+        """Find task assignments that are no longer valid.
+
+        Returns a list of assignments where the player has become ineligible
+        due to newly added games (e.g., away games on the same day).
+        """
+        season = self.get_object()
+        conflicts = find_conflicting_assignments(season=season)
+        return Response([
+            {
+                "assignment_id": c["assignment"].id,
+                "player_id": c["player"].id,
+                "player_name": c["player"].full_name,
+                "task_type": c["task"].get_task_type_display(),
+                "game_id": c["game"].id,
+                "game_date": c["game"].date.isoformat(),
+                "game": str(c["game"]),
+                "reason": c["reason"],
+            }
+            for c in conflicts
+        ])
 
 
 class TeamViewSet(viewsets.ModelViewSet):

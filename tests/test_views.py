@@ -663,3 +663,264 @@ class TestAvailabilityEndpoint:
         assert "Jane Doe" in names
         assert "John Smith" in names
         assert "Coach Karlos" in names
+
+
+@pytest.mark.django_db
+class TestSeasonConflictsEndpoint:
+    def test_no_conflicts(self, api_client, season, team_x14, player):
+        """Empty season should return no conflicts."""
+        response = api_client.get(f"/api/seasons/{season.id}/conflicts/")
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_conflict_detected(self, api_client, season):
+        """Away game on same day should trigger a conflict."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Alice",
+            last_name="Refsen",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        # No conflict yet
+        response = api_client.get(f"/api/seasons/{season.id}/conflicts/")
+        assert response.status_code == 200
+        assert response.json() == []
+
+        # Add away game for player's team
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        # Now conflict should be detected
+        response = api_client.get(f"/api/seasons/{season.id}/conflicts/")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["player_name"] == "Alice Refsen"
+        assert data[0]["reason"] == "Team has an away game on the same day"
+
+    def test_conflict_response_fields(self, api_client, season):
+        """Conflict response should contain all expected fields."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Bob",
+            last_name="Timer",
+            team=team_a,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(game=game, task_type=TaskType.TIMER)
+        assignment = TaskAssignment.objects.create(player=player, task=task)
+
+        # Add home game for player's team at same time (different court)
+        Game.objects.create(
+            season=season,
+            home_team=team_a,
+            away_team="Home Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_2,
+        )
+
+        response = api_client.get(f"/api/seasons/{season.id}/conflicts/")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        conflict = data[0]
+        assert "assignment_id" in conflict
+        assert "player_id" in conflict
+        assert "player_name" in conflict
+        assert "task_type" in conflict
+        assert "game_id" in conflict
+        assert "game_date" in conflict
+        assert "game" in conflict
+        assert "reason" in conflict
+        assert conflict["assignment_id"] == assignment.id
+
+
+@pytest.mark.django_db
+class TestGameViewSetClearAssignments:
+    def test_clear_assignments(self, api_client, season, team_x14, player):
+        """Clear all assignments for a game."""
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(game=game, task_type=TaskType.SCORER)
+        TaskAssignment.objects.create(player=player, task=task)
+
+        response = api_client.post(f"/api/games/{game.id}/clear_assignments/")
+        assert response.status_code == 200
+        assert response.json()["cleared"] == 1
+        assert TaskAssignment.objects.count() == 0
+
+
+@pytest.mark.django_db
+class TestTaskSuggestionsEndpoint:
+    def test_suggestions(self, api_client, season):
+        """Get candidate suggestions for a task."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        referee = Player.objects.create(
+            first_name="Ref",
+            last_name="Person",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+
+        response = api_client.get(f"/api/tasks/{task.id}/suggestions/")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) >= 1
+        player_names = {p["full_name"] for p in data}
+        assert "Ref Person" in player_names
+
+    def test_candidate_details(self, api_client, season):
+        """Get detailed candidate info."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        referee = Player.objects.create(
+            first_name="Ref",
+            last_name="Person",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+
+        response = api_client.get(f"/api/tasks/{task.id}/candidate_details/")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) >= 1
+        assert "player" in data[0]
+        assert "task_count" in data[0]
+        assert "at_gym" in data[0]
+        assert "suggestion_reason" in data[0]
+
+    def test_team_eligibility(self, api_client, season):
+        """Get team eligibility data."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        Player.objects.create(
+            first_name="Ref",
+            last_name="Person",
+            team=team_a,
+            referee_certification=Player.RefereeCertification.F,
+        )
+        game = Game.objects.create(
+            season=season,
+            home_team=team_b,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+
+        response = api_client.get(f"/api/tasks/{task.id}/team_eligibility/")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) >= 1
+        assert "team" in data[0]
+        assert "players" in data[0]
+        assert "eligible_count" in data[0]
+        assert "at_gym_day" in data[0]
