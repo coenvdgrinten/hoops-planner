@@ -126,3 +126,89 @@ class TestExportSchedulePdf:
 
         # Unassigned slots should show the placeholder
         assert "unassigned" in html
+
+    def test_pdf_contains_24_second_operator(self, season, team_x14, player):
+        """Verify 24-second operator column appears when a team requires it."""
+        team_x14.requires_24_second_operator = True
+        team_x14.save()
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        Task.objects.create(
+            game=game,
+            task_type=TaskType.SECOND_24_OPERATOR,
+            slot_number=1,
+        )
+
+        html = _build_html(season)
+        assert "24 sec" in html
+
+    def test_pdf_multiple_referees(self, season, team_x14, player):
+        """Verify multiple referee columns appear."""
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        Task.objects.create(game=game, task_type=TaskType.REFEREE, slot_number=1)
+        Task.objects.create(game=game, task_type=TaskType.REFEREE, slot_number=2)
+
+        html = _build_html(season)
+        # Two referee columns should be present
+        assert "Scheidsr" in html
+        assert "Scheidsr #2" in html
+
+    def test_pdf_parent_responsible_label(self, season, team_x14, player):
+        """Verify parent_responsible players get 'Ouder van' label."""
+        team_x14.parent_responsible = True
+        team_x14.save()
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        scorer_task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(task=scorer_task, player=player)
+
+        html = _build_html(season)
+        assert "Ouder van John Doe" in html
+
+    def test_pdf_away_day_multiplier(self, season, team_x14, player):
+        """Verify away-day class is applied when player's team has no game."""
+        game = Game.objects.create(
+            season=season,
+            home_team=team_x14,
+            away_team="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        scorer_task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(task=scorer_task, player=player)
+
+        html = _build_html(season)
+        # Player's team has no game on this date → away-day class
+        assert "away-day" in html
