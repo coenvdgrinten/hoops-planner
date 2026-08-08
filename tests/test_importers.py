@@ -298,3 +298,88 @@ class TestTaskSlotStaffing:
         assert refs.count() == 2
         assert refs[0].slot_number == 1 and refs[0].optional is False
         assert refs[1].slot_number == 2 and refs[1].optional is True
+
+
+@pytest.mark.django_db
+class TestImportScheduleReplace:
+    def test_replace_deletes_existing_games(self):
+        """replace=True should delete existing games before importing."""
+        import_schedule(SCHEDULE_CSV, "2025-2026")
+        assert Game.objects.count() == 3
+
+        # Re-import with replace=True
+        result = import_schedule(SCHEDULE_CSV, "2025-2026", replace=True)
+        assert result["games_created"] == 3
+        assert Game.objects.count() == 3
+
+    def test_replace_removes_old_games(self):
+        """replace=True should remove games not in the new CSV."""
+        import_schedule(SCHEDULE_CSV, "2025-2026")
+        assert Game.objects.count() == 3
+
+        # Import a smaller schedule with replace=True
+        smaller_csv = (
+            "date,time,court,home_team,away_team\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
+        )
+        result = import_schedule(smaller_csv, "2025-2026", replace=True)
+        assert result["games_created"] == 1
+        assert Game.objects.count() == 1
+
+
+@pytest.mark.django_db
+class TestImportMembersExtended:
+    def test_parses_is_exempt(self):
+        csv_text = (
+            "first_name,last_name,team,is_coach,is_exempt,referee_certification\n"
+            "Board,Member,Vido X14-1,False,True,NONE\n"
+        )
+        import_members(csv_text)
+        player = Player.objects.get(first_name="Board")
+        assert player.is_exempt is True
+
+    def test_parses_coached_teams(self):
+        csv_text = (
+            "first_name,last_name,team,is_coach,coached_teams,referee_certification\n"
+            'Coach,Karlos,Vido X14-1,True,"Vido X10-1,Vido X12-1",NONE\n'
+        )
+        import_members(csv_text)
+        player = Player.objects.get(first_name="Coach")
+        coached = {t.name for t in player.coached_teams.all()}
+        assert "Vido X10-1" in coached
+        assert "Vido X12-1" in coached
+
+    def test_invalid_certification_defaults_to_none(self):
+        csv_text = (
+            "first_name,last_name,team,is_coach,referee_certification\n"
+            "John,Doe,Vido X14-1,False,INVALID\n"
+        )
+        import_members(csv_text)
+        player = Player.objects.get(first_name="John")
+        assert player.referee_certification == Player.RefereeCertification.NONE
+
+    def test_parse_bool_variants(self):
+        from hoops_planner.core.importers import _parse_bool
+
+        assert _parse_bool("True") is True
+        assert _parse_bool("true") is True
+        assert _parse_bool("yes") is True
+        assert _parse_bool("1") is True
+        assert _parse_bool("on") is True
+        assert _parse_bool("False") is False
+        assert _parse_bool("no") is False
+        assert _parse_bool("0") is False
+        assert _parse_bool("") is False
+
+    def test_import_without_upsert_creates_duplicates(self):
+        """Without upsert, importing twice creates duplicate players."""
+        import_members(MEMBERS_CSV, upsert=False)
+        result = import_members(MEMBERS_CSV, upsert=False)
+        assert result["players_created"] == 4
+        assert Player.objects.count() == 8
+
+    def test_import_without_upsert_creates_players(self):
+        """Without upsert, players are created fresh."""
+        result = import_members(MEMBERS_CSV, upsert=False)
+        assert result["players_created"] == 4
+        assert Player.objects.count() == 4
