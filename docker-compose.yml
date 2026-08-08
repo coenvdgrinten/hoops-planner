@@ -1,6 +1,18 @@
 name: hoops-planner
 
 services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=hoops_planner
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   backend:
     build: .
     ports:
@@ -9,7 +21,12 @@ services:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - PYTHONPATH=/app/src
-      - DB_PATH=/data/db.sqlite3
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=hoops_planner
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
       - SITE_URL=${SITE_URL:-http://localhost:5173}
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
       - EMAIL_HOST=${EMAIL_HOST:-}
@@ -21,8 +38,9 @@ services:
     volumes:
       - ./src:/app/src          # Mount source for hot-reload
       - ./tests:/app/tests      # Mount tests
-      - db-data:/data           # Persist SQLite DB
       - media-data:/app/media   # Persist uploaded files
+    depends_on:
+      - db
 
   frontend:
     build:
@@ -37,5 +55,5 @@ services:
       - backend
 
 volumes:
-  db-data:
+  pgdata:
   media-data:

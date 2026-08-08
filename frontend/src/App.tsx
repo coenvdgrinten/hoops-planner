@@ -8,6 +8,8 @@ import { Availability } from "./components/Availability";
 import { ImportModal } from "./components/ImportModal";
 import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
+import { ToastContextProvider, useToastContext } from "./components/ToastContext";
+import { useToast } from "./components/Toast";
 import { clearAuth, getUser, getToken } from "./api";
 import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
@@ -16,7 +18,8 @@ import "./styles/globals.css";
 
 type View = "planner" | "statistics" | "members" | "settings" | "availability";
 
-export function App() {
+function AppInner() {
+  const { addToast } = useToastContext();
   const [authenticated, setAuthenticated] = useState(!!getToken());
   const [user, setUser] = useState(getUser());
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
@@ -118,12 +121,12 @@ export function App() {
                   const data = await verifyEmailRequest();
                   if (data.token) {
                     await verifyEmailConfirm(data.token);
-                    alert("Email verified successfully!");
+                    addToast("Email verified successfully!", "success");
                   } else {
-                    alert("Verification email sent.");
+                    addToast("Verification email sent.", "info");
                   }
                 } catch (err) {
-                  alert(err instanceof Error ? err.message : "Failed to verify email");
+                  addToast(err instanceof Error ? err.message : "Failed to verify email", "error");
                 }
               }}
               title="Verify Email"
@@ -234,6 +237,16 @@ export function App() {
         />
       )}
     </div>
+  );
+}
+
+export function App() {
+  const { toasts, addToast, removeToast } = useToast();
+
+  return (
+    <ToastContextProvider toasts={toasts} addToast={addToast} removeToast={removeToast}>
+      <AppInner />
+    </ToastContextProvider>
   );
 }
 

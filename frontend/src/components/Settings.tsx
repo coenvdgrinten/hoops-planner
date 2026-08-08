@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastContext } from "./ToastContext";
 import {
   getTeamSettings,
   updateTeamSettings,
@@ -11,6 +12,8 @@ import styles from "./Settings.module.css";
 
 export function Settings() {
   const queryClient = useQueryClient();
+  const { addToast } = useToastContext();
+
   const { data: teams = [], isLoading, error } = useQuery({
     queryKey: ["team-settings"],
     queryFn: getTeamSettings,
@@ -32,6 +35,9 @@ export function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-settings"] });
     },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Failed to update team settings", "error");
+    },
   });
 
   const approveMutation = useMutation({
@@ -39,12 +45,18 @@ export function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-users"] });
     },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Failed to approve user", "error");
+    },
   });
 
   const rejectMutation = useMutation({
     mutationFn: rejectUser,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pending-users"] });
+    },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Failed to reject user", "error");
     },
   });
 

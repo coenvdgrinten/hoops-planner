@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToastContext } from "./ToastContext";
 import {
   getTeams,
   getPlayers,
@@ -32,6 +33,8 @@ const CERT_OPTIONS = ["NONE", "T1", "T2", "T3", "T4", "T5", "T6", "F", "SENIOR"]
 
 export function MemberView() {
   const queryClient = useQueryClient();
+  const { addToast } = useToastContext();
+
   const { data: teams = [], isLoading: teamsLoading } = useQuery({
     queryKey: ["teams"],
     queryFn: getTeams,
@@ -89,6 +92,9 @@ export function MemberView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["players"] });
     },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Failed to update certification", "error");
+    },
   });
 
   const exemptMutation = useMutation({
@@ -97,6 +103,9 @@ export function MemberView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["players"] });
     },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Failed to update exemption", "error");
+    },
   });
 
   const coachedTeamsMutation = useMutation({
@@ -104,6 +113,9 @@ export function MemberView() {
       updatePlayerCoachedTeams(playerId, teamIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["players"] });
+    },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Failed to update coached teams", "error");
     },
   });
 
@@ -123,6 +135,9 @@ export function MemberView() {
       setEditingTeamId(null);
       setNewTeam({ name: "", age_category: "X14" });
     },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Team operation failed", "error");
+    },
   });
 
   const playerMutation = useMutation<Player | void, Error,
@@ -139,6 +154,9 @@ export function MemberView() {
       setAddingPlayerForTeam(null);
       setEditingPlayerId(null);
       setNewPlayer({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE", is_exempt: false });
+    },
+    onError: (err) => {
+      addToast(err instanceof Error ? err.message : "Player operation failed", "error");
     },
   });
 
