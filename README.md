@@ -6,6 +6,7 @@
 [![Lint](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/lint.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/lint.yml)
 [![Type Check](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/typecheck.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/typecheck.yml)
 [![Tests](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/test.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/test.yml)
+[![E2E Tests](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/e2e.yml/badge.svg)](https://github.com/coenvdgrinten/hoops-planner/actions/workflows/e2e.yml)
 
 A task planning application for basketball clubs. Assign referees, scorers, timers, and 24-second operators to games while automatically enforcing eligibility rules and distributing tasks fairly across your roster.
 
