@@ -286,4 +286,53 @@ test.describe("Member View", () => {
 
     await expect(page.getByText("Alice NoCert")).toHaveCount(0);
   });
+
+  test("moves a player to another team", async ({ page }) => {
+    await page.goto("/");
+    await openMembers(page);
+
+    // Create a second team to move into
+    const destTeam = `Dest ${Date.now()}`;
+    await page.getByRole("button", { name: "+ Add Team" }).click();
+    await page.getByPlaceholder("Team name (e.g. Vido X14-1)").fill(destTeam);
+    await page
+      .locator("form, div")
+      .filter({ has: page.getByPlaceholder("Team name (e.g. Vido X14-1)") })
+      .getByRole("button", { name: "Save" })
+      .click();
+    const destId = await teamIdFor(page, destTeam);
+
+    // Open Alice's edit form in her current team
+    const teamId = await teamIdFor(page, teamName);
+    const group = page.getByTestId(`team-group-${teamId}`);
+    await group.getByTestId(`team-header-${teamId}`).click();
+
+    const aliceRow = page.getByText("Alice NoCert").first();
+    const playerId = (await aliceRow
+      .locator("..")
+      .locator("..")
+      .getByTestId(/^player-edit-\d+$/)
+      .getAttribute("data-testid"))!.replace("player-edit-", "");
+
+    await page.getByTestId(`player-edit-${playerId}`).click();
+    await page.getByTestId(`player-team-${playerId}`).selectOption({ label: destTeam });
+    await page
+      .locator("div")
+      .filter({ has: page.getByPlaceholder("Last name") })
+      .last()
+      .getByRole("button", { name: "Save" })
+      .click();
+
+    // Reload to drop any stale client-side expansion state, then verify
+    await page.reload();
+    await openMembers(page);
+
+    const destGroup = page.getByTestId(`team-group-${destId}`);
+    await destGroup.getByTestId(`team-header-${destId}`).click();
+    await expect(destGroup.getByText("Alice NoCert")).toBeVisible();
+
+    const srcGroup = page.getByTestId(`team-group-${teamId}`);
+    await srcGroup.getByTestId(`team-header-${teamId}`).click();
+    await expect(srcGroup.getByText("Alice NoCert")).toHaveCount(0);
+  });
 });

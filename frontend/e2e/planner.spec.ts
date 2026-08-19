@@ -108,6 +108,27 @@ test.describe("Planner", () => {
     }
   });
 
+  test("removes an assignment through the panel", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    const chip = page.getByTestId(/^task-chip-\d+$/).first();
+    await chip.click();
+    const panel = page.getByTestId("assignment-panel");
+    await expect(panel).toBeVisible({ timeout: 10_000 });
+
+    // Assign the first suggested candidate
+    const addBtn = panel.getByTestId(/^add-candidate-\d+$/).first();
+    await expect(addBtn).toBeVisible({ timeout: 10_000 });
+    await addBtn.click();
+    await expect(chip).toHaveClass(/filled/, { timeout: 10_000 });
+
+    // Remove the assignment again
+    await panel.getByTitle("Remove").click();
+    await expect(chip).toHaveClass(/unfilled/, { timeout: 10_000 });
+    await expect(panel.getByText("No one assigned yet")).toBeVisible();
+  });
+
   test("exports the schedule as CSV", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
