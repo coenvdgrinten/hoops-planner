@@ -10,10 +10,11 @@ import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
 import { ToastContextProvider, useToastContext } from "./components/ToastContext";
 import { useToast } from "./components/Toast";
-import { clearAuth, getUser, getToken, logout } from "./api";
+import { clearAuth, getBrand, getUser, getToken, logout } from "./api";
 import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
 import styles from "./App.module.css";
+import "./styles/theme.css";
 import "./styles/globals.css";
 
 type View = "planner" | "statistics" | "members" | "settings" | "availability";
@@ -37,6 +38,14 @@ function AppInner() {
     };
     window.addEventListener("auth:logout", handleLogout);
     return () => window.removeEventListener("auth:logout", handleLogout);
+  }, []);
+
+  // Brand (club name) from Settings — live-updated
+  const [brand, setBrandName] = useState(getBrand());
+  useEffect(() => {
+    const handleBrandChange = () => setBrandName(getBrand());
+    window.addEventListener("brand:changed", handleBrandChange);
+    return () => window.removeEventListener("brand:changed", handleBrandChange);
   }, []);
 
   // Close assignment panel when switching views
@@ -75,13 +84,14 @@ function AppInner() {
     return (
       <Login
         onLogin={handleLogin}
+        brand={brand}
         initialVerifyToken={decodeURIComponent(verifyMatch[1])}
       />
     );
   }
 
   if (!authenticated) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} brand={brand} />;
   }
 
   return (
@@ -89,8 +99,15 @@ function AppInner() {
       {/* Top Bar */}
       <header className={styles["top-bar"]}>
         <div className={styles["top-bar-left"]}>
-          <img src="/logo.png" alt="BC Vido" className={styles["logo-img"]} />
-          <span className={styles.brand}>Hoops Planner <span className={styles["brand-divider"]}>|</span> BC Vido</span>
+          <img src="/favicon.svg" alt="Logo" className={styles["logo-img"]} />
+          <span className={styles.brand}>
+            Hoops Planner
+            {brand && (
+              <>
+                <span className={styles["brand-divider"]}>|</span> {brand}
+              </>
+            )}
+          </span>
         </div>
         <div className={styles["top-bar-right"]}>
           <button

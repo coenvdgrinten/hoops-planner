@@ -56,6 +56,22 @@ export function clearAuth() {
   localStorage.removeItem(USER_KEY);
 }
 
+const BRAND_KEY = "hoops_brand";
+
+export function getBrand(): string {
+  return localStorage.getItem(BRAND_KEY)?.trim() ?? "";
+}
+
+export function setBrand(name: string) {
+  const trimmed = name.trim();
+  if (trimmed) {
+    localStorage.setItem(BRAND_KEY, trimmed);
+  } else {
+    localStorage.removeItem(BRAND_KEY);
+  }
+  window.dispatchEvent(new Event("brand:changed"));
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",

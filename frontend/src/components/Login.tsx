@@ -5,12 +5,13 @@ import styles from "./Login.module.css";
 
 interface Props {
   onLogin: () => void;
+  brand?: string;
   initialVerifyToken?: string;
 }
 
 type Mode = "login" | "register" | "password_reset" | "password_reset_confirm" | "verify_email";
 
-export function Login({ onLogin, initialVerifyToken }: Props) {
+export function Login({ onLogin, brand, initialVerifyToken }: Props) {
   const [mode, setMode] = useState<Mode>("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -128,9 +129,9 @@ export function Login({ onLogin, initialVerifyToken }: Props) {
     <div className={styles["auth-container"]}>
       <div className={styles["auth-card"]}>
         <div className={styles["auth-header"]}>
-          <img src="/logo.png" alt="BC Vido" className={styles["auth-logo"]} />
+          <img src="/favicon.svg" alt="Hoops Planner" className={styles["auth-logo"]} />
           <h2>Hoops Planner</h2>
-          <p className={styles["auth-subtitle"]}>BC Vido — Task Planning</p>
+          {brand && <p className={styles["auth-subtitle"]}>{brand} — Task Planning</p>}
         </div>
 
         <form onSubmit={handleSubmit} className={styles["auth-form"]}>

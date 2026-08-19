@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToastContext } from "./ToastContext";
 import {
+  getBrand,
+  setBrand,
   getTeamSettings,
   updateTeamSettings,
   getPendingUsers,
@@ -17,6 +20,7 @@ interface Props {
 export function Settings({ isStaff }: Props) {
   const queryClient = useQueryClient();
   const { addToast } = useToastContext();
+  const [brandName, setBrandName] = useState(getBrand());
 
   const { data: teams = [], isLoading, error } = useQuery({
     queryKey: ["team-settings"],
@@ -82,12 +86,42 @@ export function Settings({ isStaff }: Props) {
     <div className={styles.settings}>
       <div className={styles["settings-header"]}>
         <h2>Settings</h2>
-        <p className={styles["settings-subtitle"]}>
-          Configure how many task slots are created per team. Changes
-          apply to games imported or created afterwards.
-          Parents Responsible excludes players from Scorer/Timer suggestions.
-        </p>
       </div>
+
+      <div className={styles["settings-section"]}>
+        <h3>Appearance</h3>
+        <p className={styles["settings-subtitle"]}>
+          Show your club or organization name in the app header and on the
+          login screen. Leave empty to show only &quot;Hoops Planner&quot;.
+        </p>
+        <div className={styles["brand-row"]}>
+          <label htmlFor="brand-input">Club / organization name</label>
+          <input
+            id="brand-input"
+            type="text"
+            value={brandName}
+            placeholder="e.g. BC Vido"
+            onChange={(e) => setBrandName(e.target.value)}
+            onBlur={() => {
+              if (brandName.trim() !== getBrand()) {
+                setBrand(brandName);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setBrand(brandName);
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+          />
+        </div>
+      </div>
+
+      <p className={styles["settings-subtitle"]}>
+        Configure how many task slots are created per team. Changes
+        apply to games imported or created afterwards.
+        Parents Responsible excludes players from Scorer/Timer suggestions.
+      </p>
       <table className={styles["settings-table"]}>
         <thead>
           <tr>
@@ -212,8 +246,6 @@ export function Settings({ isStaff }: Props) {
             </tbody>
           </table>
         )}
-      </div>
-      )}
-    </div>
+      </div>      )}    </div>
   );
 }

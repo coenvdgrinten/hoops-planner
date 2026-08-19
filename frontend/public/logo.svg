@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="ballGrad" cx="38%" cy="32%" r="78%">
+      <stop offset="0%" stop-color="#fdba74"/>
+      <stop offset="45%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </radialGradient>
+    <clipPath id="ballClipPath">
+      <circle cx="512" cy="330" r="178"/>
+    </clipPath>
+  </defs>
+  <circle cx="512" cy="512" r="512" fill="#111111"/>
+  <circle cx="512" cy="512" r="452" fill="#ffffff"/>
+  <circle cx="512" cy="512" r="414" fill="none" stroke="#ea580c" stroke-width="10"/>
+  <g transform="rotate(-14 512 330)">
+    <circle cx="512" cy="330" r="185" fill="url(#ballGrad)"/>
+    <g clip-path="url(#ballClipPath)" fill="none" stroke="#111111" stroke-width="12" stroke-linecap="round">
+      <line x1="512" y1="145" x2="512" y2="515"/>
+      <line x1="327" y1="330" x2="697" y2="330"/>
+      <path d="M 380 199 Q 466 330 380 461"/>
+      <path d="M 644 199 Q 558 330 644 461"/>
+    </g>
+    <circle cx="512" cy="330" r="185" fill="none" stroke="#111111" stroke-width="14"/>
+  </g>
+  <text x="512" y="700" font-family="Lato, 'DejaVu Sans', sans-serif" font-size="150" font-weight="900" letter-spacing="4" text-anchor="middle" fill="#111111">HOOPS</text>
+  <text x="512" y="810" font-family="Lato, 'DejaVu Sans', sans-serif" font-size="84" font-weight="900" letter-spacing="14" text-anchor="middle" fill="#ea580c">PLANNER</text>
+</svg>
