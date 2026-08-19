@@ -8,26 +8,26 @@
   align-items: center;
   gap: 8px;
   padding: 7px 12px;
-  border: 1px solid #e0e2ea;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: white;
+  background: var(--color-surface);
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #4b5068;
+  color: var(--color-text-secondary);
   outline: none;
   transition: all 0.15s ease;
   min-width: 160px;
 }
 
 .season-dropdown-toggle:hover {
-  border-color: #d0d3df;
-  background: #fafbfc;
+  border-color: var(--color-border-hover);
+  background: var(--color-surface-hover);
 }
 
 .season-dropdown-toggle.open {
-  border-color: #016c30;
-  box-shadow: 0 0 0 3px rgba(1, 108, 48, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
 .season-dropdown-value {
@@ -40,7 +40,7 @@
 
 .season-chevron {
   font-size: 10px;
-  color: #8b8fa3;
+  color: var(--color-text-muted);
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
@@ -54,8 +54,8 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #e0e2ea;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   z-index: 100;
@@ -84,17 +84,17 @@
   background: none;
   cursor: pointer;
   font-size: 13px;
-  color: #4b5068;
+  color: var(--color-text-secondary);
   transition: background 0.1s ease;
 }
 
 .season-dropdown-item:hover {
-  background: #f8f9fc;
+  background: var(--color-bg);
 }
 
 .season-dropdown-item.selected {
-  background: #f0f9f4;
-  color: #016c30;
+  background: var(--color-success-bg);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -103,14 +103,14 @@
 }
 
 .season-check {
-  color: #016c30;
+  color: var(--color-primary);
   font-weight: 700;
   font-size: 14px;
 }
 
 .season-dropdown-new {
-  border-top: 1px solid #eef0f5;
-  color: #1a56db;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-info);
   font-weight: 600;
 }
 
@@ -119,8 +119,8 @@
   top: calc(100% + 6px);
   right: 0;
   z-index: 30;
-  background: white;
-  border: 1px solid #e3e6ee;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   padding: 12px;
@@ -133,15 +133,15 @@
 .season-create-form input {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #d4d8e2;
+  border: 1px solid var(--color-border-hover);
   border-radius: 8px;
   font-size: 14px;
 }
 
 .season-create-form input:focus {
   outline: none;
-  border-color: #1a56db;
-  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.15);
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .season-create-error {

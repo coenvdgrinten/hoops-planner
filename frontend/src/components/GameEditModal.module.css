@@ -9,24 +9,24 @@
 .form-row label {
   font-size: 13px;
   font-weight: 600;
-  color: #4b5068;
+  color: var(--color-text-secondary);
 }
 
 .form-row input,
 .form-row select {
   padding: 8px 12px;
-  border: 1px solid #e0e2ea;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 14px;
-  color: #1a1a2e;
+  color: var(--color-text);
   outline: none;
-  background: white;
+  background: var(--color-surface);
 }
 
 .form-row input:focus,
 .form-row select:focus {
-  border-color: #016c30;
-  box-shadow: 0 0 0 2px rgba(1, 108, 48, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
 }
 
 .form-actions {
@@ -35,12 +35,12 @@
   justify-content: flex-end;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 1px solid #e8eaf0;
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .btn-delete {
-  background: #dc2626;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-surface);
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
@@ -51,20 +51,20 @@
 }
 
 .btn-delete:hover {
-  background: #b91c1c;
+  background: var(--color-danger-dark);
 }
 
 .delete-confirm {
   margin-top: 12px;
   padding: 12px 16px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
   border-radius: 8px;
 }
 
 .delete-confirm p {
   font-size: 13px;
-  color: #991b1b;
+  color: var(--color-danger-dark);
   margin-bottom: 10px;
   font-weight: 500;
 }

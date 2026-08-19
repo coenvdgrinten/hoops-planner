@@ -14,30 +14,30 @@
 .half-filter label {
   font-size: 13px;
   font-weight: 600;
-  color: #4b5068;
+  color: var(--color-text-secondary);
 }
 
 .half-filter select {
   padding: 6px 12px;
-  border: 1px solid #e0e2ea;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: white;
+  background: var(--color-surface);
   font-size: 13px;
-  color: #4b5068;
+  color: var(--color-text-secondary);
   cursor: pointer;
   outline: none;
 }
 
 .half-filter select:focus {
-  border-color: #016c30;
-  box-shadow: 0 0 0 2px rgba(1, 108, 48, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
 }
 
 .statistics h2 {
   font-size: 22px;
   font-weight: 700;
   margin-bottom: 20px;
-  color: #1a1a2e;
+  color: var(--color-text);
 }
 
 .stat-cards {
@@ -48,26 +48,26 @@
 }
 
 .stat-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e8eaf0;
+  border: 1px solid var(--color-border-subtle);
 }
 
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #016c30;
+  color: var(--color-primary);
   line-height: 1;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #7a7e94;
+  color: var(--color-text-muted);
   margin-top: 6px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -75,19 +75,19 @@
 }
 
 .stat-section {
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e8eaf0;
+  border: 1px solid var(--color-border-subtle);
 }
 
 .stat-section h3 {
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 12px;
-  color: #1a1a2e;
+  color: var(--color-text);
 }
 
 .stat-section table {
@@ -99,13 +99,13 @@
 .stat-section td {
   text-align: left;
   padding: 10px 12px;
-  border-bottom: 1px solid #f0f1f5;
+  border-bottom: 1px solid var(--color-surface-hover);
   font-size: 13px;
 }
 
 .stat-section th {
   font-weight: 600;
-  color: #7a7e94;
+  color: var(--color-text-muted);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -115,6 +115,6 @@
   margin: 12px 2px 0;
   font-size: 12px;
   line-height: 1.5;
-  color: #7a7e94;
+  color: var(--color-text-muted);
   max-width: 640px;
 }

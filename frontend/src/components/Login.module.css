@@ -3,17 +3,17 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: #f8f9fc;
+  background: var(--color-bg);
 }
 
 .auth-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 40px 36px;
   width: 100%;
   max-width: 400px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e8eaf0;
+  border: 1px solid var(--color-border-subtle);
 }
 
 .auth-header {
@@ -30,39 +30,39 @@
 .auth-header h2 {
   font-size: 22px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--color-text);
   margin: 0;
 }
 
 .auth-subtitle {
   font-size: 13px;
-  color: #7a7e94;
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 
 .auth-form h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--color-text);
   margin-bottom: 16px;
 }
 
 .auth-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
   border-radius: 8px;
   padding: 10px 12px;
-  color: #991b1b;
+  color: var(--color-danger-dark);
   font-size: 13px;
   margin-bottom: 16px;
 }
 
 .auth-success {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
   border-radius: 8px;
   padding: 10px 12px;
-  color: #166534;
+  color: var(--color-success-strong);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -72,8 +72,8 @@
   padding: 10px 16px;
   border: none;
   border-radius: 8px;
-  background: #016c30;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-surface);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -82,7 +82,7 @@
 }
 
 .auth-submit:hover:not(:disabled) {
-  background: #004d1f;
+  background: var(--color-primary-hover);
 }
 
 .auth-submit:disabled {
@@ -93,13 +93,13 @@
 .auth-toggle {
   text-align: center;
   font-size: 13px;
-  color: #7a7e94;
+  color: var(--color-text-muted);
 }
 
 .auth-toggle button {
   background: none;
   border: none;
-  color: #016c30;
+  color: var(--color-primary);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;

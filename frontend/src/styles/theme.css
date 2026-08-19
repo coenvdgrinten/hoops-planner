@@ -1,0 +1,97 @@
+/*
+ * Design tokens — the single source of truth for all colors in the app.
+ *
+ * All CSS modules should reference these variables instead of raw hex values.
+ *
+ * Consolidations made during the hex → token migration (values that were
+ * near-duplicates and got merged into one token; flagged for review):
+ *   - #004d22        → --color-primary-hover   (was #004d1f)
+ *   - #5e627a #6b7088 #4a4d5e → --color-text-secondary (was #4b5068)
+ *   - #8b8fa3 #94a3b8 #9ca3af #64748b → --color-text-muted (was #7a7e94)
+ *   - #2a2f45        → --color-text
+ *   - #fafafc #f3f1ee → --color-surface-subtle (was #fafafa)
+ *   - #f5f6fa #f5f6f8 #f4f6fa #fafbfc #f8f7f5 #f0f1f5 → --color-surface-hover (was #f4f5f8)
+ *   - #eef0f5 #e3e6ee #e2e6ee #e2e4ea → --color-border-subtle (was #e8eaf0)
+ *   - #d6dae4 #d4d8e2 #c7c9d4 → --color-border-hover (was #d0d3df)
+ *   - #166534        → --color-success-strong  (was #16a34a)
+ *   - #f0fdf4 #e3f5ea → --color-success-bg (was #f0f9f4)
+ *   - #c6f0de #d1fae5 → --color-success-border (was #bbf7d0)
+ *   - #f59e0b        → --color-warning
+ *   - #fed7aa        → --color-warning-border  (was #fef3c7)
+ *   - #dc3545        → --color-danger-bright   (was #ef4444)
+ *   - #b91c1c        → --color-danger-dark     (was #991b1b)
+ *   - #fee2e2        → --color-danger-bg
+ *   - #1a56db #3b82f6 → --color-info (was #2563eb)
+ *   - #4338ca        → --color-accent-dark     (was #4f46e5)
+ */
+
+:root {
+  /* ===== Brand (basketball: orange / black / white) ===== */
+  --color-primary: #f97316;
+  --color-primary-hover: #ea580c;
+  --color-primary-tint: #ffedd5;
+
+  /* ===== Text ===== */
+  --color-text: #1a1a2e;
+  --color-text-secondary: #4b5068;
+  --color-text-muted: #7a7e94;
+
+  /* ===== Surfaces ===== */
+  --color-bg: #f8f9fc;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #fafafa;
+  --color-surface-hover: #f4f5f8;
+  --color-disabled: #d1d5db;
+
+  /* ===== Borders ===== */
+  --color-border: #e0e2ea;
+  --color-border-subtle: #e8eaf0;
+  --color-border-hover: #d0d3df;
+
+  /* ===== Status: success ===== */
+  --color-success: #22c55e;
+  --color-success-strong: #16a34a;
+  --color-success-bg: #f0f9f4;
+  --color-success-border: #bbf7d0;
+
+  /* ===== Status: warning ===== */
+  --color-warning: #d97706;
+  --color-warning-dark: #b45309;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fef3c7;
+
+  /* ===== Status: danger ===== */
+  --color-danger: #dc2626;
+  --color-danger-bright: #ef4444;
+  --color-danger-dark: #991b1b;
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fecaca;
+  --color-danger-border-hover: #fca5a5;
+
+  /* ===== Status: info ===== */
+  --color-info: #2563eb;
+  --color-info-bg: #eff6ff;
+  --color-info-border: #dbeafe;
+
+  /* ===== Accent (black) ===== */
+  --color-accent: #1a1a2e;
+  --color-accent-dark: #111111;
+  --color-accent-bg: #e8eaf0;
+
+  /* ===== Domain ===== */
+  --color-away: #c0392b;
+
+  /* Age / team badges (warm orange) */
+  --color-brown: #9a3412;
+  --color-brown-bg: #ffedd5;
+
+  /* Suggested / expanded state (warm) */
+  --color-cream: #fff7ed;
+  --color-cream-border: #fed7aa;
+  --color-cream-hover: #ffedd5;
+  --color-cream-deep: #fdba74;
+
+  /* Coach chip highlight */
+  --color-highlight-bg: #ffedd5;
+  --color-highlight-border: #fdba74;
+}
