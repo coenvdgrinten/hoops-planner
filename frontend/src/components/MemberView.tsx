@@ -81,10 +81,18 @@ export function MemberView() {
   const [editPlayer, setEditPlayer] = useState<{
     first_name: string;
     last_name: string;
+    team_id: number;
     is_coach: boolean;
     referee_certification: string;
     is_exempt: boolean;
-  }>({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE", is_exempt: false });
+  }>({
+    first_name: "",
+    last_name: "",
+    team_id: 0,
+    is_coach: false,
+    referee_certification: "NONE",
+    is_exempt: false,
+  });
 
   const certMutation = useMutation({
     mutationFn: ({ playerId, cert }: { playerId: number; cert: string }) =>
@@ -482,6 +490,22 @@ export function MemberView() {
                                   setEditPlayer((p) => ({ ...p, last_name: e.target.value }))
                                 }
                               />
+                              <select
+                                data-testid={`player-team-${player.id}`}
+                                value={editPlayer.team_id}
+                                onChange={(e) =>
+                                  setEditPlayer((p) => ({
+                                    ...p,
+                                    team_id: Number(e.target.value),
+                                  }))
+                                }
+                              >
+                                {sortedTeams.map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.name}
+                                  </option>
+                                ))}
+                              </select>
                               <label className={styles["inline-check"]}>
                                 <input
                                   type="checkbox"
@@ -633,6 +657,7 @@ export function MemberView() {
                                     setEditPlayer({
                                       first_name: player.first_name,
                                       last_name: player.last_name,
+                                      team_id: player.team.id,
                                       is_coach: player.is_coach,
                                       referee_certification: player.referee_certification,
                                       is_exempt: player.is_exempt ?? false,
