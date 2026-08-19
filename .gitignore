@@ -20,7 +20,10 @@ htmlcov/
 *.log
 db.sqlite3
 db.sqlite3-journal
-media/
+# Ignore generated exports in media/, but keep the static assets
+# (club logo etc.) that the Docker image copies at build time.
+media/*
+!media/assets/
 staticfiles/
 
 # Frontend
@@ -70,6 +73,3 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-
-# Media assets
-media/*.pdf
