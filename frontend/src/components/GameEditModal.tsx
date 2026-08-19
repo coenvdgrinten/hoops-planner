@@ -22,8 +22,8 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
   const [court, setCourt] = useState(game?.court || "1");
   const [location, setLocation] = useState(game?.location || "Den Ekkerman");
   const [half, setHalf] = useState(game?.half || "1");
-  const [homeTeamId, setHomeTeamId] = useState(game?.home_team.id || 0);
-  const [awayTeam, setAwayTeam] = useState(game?.away_team || "");
+  const [ownTeamId, setOwnTeamId] = useState(game?.own_team.id || 0);
+  const [opponent, setOpponent] = useState(game?.opponent || "");
   const [error, setError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -44,8 +44,8 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
     mutationFn: () =>
       createGame({
         season: seasonId,
-        home_team_id: homeTeamId,
-        away_team: awayTeam,
+        own_team_id: ownTeamId,
+        opponent,
         date,
         time,
         court,
@@ -65,13 +65,13 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
   const updateMutation = useMutation({
     mutationFn: () =>
       updateGame(game!.id, {
-        home_team_id: homeTeamId,
+        own_team_id: ownTeamId,
         date,
         time,
         court,
         location,
         half,
-        away_team: awayTeam,
+        opponent,
         game_type: gameType,
       }),
     onSuccess: () => {
@@ -129,10 +129,10 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
           )}
           {isCreateMode && (
             <div className="form-group">
-              <label>Home Team:</label>
+              <label>Own Team:</label>
               <select
-                value={homeTeamId}
-                onChange={(e) => setHomeTeamId(Number(e.target.value))}
+                value={ownTeamId}
+                onChange={(e) => setOwnTeamId(Number(e.target.value))}
                 required
               >
                 <option value={0}>Select a team...</option>
@@ -198,10 +198,10 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
           )}
           {!isCreateMode && (
             <div className="form-group">
-              <label>Home Team:</label>
+              <label>Own Team:</label>
               <select
-                value={homeTeamId}
-                onChange={(e) => setHomeTeamId(Number(e.target.value))}
+                value={ownTeamId}
+                onChange={(e) => setOwnTeamId(Number(e.target.value))}
                 required
               >
                 <option value={0}>Select a team...</option>
@@ -214,11 +214,11 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
             </div>
           )}
           <div className="form-group">
-            <label>Away Team:</label>
+            <label>Opponent:</label>
             <input
               type="text"
-              value={awayTeam}
-              onChange={(e) => setAwayTeam(e.target.value)}
+              value={opponent}
+              onChange={(e) => setOpponent(e.target.value)}
               required
             />
           </div>

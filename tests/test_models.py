@@ -8,7 +8,6 @@ from django.core.exceptions import ValidationError
 from hoops_planner.core.models import (
     Game,
     Player,
-    Season,
     Task,
     TaskAssignment,
     TaskType,
@@ -53,8 +52,8 @@ class TestTaskAssignmentClean:
         # Create another game at the same time on a different court
         other_game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Other Opponent",
+            own_team=player.team,
+            opponent="Other Opponent",
             game_type=Game.GameType.HOME,
             date=task.game.date,
             time=task.game.time,
@@ -83,8 +82,8 @@ class TestTaskAssignmentClean:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -113,8 +112,8 @@ class TestTaskAssignmentClean:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -143,8 +142,8 @@ class TestTaskAssignmentClean:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -159,7 +158,9 @@ class TestTaskAssignmentClean:
         assignment.clean()  # should not raise
 
     def test_clean_away_team_scorer_without_parent_responsible(self, season):
-        """A player cannot be scorer on own away team unless parent_responsible."""
+        """A player cannot be scorer on their own team's away game
+
+        unless parent_responsible."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -170,15 +171,11 @@ class TestTaskAssignmentClean:
             last_name="Doe",
             team=team,
         )
-        other_team = Team.objects.create(
-            name="Vido X10-1",
-            age_category=Team.AgeCategory.X10,
-        )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Vido X14-1",
-            game_type=Game.GameType.HOME,
+            own_team=team,
+            opponent="Opponent",
+            game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
             court=Game.Court.COURT_1,
@@ -193,7 +190,9 @@ class TestTaskAssignmentClean:
             assignment.clean()
 
     def test_clean_away_team_scorer_with_parent_responsible(self, season):
-        """A player CAN be scorer on own away team when parent_responsible."""
+        """A player CAN be scorer on their own team's away game
+
+        when parent_responsible."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -204,15 +203,11 @@ class TestTaskAssignmentClean:
             last_name="Doe",
             team=team,
         )
-        other_team = Team.objects.create(
-            name="Vido X10-1",
-            age_category=Team.AgeCategory.X10,
-        )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Vido X14-1",
-            game_type=Game.GameType.HOME,
+            own_team=team,
+            opponent="Opponent",
+            game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
             court=Game.Court.COURT_1,
@@ -243,8 +238,8 @@ class TestModelStringMethods:
     def test_game_str(self, season, team_x14):
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -262,8 +257,8 @@ class TestModelStringMethods:
     def test_game_time_slot_key(self, season, team_x14):
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),

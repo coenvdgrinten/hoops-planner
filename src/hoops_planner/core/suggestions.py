@@ -148,7 +148,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     time_end = game_dt + ADJACENT_TIME_WINDOW
     all_team_ids_list = list(all_team_ids)
     adjacent_games_qs = Game.objects.filter(
-        home_team__id__in=all_team_ids_list,
+        own_team__id__in=all_team_ids_list,
         game_type=Game.GameType.HOME,
         date__gte=time_start.date(),
         date__lte=time_end.date(),
@@ -158,8 +158,8 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     for g in adjacent_games_qs:
         g_dt = dt.datetime.combine(g.date, g.time)
         if time_start <= g_dt <= time_end:
-            if g.home_team_id not in adjacent_by_team:
-                adjacent_by_team[g.home_team_id] = g
+            if g.own_team_id not in adjacent_by_team:
+                adjacent_by_team[g.own_team_id] = g
 
     def _player_game_position_batched(player: Player) -> str | None:
         for tid in player_all_team_ids[player.id]:
@@ -181,7 +181,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     team_game_dates_map: dict[int, set[dt.date]] = {}
     for tid in all_team_ids:
         team_game_dates_map[tid] = set(
-            Game.objects.filter(home_team_id=tid).values_list("date", flat=True)
+            Game.objects.filter(own_team_id=tid).values_list("date", flat=True)
         )
 
     def _effective_task_count_batched(player: Player) -> float:
@@ -204,9 +204,9 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     # --- Batch 6: pre-compute team_at_gym_day for each team ---
     teams_with_day_game = set(
         Game.objects.filter(
-            home_team__in=all_teams,
+            own_team__in=all_teams,
             date=game.date,
-        ).values_list("home_team_id", flat=True)
+        ).values_list("own_team_id", flat=True)
     )
 
     # --- Build results ---
@@ -276,7 +276,7 @@ def _player_game_position(player: Player, game: Game) -> str | None:
     # Query the adjacent date range to handle cross-midnight windows,
     # then filter by time within that range to stay within the window.
     candidates = Game.objects.filter(
-        home_team__in=player.all_teams,
+        own_team__in=player.all_teams,
         game_type=Game.GameType.HOME,
         date__gte=time_start.date(),
         date__lte=time_end.date(),
@@ -303,9 +303,9 @@ def _effective_task_count(player: Player, game_date: dt.date) -> float:
     to deprioritize players who already have a task that day.
     """
     assignments = player.assignments.select_related("task__game").all()
-    # Pre-fetch all dates any of the player's teams has a home game.
+    # Pre-fetch all dates any of the player's teams has a game.
     team_game_dates = set(
-        Game.objects.filter(home_team__in=player.all_teams).values_list(
+        Game.objects.filter(own_team__in=player.all_teams).values_list(
             "date", flat=True
         )
     )

@@ -23,8 +23,8 @@ class TestExportSchedulePdf:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -51,8 +51,8 @@ class TestExportSchedulePdf:
         """Verify the PDF HTML includes game data: team names, dates, task types."""
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Achilles '71",
+            own_team=team_x14,
+            opponent="Achilles '71",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -87,8 +87,8 @@ class TestExportSchedulePdf:
         """Verify the PDF HTML includes a player summary section."""
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -111,8 +111,8 @@ class TestExportSchedulePdf:
         """Verify unassigned slots show a placeholder indicator."""
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -133,8 +133,8 @@ class TestExportSchedulePdf:
         team_x14.save()
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -153,8 +153,8 @@ class TestExportSchedulePdf:
         """Verify multiple referee columns appear."""
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -174,8 +174,8 @@ class TestExportSchedulePdf:
         team_x14.save()
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -192,11 +192,15 @@ class TestExportSchedulePdf:
         assert "Ouder van John Doe" in html
 
     def test_pdf_away_day_multiplier(self, season, team_x14, player):
-        """Verify away-day class is applied when player's team has no game."""
+        """Away-day class when the player's team plays no game that date."""
+        other_team = Team.objects.create(
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
+        )
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=other_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -210,5 +214,34 @@ class TestExportSchedulePdf:
         TaskAssignment.objects.create(task=scorer_task, player=player)
 
         html = _build_html(season)
-        # Player's team has no game on this date → away-day class
-        assert "away-day" in html
+        # Player's team (team_x14) has no game on this date → away-day class
+        assert 'class="center away-day"' in html
+        assert 'class="team away-day"' in html
+
+    def test_pdf_no_away_day_for_own_home_game(self, season, team_x14, player):
+        """No away-day class when the player works on their own team's home game.
+
+        Regression: the previous check excluded the current game from the
+        "does my team play today" query, which wrongly flagged every member
+        of the home team as away on their own home game.
+        """
+        game = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        scorer_task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(task=scorer_task, player=player)
+
+        html = _build_html(season)
+        # (The CSS rule .away-day is always present — check the td markup.)
+        assert 'class="center away-day"' not in html
+        assert 'class="team away-day"' not in html

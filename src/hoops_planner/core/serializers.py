@@ -67,10 +67,10 @@ class SeasonSerializer(serializers.ModelSerializer):
 
 
 class GameSerializer(serializers.ModelSerializer):
-    home_team = TeamSerializer(read_only=True)
-    home_team_id = serializers.PrimaryKeyRelatedField(
+    own_team = TeamSerializer(read_only=True)
+    own_team_id = serializers.PrimaryKeyRelatedField(
         queryset=Team.objects.all(),
-        source="home_team",
+        source="own_team",
         write_only=True,
     )
 
@@ -79,9 +79,9 @@ class GameSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "season",
-            "home_team",
-            "home_team_id",
-            "away_team",
+            "own_team",
+            "own_team_id",
+            "opponent",
             "game_type",
             "date",
             "time",

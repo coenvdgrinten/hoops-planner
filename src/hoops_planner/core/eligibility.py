@@ -112,7 +112,7 @@ def _team_has_home_game_at_same_time(player: Player, game: Game) -> bool:
     """
     return (
         Game.objects.filter(
-            home_team__in=player.all_teams,
+            own_team__in=player.all_teams,
             game_type=Game.GameType.HOME,
             date=game.date,
             time=game.time,
@@ -128,10 +128,11 @@ def _team_has_away_game_on_same_day(player: Player, game: Game) -> bool:
     If the player's team (or a coached team) has an away game on the same day
     as this game, they can't be available for this task.
 
-    For AWAY games the player's team is stored in the home_team FK.
+    ``own_team`` is always the club team the game is for, so away games are
+    found by filtering on ``own_team``.
     """
     return Game.objects.filter(
-        home_team__in=player.all_teams,
+        own_team__in=player.all_teams,
         game_type=Game.GameType.AWAY,
         date=game.date,
     ).exists()
@@ -147,18 +148,18 @@ def _player_team_involved_in_game(player: Player, game: Game, task_type: str) ->
     `parent_responsible=True`, the player is eligible because parents are
     expected to fill those roles for their kid's team.
     """
+    # ``own_team`` is always the club team the game is for, so the player's
+    # team is involved only when it is the own_team.
+    if game.own_team not in player.all_teams:
+        return False
+
     if task_type in (TaskType.SCORER, TaskType.TIMER):
-        # Check if the player's team is involved AND has parent_responsible
-        involved_teams = [t for t in player.all_teams if t in (game.home_team,)]
-        involved_teams += [t for t in player.all_teams if t.name == game.away_team]
-        if involved_teams and all(t.parent_responsible for t in involved_teams):
+        # Exception: parents are expected to fill scorer/timer roles for their
+        # kid's team when parent_responsible is set.
+        if game.own_team.parent_responsible:
             return False
 
-    if game.home_team in player.all_teams:
-        return True
-    if game.away_team in [t.name for t in player.all_teams]:
-        return True
-    return False
+    return True
 
 
 def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool:
@@ -178,7 +179,7 @@ def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool
     highest_player_order = max(
         _age_category_index(t.age_category) for t in player.all_teams
     )
-    game_order = _age_category_index(game.home_team.age_category)
+    game_order = _age_category_index(game.own_team.age_category)
     return highest_player_order < game_order
 
 
@@ -232,13 +233,15 @@ def find_conflicting_assignments(
         # is expected for a valid assignment.
         reasons = _get_conflict_reasons(player, task, assignment)
         for reason in reasons:
-            conflicts.append({
-                "assignment": assignment,
-                "player": player,
-                "task": task,
-                "game": task.game,
-                "reason": reason,
-            })
+            conflicts.append(
+                {
+                    "assignment": assignment,
+                    "player": player,
+                    "task": task,
+                    "game": task.game,
+                    "reason": reason,
+                }
+            )
             break  # Report the first conflict reason
     return conflicts
 

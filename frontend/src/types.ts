@@ -41,8 +41,8 @@ export interface Player {
 export interface Game {
   id: number;
   season: number;
-  home_team: Team;
-  away_team: string;
+  own_team: Team;
+  opponent: string;
   game_type: "HOME" | "AWAY";
   date: string;
   time: string;
@@ -111,8 +111,8 @@ export interface TeamEligibility {
 export interface UpcomingAssignment {
   game_date: string;
   game_time: string;
-  home_team: string;
-  away_team: string;
+  own_team: string;
+  opponent: string;
   court: string;
   task_type: string;
   slot_number: number;

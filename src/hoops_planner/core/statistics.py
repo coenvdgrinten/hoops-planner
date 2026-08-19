@@ -11,7 +11,6 @@ from hoops_planner.core.models import (
     Task,
     TaskAssignment,
     TaskType,
-    Team,
 )
 
 
@@ -38,8 +37,8 @@ def get_player_stats(
     if half:
         assignments = assignments.filter(task__game__half=half)
 
-    # Pre-fetch all dates any of the player's teams has a home game.
-    team_dates_qs = Game.objects.filter(home_team__in=player.all_teams)
+    # Pre-fetch all dates any of the player's teams has a game.
+    team_dates_qs = Game.objects.filter(own_team__in=player.all_teams)
     if season:
         team_dates_qs = team_dates_qs.filter(season=season)
     if half:
@@ -129,16 +128,10 @@ def get_season_stats(
         ).count()
         by_task_type[task_type] = {"slots": slots, "filled": filled}
 
-    # Per team. For away games the `home_team` field names the opponent, while
-    # `away_team` (free text) names the club's travelling team — so attribute
-    # the fixture to the travelling team in that case.
-    away_team_to_name: dict[str, str] = {t.name: t.name for t in Team.objects.all()}
-
+    # Per team. ``own_team`` is always the club team the game is for, so the
+    # fixture is attributed to that team regardless of home/away.
     def team_for_game(game: Game) -> str:
-        if game.game_type == Game.GameType.AWAY:
-            # away_team holds the club's travelling team name
-            return away_team_to_name.get(game.away_team, game.away_team)
-        return game.home_team.name
+        return game.own_team.name
 
     per_team: dict[str, dict[str, Any]] = defaultdict(
         lambda: {"games": 0, "assignments": 0}
@@ -176,7 +169,7 @@ def get_upcoming_assignments(
         after = date_type.today()
 
     assignments = (
-        player.assignments.select_related("task__game", "task__game__home_team")
+        player.assignments.select_related("task__game", "task__game__own_team")
         .filter(task__game__date__gte=after)
         .order_by("task__game__date", "task__game__time", "task__task_type")[:limit]
     )
@@ -188,8 +181,8 @@ def get_upcoming_assignments(
             {
                 "game_date": game.date.isoformat(),
                 "game_time": game.time.strftime("%H:%M"),
-                "home_team": game.home_team.name,
-                "away_team": game.away_team,
+                "own_team": game.own_team.name,
+                "opponent": game.opponent,
                 "court": game.court,
                 "task_type": a.task.task_type,
                 "slot_number": a.task.slot_number,

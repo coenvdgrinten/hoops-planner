@@ -9,7 +9,7 @@ from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
-from hoops_planner.core.models import Game, Season, Task, TaskAssignment, TaskType
+from hoops_planner.core.models import Game, Season, Task, TaskAssignment, TaskType, Team
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Referee",
@@ -20,6 +20,18 @@ TASK_LABELS: dict[str, str] = {
 
 # Logo path (relative to project root)
 LOGO_PATH = Path(settings.BASE_DIR).parent / "media" / "assets" / "club-logo.png"
+
+
+def _is_own_team_game(player_team: Team | None, game: Game) -> bool:
+    """True when the game is for a team the player belongs to.
+
+    ``own_team`` is always the club team the game is for, so the player's team
+    is involved only when it is the own_team.
+    """
+    if player_team is None:
+        return False
+    return game.own_team_id == player_team.id
+
 
 # CSS for the PDF
 CSS_STYLES = """
@@ -65,14 +77,14 @@ table {
 }
 
 th {
-    background: #e6f5ed;
-    color: #016c30;
+    background: #ffedd5;
+    color: #ea580c;
     font-weight: 600;
     font-size: 8pt;
     text-align: center;
     padding: 4pt 3pt;
     border: 0.5pt solid #ccc;
-    border-bottom: 1.5pt solid #016c30;
+    border-bottom: 1.5pt solid #ea580c;
 }
 
 th:first-child {
@@ -89,7 +101,7 @@ th:last-child {
     font-size: 9pt;
     padding: 3pt 3pt;
     border: 0.5pt solid #ccc;
-    border-top: 0.75pt solid #016c30;
+    border-top: 0.75pt solid #ea580c;
 }
 
 td {
@@ -139,8 +151,8 @@ td.unassigned {
 }
 
 .summary-table th {
-    background: #e6f5ed;
-    color: #016c30;
+    background: #ffedd5;
+    color: #ea580c;
 }
 
 .summary-table td {
@@ -156,7 +168,7 @@ td.unassigned {
 }
 
 .calendar-link {
-    color: #016c30;
+    color: #ea580c;
     text-decoration: none;
     font-size: 7pt;
     vertical-align: middle;
@@ -249,14 +261,14 @@ def _build_html(season: Season) -> str:
                 player_team = a.player.team
                 is_away_day = (
                     player_team is not None
+                    and not _is_own_team_game(player_team, t.game)
                     and not Game.objects.filter(
                         season=t.game.season,
                         date=t.game.date,
-                        home_team=player_team,
+                        own_team=player_team,
                     )
                     .exclude(pk=t.game.id)
                     .exists()
-                    and t.game.away_team != player_team.name
                 )
                 assigned.setdefault(key, []).append(
                     (name, a.player.team.name, is_away_day)
@@ -362,8 +374,14 @@ def _build_game_row_html(
 ) -> str:
     """Build a single HTML row for a game."""
     time_str = game.time.strftime("%H:%M")
-    home = game.home_team.name
-    away = game.away_team
+    # Thuis/Uit reflect the actual home/away of the fixture. ``own_team`` is
+    # always the club team, so for away games the opponent is at home.
+    if game.game_type == Game.GameType.HOME:
+        home = game.own_team.name
+        away = game.opponent
+    else:
+        home = game.opponent
+        away = game.own_team.name
 
     cells = [
         '<td class="center"></td>',  # Datum (filled by date header)

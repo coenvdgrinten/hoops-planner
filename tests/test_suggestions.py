@@ -43,8 +43,8 @@ class TestSuggestCandidates:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -82,8 +82,8 @@ class TestSuggestCandidates:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Opponent",
+            own_team=home_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -115,8 +115,8 @@ class TestSuggestCandidates:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -156,8 +156,8 @@ class TestAlreadyAtGymPriority:
         # Team A has a home game at 12:00 (before the task game)
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Opponent A",
+            own_team=team_a,
+            opponent="Opponent A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(12, 0),
@@ -166,8 +166,8 @@ class TestAlreadyAtGymPriority:
         # Task game at 14:00
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent B",
+            own_team=team_b,
+            opponent="Opponent B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -203,8 +203,8 @@ class TestAlreadyAtGymPriority:
         # Task game at 14:00
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent B",
+            own_team=team_b,
+            opponent="Opponent B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -213,8 +213,8 @@ class TestAlreadyAtGymPriority:
         # Team A has a home game at 16:00 (after the task game)
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Opponent A",
+            own_team=team_a,
+            opponent="Opponent A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(16, 0),
@@ -255,8 +255,8 @@ class TestAlreadyAtGymPriority:
         # Team A plays at 10:00 — 4 hours before the task game at 14:00
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Opponent A",
+            own_team=team_a,
+            opponent="Opponent A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
@@ -265,8 +265,8 @@ class TestAlreadyAtGymPriority:
         # Task game at 14:00 — team_c is the home team (not team_a or team_b)
         game = Game.objects.create(
             season=season,
-            home_team=team_c,
-            away_team="Opponent C",
+            own_team=team_c,
+            opponent="Opponent C",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -309,8 +309,8 @@ class TestAlreadyAtGymPriority:
         # Team A plays at 12:00 on Court 1
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Opponent A",
+            own_team=team_a,
+            opponent="Opponent A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(12, 0),
@@ -319,8 +319,8 @@ class TestAlreadyAtGymPriority:
         # Some other team plays at 14:30 on Court 2 (staggered)
         Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent B",
+            own_team=team_b,
+            opponent="Opponent B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 30),
@@ -329,8 +329,8 @@ class TestAlreadyAtGymPriority:
         # Task game at 14:00 on Court 1
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent C",
+            own_team=team_b,
+            opponent="Opponent C",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -374,8 +374,8 @@ class TestTaskCounterTiebreaker:
         # Give player_one an existing assignment
         other_game = Game.objects.create(
             season=season,
-            home_team=team_c,
-            away_team="Old Opponent",
+            own_team=team_c,
+            opponent="Old Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 9, 1),
             time=dt.time(14, 0),
@@ -390,8 +390,8 @@ class TestTaskCounterTiebreaker:
 
         game = Game.objects.create(
             season=season,
-            home_team=team_c,
-            away_team="Opponent",
+            own_team=team_c,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -423,8 +423,8 @@ class TestTaskCounterTiebreaker:
         # player_high has a task on a day with no game (2x multiplier)
         other_game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Old Opponent",
+            own_team=team,
+            opponent="Old Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 9, 1),
             time=dt.time(14, 0),
@@ -445,8 +445,8 @@ class TestTaskCounterTiebreaker:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Opponent",
+            own_team=home_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -487,8 +487,8 @@ class TestGetCandidateDetails:
         # Team A plays at 12:00 (adjacent to 14:00)
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Opponent A",
+            own_team=team_a,
+            opponent="Opponent A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(12, 0),
@@ -496,8 +496,8 @@ class TestGetCandidateDetails:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent B",
+            own_team=team_b,
+            opponent="Opponent B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -534,8 +534,8 @@ class TestGetTeamEligibility:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Opponent",
+            own_team=home_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -563,8 +563,8 @@ class TestGetTeamEligibility:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Opponent",
+            own_team=home_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -597,8 +597,8 @@ class TestGetTeamEligibility:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Opponent",
+            own_team=home_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -630,8 +630,8 @@ class TestGetTeamEligibility:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Opponent",
+            own_team=home_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -655,8 +655,8 @@ class TestGetTeamEligibility:
         # Team A has a game adjacent to the task game
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Opponent A",
+            own_team=team_a,
+            opponent="Opponent A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(12, 0),
@@ -668,8 +668,8 @@ class TestGetTeamEligibility:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Opponent B",
+            own_team=home_team,
+            opponent="Opponent B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),

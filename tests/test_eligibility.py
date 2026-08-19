@@ -36,8 +36,8 @@ class TestAlreadyAssignedToGame:
         )
         game1 = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Team A",
+            own_team=home_team,
+            opponent="Team A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -45,8 +45,8 @@ class TestAlreadyAssignedToGame:
         )
         game2 = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Team B",
+            own_team=home_team,
+            opponent="Team B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(16, 0),
@@ -68,8 +68,8 @@ class TestAlreadyAssignedAtSameTime:
         )
         game1 = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Team A",
+            own_team=home_team,
+            opponent="Team A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -77,8 +77,8 @@ class TestAlreadyAssignedAtSameTime:
         )
         game2 = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Team B",
+            own_team=home_team,
+            opponent="Team B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -103,8 +103,8 @@ class TestAlreadyAssignedAtSameTime:
         )
         game1 = Game.objects.create(
             season=season,
-            home_team=home_team1,
-            away_team="Team A",
+            own_team=home_team1,
+            opponent="Team A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -112,8 +112,8 @@ class TestAlreadyAssignedAtSameTime:
         )
         game2 = Game.objects.create(
             season=season,
-            home_team=home_team2,
-            away_team="Team B",
+            own_team=home_team2,
+            opponent="Team B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(16, 0),
@@ -135,8 +135,8 @@ class TestTeamHasHomeGameAtSameTime:
         # Player's team has a home game on Court 2 at same time
         Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Team A",
+            own_team=player.team,
+            opponent="Team A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -148,8 +148,8 @@ class TestTeamHasHomeGameAtSameTime:
         )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Team B",
+            own_team=other_team,
+            opponent="Team B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -161,8 +161,8 @@ class TestTeamHasHomeGameAtSameTime:
     def test_eligible_when_team_has_home_game_at_different_time(self, player, season):
         Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Team A",
+            own_team=player.team,
+            opponent="Team A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(16, 0),
@@ -170,8 +170,8 @@ class TestTeamHasHomeGameAtSameTime:
         )
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Team B",
+            own_team=player.team,
+            opponent="Team B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -190,8 +190,8 @@ class TestTeamHasAwayGameOnSameDay:
     def test_not_eligible_when_team_has_away_game_same_day(self, player, season):
         Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Away Opponent",
+            own_team=player.team,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
@@ -199,8 +199,8 @@ class TestTeamHasAwayGameOnSameDay:
         )
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Home Opponent",
+            own_team=player.team,
+            opponent="Home Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -212,8 +212,8 @@ class TestTeamHasAwayGameOnSameDay:
     def test_eligible_when_away_game_different_day(self, player, season):
         Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Away Opponent",
+            own_team=player.team,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 8),
             time=dt.time(10, 0),
@@ -225,8 +225,8 @@ class TestTeamHasAwayGameOnSameDay:
         )
         game = Game.objects.create(
             season=season,
-            home_team=home_team,
-            away_team="Home Opponent",
+            own_team=home_team,
+            opponent="Home Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -241,8 +241,8 @@ class TestRefereeAgeCategoryRule:
     def test_eligible_when_player_team_same_age(self, referee, season):
         game = Game.objects.create(
             season=season,
-            home_team=referee.team,
-            away_team="Opponent",
+            own_team=referee.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -273,8 +273,8 @@ class TestRefereeAgeCategoryRule:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -304,8 +304,8 @@ class TestRefereeAgeCategoryRule:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -334,8 +334,8 @@ class TestRefereeAgeCategoryRule:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -366,8 +366,8 @@ class TestRefereeCertificationRule:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(18, 0),
@@ -397,8 +397,8 @@ class TestRefereeCertificationRule:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(18, 0),
@@ -423,7 +423,7 @@ class TestRefereeCertificationRule:
 @pytest.mark.django_db
 class TestParentResponsible:
     def test_parent_allowed_for_scorer_on_own_team_game(self, season):
-        """Parent can be scorer when parent_responsible=True."""
+        """Parent can be scorer on own team's game when parent_responsible=True."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -434,14 +434,10 @@ class TestParentResponsible:
             last_name="Player",
             team=team,
         )
-        other_team = Team.objects.create(
-            name="Vido X10-1",
-            age_category=Team.AgeCategory.X10,
-        )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Vido X14-1",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -466,14 +462,10 @@ class TestParentResponsible:
             last_name="Player",
             team=team,
         )
-        other_team = Team.objects.create(
-            name="Vido X10-1",
-            age_category=Team.AgeCategory.X10,
-        )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Vido X14-1",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -487,7 +479,7 @@ class TestParentResponsible:
         assert is_eligible(player, task) is True
 
     def test_parent_not_allowed_for_referee_on_own_team_game(self, season):
-        """Parent cannot be referee even with parent_responsible."""
+        """Parent cannot be referee on own team's game even with parent_responsible."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -499,14 +491,10 @@ class TestParentResponsible:
             team=team,
             referee_certification=Player.RefereeCertification.F,
         )
-        other_team = Team.objects.create(
-            name="Vido X10-1",
-            age_category=Team.AgeCategory.X10,
-        )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Vido X14-1",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -520,7 +508,7 @@ class TestParentResponsible:
         assert is_eligible(player, task) is False
 
     def test_parent_not_allowed_when_parent_responsible_false(self, season):
-        """Parent cannot be scorer when parent_responsible=False."""
+        """Parent cannot be scorer on own team's game when parent_responsible=False."""
         team = Team.objects.create(
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
@@ -531,14 +519,10 @@ class TestParentResponsible:
             last_name="Player",
             team=team,
         )
-        other_team = Team.objects.create(
-            name="Vido X10-1",
-            age_category=Team.AgeCategory.X10,
-        )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Vido X14-1",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -565,8 +549,8 @@ class TestParentResponsible:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -620,8 +604,8 @@ class TestGetEligiblePlayers:
         )
         game = Game.objects.create(
             season=season,
-            home_team=game_team,
-            away_team="Opponent",
+            own_team=game_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -664,8 +648,8 @@ class TestCombinedRules:
         # Player's team plays on Court 2 at same time
         Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Team A",
+            own_team=team,
+            opponent="Team A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -677,8 +661,8 @@ class TestCombinedRules:
         )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Team B",
+            own_team=other_team,
+            opponent="Team B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -739,8 +723,8 @@ class TestConflictingAssignments:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -777,8 +761,8 @@ class TestConflictingAssignments:
         # Existing home game with player assigned as referee
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -797,8 +781,8 @@ class TestConflictingAssignments:
         # Add an away game for player's team on the same day
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Away Opponent",
+            own_team=team_a,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
@@ -821,10 +805,6 @@ class TestConflictingAssignments:
             name="Vido X14-1",
             age_category=Team.AgeCategory.X14,
         )
-        team_b = Team.objects.create(
-            name="Vido X10-1",
-            age_category=Team.AgeCategory.X10,
-        )
         team_c = Team.objects.create(
             name="Vido X12-1",
             age_category=Team.AgeCategory.X12,
@@ -837,8 +817,8 @@ class TestConflictingAssignments:
         # Existing game with player assigned as scorer
         game = Game.objects.create(
             season=season,
-            home_team=team_c,
-            away_team="Opponent",
+            own_team=team_c,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -855,8 +835,8 @@ class TestConflictingAssignments:
         # Add a home game for player's team at the same time (different court)
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Home Opponent",
+            own_team=team_a,
+            opponent="Home Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -892,8 +872,8 @@ class TestConflictingAssignments:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -914,8 +894,8 @@ class TestConflictingAssignments:
         # Add away game for player's team
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Away Opponent",
+            own_team=team_a,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
@@ -948,8 +928,8 @@ class TestConflictingAssignments:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -964,8 +944,8 @@ class TestConflictingAssignments:
         # Add away game
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Away Opponent",
+            own_team=team_a,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
@@ -1006,8 +986,8 @@ class TestConflictingAssignments:
 
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -1025,8 +1005,8 @@ class TestConflictingAssignments:
         # Add away game for coached team
         Game.objects.create(
             season=season,
-            home_team=team_c,
-            away_team="Away Opponent",
+            own_team=team_c,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
@@ -1059,8 +1039,8 @@ class TestConflictingAssignments:
         other_season = Season.objects.create(name="2024-2025")
         game = Game.objects.create(
             season=other_season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -1076,8 +1056,8 @@ class TestConflictingAssignments:
         # Away game in the current season (different from assignment's season)
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Away Opponent",
+            own_team=team_a,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),

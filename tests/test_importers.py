@@ -133,9 +133,9 @@ class TestImportScheduleGameType:
             "2025-10-01,16:00,1,Vido X10-1,Jumping Giants,HOME\n"
         )
         import_schedule(csv_text, "2025-2026")
-        away = Game.objects.get(away_team="Achilles '71")
+        away = Game.objects.get(opponent="Achilles '71")
         assert away.game_type == Game.GameType.AWAY
-        home = Game.objects.get(away_team="Jumping Giants")
+        home = Game.objects.get(opponent="Jumping Giants")
         assert home.game_type == Game.GameType.HOME
 
     def test_case_insensitive_game_type(self):
@@ -145,7 +145,7 @@ class TestImportScheduleGameType:
         )
         import_schedule(csv_text, "2025-2026")
         assert (
-            Game.objects.get(away_team="Achilles '71").game_type == Game.GameType.AWAY
+            Game.objects.get(opponent="Achilles '71").game_type == Game.GameType.AWAY
         )
 
 
@@ -165,15 +165,15 @@ class TestImportScheduleLocation:
             "2025-10-01,16:00,2,Vido X10-1,Jumping Giants,De Kempencampus\n"
         )
         import_schedule(csv_text, "2025-2026")
-        game1 = Game.objects.get(away_team="Achilles '71")
-        game2 = Game.objects.get(away_team="Jumping Giants")
+        game1 = Game.objects.get(opponent="Achilles '71")
+        game2 = Game.objects.get(opponent="Jumping Giants")
         assert game1.location == "Den Ekkerman"
         assert game2.location == "De Kempencampus"
 
     def test_updates_location_on_smart_import(self):
         """Re-importing with a new location should update existing games."""
         import_schedule(SCHEDULE_CSV, "2025-2026")
-        game = Game.objects.get(away_team="Achilles '71")
+        game = Game.objects.get(opponent="Achilles '71")
         assert game.location == "Den Ekkerman"
 
         csv_text = (
@@ -193,7 +193,7 @@ class TestImportScheduleLocation:
         )
         import_schedule(csv_text, "2025-2026")
         assert (
-            Game.objects.get(away_team="Achilles '71").game_type == Game.GameType.HOME
+            Game.objects.get(opponent="Achilles '71").game_type == Game.GameType.HOME
         )
 
     def test_smart_update_changes_game_type(self):
@@ -202,7 +202,7 @@ class TestImportScheduleLocation:
             "2025-10-01,14:00,1,Vido X14-1,Achilles '71,HOME\n"
         )
         import_schedule(csv_text, "2025-2026")
-        game = Game.objects.get(away_team="Achilles '71")
+        game = Game.objects.get(opponent="Achilles '71")
         assert game.game_type == Game.GameType.HOME
 
         # Re-import the same fixture as an away game — should update, not duplicate
@@ -215,7 +215,7 @@ class TestImportScheduleLocation:
         assert result["games_updated"] == 1
         assert Game.objects.count() == 1
         assert (
-            Game.objects.get(away_team="Achilles '71").game_type == Game.GameType.AWAY
+            Game.objects.get(opponent="Achilles '71").game_type == Game.GameType.AWAY
         )
 
     def test_away_and_home_same_teams_distinct(self):

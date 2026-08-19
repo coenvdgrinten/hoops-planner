@@ -19,8 +19,8 @@ class TestExportScheduleIcs:
         """Verify the .ics output is valid and contains game data."""
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Achilles '71",
+            own_team=team_x14,
+            opponent="Achilles '71",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -71,8 +71,8 @@ class TestExportScheduleIcs:
         """Multiple games should each produce a VEVENT."""
         Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent A",
+            own_team=team_x14,
+            opponent="Opponent A",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -80,8 +80,8 @@ class TestExportScheduleIcs:
         )
         Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent B",
+            own_team=team_x14,
+            opponent="Opponent B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 2),
             time=dt.time(16, 0),
@@ -103,8 +103,8 @@ class TestExportScheduleIcs:
         """Custom location should appear in the ICS output."""
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Achilles '71",
+            own_team=team_x14,
+            opponent="Achilles '71",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),

@@ -119,8 +119,8 @@ class TestSeasonViewSet:
 
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=date(2025, 10, 1),
             time=time(14, 0),
@@ -148,8 +148,8 @@ class TestSeasonViewSet:
 
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=date(2025, 10, 1),
             time=time(14, 0),
@@ -174,8 +174,8 @@ class TestSeasonViewSet:
 
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=date(2025, 10, 1),
             time=time(14, 0),
@@ -208,8 +208,8 @@ class TestSeasonViewSet:
 
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=date(2025, 10, 1),
             time=time(14, 0),
@@ -305,8 +305,8 @@ class TestGameViewSet:
         )
         Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -315,8 +315,8 @@ class TestGameViewSet:
         other_season = Season.objects.create(name="2024-2025")
         Game.objects.create(
             season=other_season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -335,8 +335,8 @@ class TestGameViewSet:
         )
         Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -345,8 +345,8 @@ class TestGameViewSet:
         other_season = Season.objects.create(name="2024-2025")
         Game.objects.create(
             season=other_season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -361,8 +361,8 @@ class TestGameViewSet:
     def test_tasks_with_assignments(self, api_client, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -407,8 +407,8 @@ class TestPlayerStatsEndpoint:
     def test_player_stats_no_season(self, api_client, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -429,8 +429,8 @@ class TestPlayerStatsEndpoint:
     def test_player_stats_with_season(self, api_client, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -469,8 +469,8 @@ class TestSeasonStatsEndpoint:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -504,8 +504,8 @@ class TestSeasonLeaderboardEndpoint:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -530,8 +530,8 @@ class TestPlayerUpcomingEndpoint:
     def test_upcoming_assignments(self, api_client, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2027, 1, 1),
             time=dt.time(14, 0),
@@ -629,8 +629,8 @@ class TestAvailabilityEndpoint:
 
         Game.objects.create(
             season=season,
-            home_team=away_team,
-            away_team="Opponent A",
+            own_team=away_team,
+            opponent="Opponent A",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -639,8 +639,8 @@ class TestAvailabilityEndpoint:
         # A home game should NOT appear in availability
         Game.objects.create(
             season=season,
-            home_team=away_team,
-            away_team="Opponent B",
+            own_team=away_team,
+            opponent="Opponent B",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(16, 0),
@@ -691,8 +691,8 @@ class TestSeasonConflictsEndpoint:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -713,8 +713,8 @@ class TestSeasonConflictsEndpoint:
         # Add away game for player's team
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Away Opponent",
+            own_team=team_a,
+            opponent="Away Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(10, 0),
@@ -746,8 +746,8 @@ class TestSeasonConflictsEndpoint:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -759,8 +759,8 @@ class TestSeasonConflictsEndpoint:
         # Add home game for player's team at same time (different court)
         Game.objects.create(
             season=season,
-            home_team=team_a,
-            away_team="Home Opponent",
+            own_team=team_a,
+            opponent="Home Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -789,8 +789,8 @@ class TestGameViewSetClearAssignments:
         """Clear all assignments for a game."""
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Opponent",
+            own_team=team_x14,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -817,7 +817,7 @@ class TestTaskSuggestionsEndpoint:
             name="Vido X10-1",
             age_category=Team.AgeCategory.X10,
         )
-        referee = Player.objects.create(
+        Player.objects.create(
             first_name="Ref",
             last_name="Person",
             team=team_a,
@@ -825,8 +825,8 @@ class TestTaskSuggestionsEndpoint:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -855,7 +855,7 @@ class TestTaskSuggestionsEndpoint:
             name="Vido X10-1",
             age_category=Team.AgeCategory.X10,
         )
-        referee = Player.objects.create(
+        Player.objects.create(
             first_name="Ref",
             last_name="Person",
             team=team_a,
@@ -863,8 +863,8 @@ class TestTaskSuggestionsEndpoint:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -903,8 +903,8 @@ class TestTaskSuggestionsEndpoint:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team_b,
-            away_team="Opponent",
+            own_team=team_b,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),

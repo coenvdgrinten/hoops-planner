@@ -89,14 +89,14 @@ def game(season, team_x14):
     This ensures the base fixture doesn't trigger the
     `_player_team_involved_in_game` disqualification.
     """
-    home_team = Team.objects.create(
+    own_team = Team.objects.create(
         name="Vido X10-1",
         age_category=Team.AgeCategory.X10,
     )
     return Game.objects.create(
         season=season,
-        home_team=home_team,
-        away_team="Achilles '71",
+        own_team=own_team,
+        opponent="Achilles '71",
         game_type=Game.GameType.HOME,
         date=dt.date(2025, 10, 1),
         time=dt.time(14, 0),

@@ -11,8 +11,8 @@ interface Team {
 
 interface Props {
   id: number;
-  homeTeam: Team;
-  awayTeam: string;
+  ownTeam: Team;
+  opponent: string;
   date: string;
   time: string;
   court: string;
@@ -31,8 +31,8 @@ const TASK_LABELS: Record<string, string> = {
 
 export function GameCard({
   id,
-  homeTeam,
-  awayTeam,
+  ownTeam,
+  opponent,
   date,
   time,
   location,
@@ -86,7 +86,7 @@ export function GameCard({
   });
 
   // Extract age category from team
-  const ageBadge = homeTeam.age_category || "MIXED";
+  const ageBadge = ownTeam.age_category || "MIXED";
 
   if (isLoading) return <p>Loading tasks...</p>;
 
@@ -99,9 +99,9 @@ export function GameCard({
             {half && <span className={styles["half-badge"]}>H{half}</span>}
           </div>
           <div className={styles["game-teams"]}>
-            <span className="home">{homeTeam.name}</span>
+            <span className="home">{ownTeam.name}</span>
             <span className="vs">vs. </span>
-            <span className="away">{awayTeam}</span>
+            <span className="away">{opponent}</span>
           </div>
           <div className={styles["game-meta"]}>
             <span>{formattedTime}</span>

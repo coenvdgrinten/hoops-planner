@@ -35,8 +35,8 @@ class TestGetPlayerStats:
         # Player's team has a home game on the same date
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -64,8 +64,8 @@ class TestGetPlayerStats:
         )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Opponent",
+            own_team=other_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -92,8 +92,8 @@ class TestGetPlayerStats:
         )
         game = Game.objects.create(
             season=season,
-            home_team=other_team,
-            away_team="Opponent",
+            own_team=other_team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -117,8 +117,8 @@ class TestGetPlayerStats:
     def test_by_type_counts(self, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -143,8 +143,8 @@ class TestGetPlayerStats:
     def test_season_filter(self, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -189,8 +189,8 @@ class TestGetSeasonStats:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -216,8 +216,8 @@ class TestGetSeasonStats:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -251,8 +251,8 @@ class TestGetSeasonStats:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -270,15 +270,15 @@ class TestGetSeasonStats:
         assert stats["per_team"]["Vido X14-1"]["assignments"] == 1
 
     def test_per_team_attributes_away_games_to_travelling_team(self, season):
-        # Home team here is the opponent; the club's travelling team is in away_team.
+        # For an away game, own_team holds the club's travelling team.
         travelling = Team.objects.create(
             name="Vido X14-Away",
             age_category=Team.AgeCategory.X14,
         )
         game = Game.objects.create(
             season=season,
-            home_team=travelling,  # opponent shares the name by coincidence is fine
-            away_team="Vido X14-Away",  # club's travelling team
+            own_team=travelling,
+            opponent="External Opponent",
             game_type=Game.GameType.AWAY,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -305,8 +305,8 @@ class TestGetUpcomingAssignments:
     def test_returns_future_assignments(self, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2027, 1, 1),
             time=dt.time(14, 0),
@@ -327,8 +327,8 @@ class TestGetUpcomingAssignments:
     def test_excludes_past_assignments(self, player, season):
         game = Game.objects.create(
             season=season,
-            home_team=player.team,
-            away_team="Opponent",
+            own_team=player.team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2020, 1, 1),
             time=dt.time(14, 0),
@@ -348,8 +348,8 @@ class TestGetUpcomingAssignments:
         for i in range(5):
             game = Game.objects.create(
                 season=season,
-                home_team=player.team,
-                away_team=f"Opponent {i}",
+                own_team=player.team,
+                opponent=f"Opponent {i}",
                 game_type=Game.GameType.HOME,
                 date=dt.date(2027, 1, i + 1),
                 time=dt.time(14, 0),
@@ -385,8 +385,8 @@ class TestGetLeaderboard:
         )
         game_a = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -411,8 +411,8 @@ class TestGetLeaderboard:
         )
         game_b = Game.objects.create(
             season=season,
-            home_team=team,  # different team's game
-            away_team="Opponent",
+            own_team=team,  # different team's game
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 8),
             time=dt.time(14, 0),
@@ -443,8 +443,8 @@ class TestGetLeaderboard:
         )
         game = Game.objects.create(
             season=season,
-            home_team=team,
-            away_team="Opponent",
+            own_team=team,
+            opponent="Opponent",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -475,8 +475,8 @@ class TestGetLeaderboard:
             players.append(p)
             game = Game.objects.create(
                 season=season,
-                home_team=team,
-                away_team="Opponent",
+                own_team=team,
+                opponent="Opponent",
                 game_type=Game.GameType.HOME,
                 date=dt.date(2025, 10, i + 1),
                 time=dt.time(14, 0),

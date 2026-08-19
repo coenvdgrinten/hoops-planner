@@ -150,12 +150,12 @@ class Game(models.Model):
         on_delete=models.CASCADE,
         related_name="games",
     )
-    home_team = models.ForeignKey(
+    own_team = models.ForeignKey(
         Team,
         on_delete=models.CASCADE,
-        related_name="home_games",
+        related_name="own_games",
     )
-    away_team = models.CharField(max_length=100)  # e.g. "Achilles '71"
+    opponent = models.CharField(max_length=100)  # e.g. "Achilles '71"
     game_type = models.CharField(
         max_length=10,
         choices=GameType.choices,
@@ -185,7 +185,7 @@ class Game(models.Model):
         unique_together = ["season", "date", "time", "court"]
 
     def __str__(self) -> str:
-        return f"{self.home_team} vs {self.away_team} ({self.date})"
+        return f"{self.own_team} vs {self.opponent} ({self.date})"
 
     @property
     def time_slot_key(self) -> str:
@@ -302,22 +302,12 @@ class TaskAssignment(models.Model):
 
         # Players must not be assigned to their own team's games.
         # Exception: SCORER/TIMER when parent_responsible=True.
+        # ``own_team`` is always the club team the game is for, so the player's
+        # team is involved only when it is the own_team.
         game = self.task.game
-        is_own_team = (
-            game.home_team_id == self.player.team_id
-            or game.away_team == self.player.team.name
-        )
-        if is_own_team:
+        if game.own_team_id == self.player.team_id:
             if self.task.task_type in (TaskType.SCORER, TaskType.TIMER):
-                if game.home_team_id == self.player.team_id:
-                    if not game.home_team.parent_responsible:
-                        raise ValidationError(
-                            "A player cannot be assigned to their own team's game."
-                        )
-                elif not any(
-                    t.name == game.away_team and t.parent_responsible
-                    for t in self.player.all_teams
-                ):
+                if not game.own_team.parent_responsible:
                     raise ValidationError(
                         "A player cannot be assigned to their own team's game."
                     )

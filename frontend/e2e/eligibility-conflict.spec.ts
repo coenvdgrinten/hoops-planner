@@ -106,7 +106,7 @@ test.describe("Eligibility - same time conflict", () => {
     });
     const gamesData = await gamesRes.json();
     const gamesList = Array.isArray(gamesData) ? gamesData : gamesData.results ?? [];
-    const teamAGame = gamesList.find((g: { home_team: { name: string } }) => g.home_team.name === "Team A");
+    const teamAGame = gamesList.find((g: { own_team: { name: string } }) => g.own_team.name === "Team A");
 
     const tasksRes = await request.get(`${API}/tasks/?game=${teamAGame.id}`, {
       headers: { Authorization: `Token ${token}` },

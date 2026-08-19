@@ -26,11 +26,13 @@ def import_schedule(
     Expected CSV columns:
     date, time, court, home_team, away_team
 
+    The ``home_team`` column always names the club's own team (the team the
+    game is for) and ``away_team`` names the opponent, for both home and away
+    games. The ``game_type`` column distinguishes the two.
+
     Optional CSV columns:
     half — 1 or 2 (defaults to 1)
-    game_type — "HOME" or "AWAY" (defaults to "HOME"). For away games the
-        home_team column still names the team that plays at home (the club's
-        opponent), while away_team names the club's travelling team.
+    game_type — "HOME" or "AWAY" (defaults to "HOME").
 
     Parameters
     ----------
@@ -57,7 +59,7 @@ def import_schedule(
     rows = list(reader)
 
     for row in rows:
-        home_team, _ = Team.objects.get_or_create(
+        own_team, _ = Team.objects.get_or_create(
             name=row["home_team"].strip(),
             defaults={
                 "age_category": _infer_age_category(row["home_team"].strip()),
@@ -65,9 +67,9 @@ def import_schedule(
         )
         # Fix age_category if it was wrong on first import
         expected_category = _infer_age_category(row["home_team"].strip())
-        if home_team.age_category != expected_category:
-            home_team.age_category = expected_category
-            home_team.save(update_fields=["age_category"])
+        if own_team.age_category != expected_category:
+            own_team.age_category = expected_category
+            own_team.save(update_fields=["age_category"])
 
         # Parse optional half column
         half_raw = row.get("half", "").strip()
@@ -88,11 +90,12 @@ def import_schedule(
         else:
             location_value = "Den Ekkerman"
 
-        # Build game data from CSV
+        # Build game data from CSV. The CSV columns are home_team/away_team,
+        # but the model fields are own_team/opponent.
         game_data = {
             "season": season,
-            "home_team": home_team,
-            "away_team": row["away_team"].strip(),
+            "own_team": own_team,
+            "opponent": row["away_team"].strip(),
             "date": row["date"].strip(),
             "time": row["time"].strip(),
             "court": row["court"].strip(),
@@ -122,9 +125,9 @@ def import_schedule(
             else:
                 # Update changed fields. Only check string/int fields to avoid
                 # type mismatches (TimeField stores datetime.time, not str).
-                # Skip fields used for matching (season, date, home_team).
+                # Skip fields used for matching (season, date, own_team).
                 changed = False
-                updatable = ("court", "location", "half", "away_team", "game_type")
+                updatable = ("court", "location", "half", "opponent", "game_type")
                 for key in updatable:
                     value = game_data[key]
                     if getattr(game, key) != value:
@@ -146,7 +149,7 @@ def import_schedule(
 def _match_or_create_game(game_data: dict[str, Any]) -> tuple[Game, bool]:
     """Try to find an existing game matching the CSV row, or create one.
 
-    Matching is done on (season, date, home_team, away_team) to handle
+    Matching is done on (season, date, own_team, opponent) to handle
     cases where court or time changed but it's the same fixture.
     Falls back to (season, date, time, court) if no match on teams.
     """
@@ -154,8 +157,8 @@ def _match_or_create_game(game_data: dict[str, Any]) -> tuple[Game, bool]:
     game = Game.objects.filter(
         season=game_data["season"],
         date=game_data["date"],
-        home_team=game_data["home_team"],
-        away_team=game_data["away_team"],
+        own_team=game_data["own_team"],
+        opponent=game_data["opponent"],
         game_type=game_data["game_type"],
     ).first()
     if game:
@@ -179,11 +182,11 @@ def _ensure_task_slots(game: Game) -> int:
     """Create task slots for a game if they don't already exist.
 
     Staffing (referees, scorer, timer, 24-second operator) is driven by the
-    per-team settings on the game's home team.
+    per-team settings on the game's own team.
 
     Returns the number of task slots created.
     """
-    team = game.home_team
+    team = game.own_team
     tasks_to_create: list[Task] = []
 
     # Scorer — per-team setting

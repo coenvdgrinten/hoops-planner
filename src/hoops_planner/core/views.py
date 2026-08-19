@@ -139,19 +139,21 @@ class SeasonViewSet(viewsets.ModelViewSet):
         """
         season = self.get_object()
         conflicts = find_conflicting_assignments(season=season)
-        return Response([
-            {
-                "assignment_id": c["assignment"].id,
-                "player_id": c["player"].id,
-                "player_name": c["player"].full_name,
-                "task_type": c["task"].get_task_type_display(),
-                "game_id": c["game"].id,
-                "game_date": c["game"].date.isoformat(),
-                "game": str(c["game"]),
-                "reason": c["reason"],
-            }
-            for c in conflicts
-        ])
+        return Response(
+            [
+                {
+                    "assignment_id": c["assignment"].id,
+                    "player_id": c["player"].id,
+                    "player_name": c["player"].full_name,
+                    "task_type": c["task"].get_task_type_display(),
+                    "game_id": c["game"].id,
+                    "game_date": c["game"].date.isoformat(),
+                    "game": str(c["game"]),
+                    "reason": c["reason"],
+                }
+                for c in conflicts
+            ]
+        )
 
 
 class TeamViewSet(viewsets.ModelViewSet):
@@ -386,14 +388,14 @@ class AvailabilityViewSet(viewsets.ViewSet):
 
         away_games = (
             Game.objects.filter(season_id=season_id, game_type=Game.GameType.AWAY)
-            .select_related("home_team")
+            .select_related("own_team")
             .order_by("date", "time")
         )
 
         # Group away games by date
         by_date: dict[str, list[dict[str, object]]] = {}
         for game in away_games:
-            team = game.home_team
+            team = game.own_team
             # Members made unavailable: players on the team + anyone coaching it
             players = list(
                 Player.objects.filter(team=team).values(
@@ -423,7 +425,7 @@ class AvailabilityViewSet(viewsets.ViewSet):
             entry = {
                 "game_id": game.id,
                 "team": TeamSerializer(team).data,
-                "opponent": game.away_team,
+                "opponent": game.opponent,
                 "time": game.time.strftime("%H:%M") if game.time else "",
                 "member_count": len(members),
                 "members": members,
@@ -474,7 +476,7 @@ def _generate_single_game_ics(game: Game) -> bytes:
 
     dtstart = datetime.combine(game.date, game.time)
     dtend = dtstart + timedelta(hours=2)
-    summary = f"{game.home_team} vs {game.away_team}"
+    summary = f"{game.own_team} vs {game.opponent}"
 
     # Count assigned tasks by type only \u2014 never expose player names publicly
     assignments = TaskAssignment.objects.filter(task__game=game).select_related("task")

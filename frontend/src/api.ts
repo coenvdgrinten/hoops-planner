@@ -297,8 +297,8 @@ export function getGames(season: number) {
 
 export function createGame(data: {
   season: number;
-  home_team_id: number;
-  away_team: string;
+  own_team_id: number;
+  opponent: string;
   date: string;
   time: string;
   court: string;
@@ -315,8 +315,8 @@ export function createGame(data: {
 export function updateGame(
   gameId: number,
   data: Partial<{
-    home_team_id: number;
-    away_team: string;
+    own_team_id: number;
+    opponent: string;
     date: string;
     time: string;
     court: string;

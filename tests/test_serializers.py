@@ -57,8 +57,8 @@ class TestGameSerializer:
     def test_serializes_location(self, season, team_x14):
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Achilles '71",
+            own_team=team_x14,
+            opponent="Achilles '71",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),
@@ -71,8 +71,8 @@ class TestGameSerializer:
     def test_defaults_location_to_den_ekkerman(self, season, team_x14):
         game = Game.objects.create(
             season=season,
-            home_team=team_x14,
-            away_team="Achilles '71",
+            own_team=team_x14,
+            opponent="Achilles '71",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 1),
             time=dt.time(14, 0),

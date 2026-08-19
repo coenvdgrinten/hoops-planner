@@ -138,8 +138,8 @@ export function Planner({ season, onSelectTask }: Props) {
                               <GameCard
                                 key={game.id}
                                 id={game.id}
-                                homeTeam={game.home_team}
-                                awayTeam={game.away_team}
+                                ownTeam={game.own_team}
+                                opponent={game.opponent}
                                 date={game.date}
                                 time={game.time}
                                 court={game.court}
