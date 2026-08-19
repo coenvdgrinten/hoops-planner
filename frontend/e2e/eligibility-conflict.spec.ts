@@ -93,13 +93,21 @@ test.describe("Eligibility - same time conflict", () => {
   });
 
   test("backend rejects assignment of player whose team has a game at the same time", async ({ request }) => {
-    // Get the tasks for Team A's game
-    const seasonsRes = await request.get(`${API}/seasons/`, {
-      headers: { Authorization: `Token ${token}` },
-    });
-    const seasonsData = await seasonsRes.json();
-    const seasonsList = Array.isArray(seasonsData) ? seasonsData : seasonsData.results ?? [];
-    const season = seasonsList.find((s: { name: string }) => s.name === seasonName);
+    // Get the tasks for Team A's game. The seasons endpoint is paginated
+    // (fixed page size of 100) and long-lived dev databases accumulate many
+    // test seasons, so walk the pages until the new season is found.
+    let season: { id: number; name: string } | undefined;
+    for (let p = 1; p <= 10 && !season; p++) {
+      const seasonsRes = await request.get(`${API}/seasons/?page=${p}`, {
+        headers: { Authorization: `Token ${token}` },
+      });
+      const seasonsData = await seasonsRes.json();
+      const seasonsList = Array.isArray(seasonsData)
+        ? seasonsData
+        : (seasonsData.results ?? []);
+      season = seasonsList.find((s: { name: string }) => s.name === seasonName);
+    }
+    expect(season, "newly imported season should be listed").toBeTruthy();
 
     const gamesRes = await request.get(`${API}/games/?season=${season.id}`, {
       headers: { Authorization: `Token ${token}` },
@@ -116,12 +124,16 @@ test.describe("Eligibility - same time conflict", () => {
     const task = tasksList[0];
 
     // Find Bob (Team B player)
+    // Match on first + last name: other specs also create players named Bob
     const playersRes = await request.get(`${API}/players/`, {
       headers: { Authorization: `Token ${token}` },
     });
     const playersData = await playersRes.json();
     const playersList = Array.isArray(playersData) ? playersData : playersData.results ?? [];
-    const bob = playersList.find((p: { first_name: string }) => p.first_name === "Bob");
+    const bob = playersList.find(
+      (p: { first_name: string; last_name: string }) =>
+        p.first_name === "Bob" && p.last_name === "PlayerB",
+    );
 
     // Attempt to assign Bob to Team A's task — should be rejected (endpoint is /assignments/)
     const assignRes = await request.post(`${API}/assignments/`, {
