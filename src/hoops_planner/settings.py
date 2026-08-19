@@ -154,7 +154,9 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 100,
-    "DEFAULT_THROTTLE_CLASSES": [
+    # Throttling is a production safeguard; disabled in dev/test so the e2e
+    # suite (which registers many users) doesn't trip the anon rate limit.
+    "DEFAULT_THROTTLE_CLASSES": [] if DEBUG else [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],

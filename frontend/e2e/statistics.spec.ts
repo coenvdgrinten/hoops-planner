@@ -59,8 +59,9 @@ test.describe("Statistics", () => {
     const seasonsBody = await seasonsRes.json();
     const seasons = (
       Array.isArray(seasonsBody) ? seasonsBody : seasonsBody.results
-    ) as { id: number }[];
-    const seasonId = seasons[0].id;
+    ) as { id: number; name: string }[];
+    // Select the season we just created (the DB may contain other seasons)
+    const seasonId = (seasons.find((s) => s.name === seasonName) ?? seasons[0]).id;
     const gamesRes = await request.get(`${API}/games/?season=${seasonId}`, {
       headers: { Authorization: `Token ${token}` },
     });
@@ -84,11 +85,15 @@ test.describe("Statistics", () => {
     const player = players.find(
       (p) => p.team.name === "Vido X14-Away" && p.full_name.includes(String(playerSuffix)),
     )!;
+    // Use a SCORER task — the seeded player has no referee certification
+    const scorerTask = (tasks as { id: number; task_type: string }[]).find(
+      (t) => t.task_type === "SCORER",
+    )!;
     const assignRes = await request.post(
       `${API}/assignments/`,
       {
         headers: { Authorization: `Token ${token}` },
-        data: { task_id: tasks[0].id, player_id: player.id },
+        data: { task_id: scorerTask.id, player_id: player.id },
       },
     );
     expect(assignRes.status(), "assignment should succeed").toBe(201);

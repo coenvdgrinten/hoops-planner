@@ -10,9 +10,10 @@ test.describe("Layout", () => {
     await page.goto("/");
 
     // Top bar elements
-    await expect(page.getByAltText("BC Vido")).toBeVisible();
-    await expect(page.getByText("Hoops Planner")).toHaveCount(2);
-    await expect(page.getByText("BC Vido")).toBeVisible();
+    await expect(page.getByAltText("Logo")).toBeVisible();
+    await expect(page.locator("header").getByText("Hoops Planner", { exact: true })).toBeVisible();
+    // Empty state heading (planner view with no season selected)
+    await expect(page.getByRole("heading", { name: "Welcome to Hoops Planner" })).toBeVisible();
 
     // Import buttons
     await expect(page.getByRole("button", { name: "Import Schedule" })).toBeVisible();
