@@ -129,6 +129,27 @@ test.describe("Planner", () => {
     await expect(panel.getByText("No one assigned yet")).toBeVisible();
   });
 
+  test("highlights the game whose task is selected", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    // Each seeded game has 4 task chips (2 refs, scorer, timer)
+    const firstChip = page.getByTestId(/^task-chip-\d+$/).first();
+    await firstChip.click();
+    await expect(page.getByTestId("assignment-panel")).toBeVisible({ timeout: 10_000 });
+
+    // The card containing the clicked chip is highlighted
+    const firstCard = firstChip.locator("..").locator("..");
+    await expect(firstCard).toHaveClass(/selected/);
+
+    // Selecting a task on the other game moves the highlight
+    const secondChip = page.getByTestId(/^task-chip-\d+$/).nth(4);
+    await secondChip.click();
+    const secondCard = secondChip.locator("..").locator("..");
+    await expect(secondCard).toHaveClass(/selected/);
+    await expect(firstCard).not.toHaveClass(/selected/);
+  });
+
   test("exports the schedule as CSV", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);

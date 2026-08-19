@@ -11,6 +11,7 @@ interface Team {
 
 interface Props {
   id: number;
+  isSelected?: boolean;
   ownTeam: Team;
   opponent: string;
   date: string;
@@ -31,6 +32,7 @@ const TASK_LABELS: Record<string, string> = {
 
 export function GameCard({
   id,
+  isSelected = false,
   ownTeam,
   opponent,
   date,
@@ -91,7 +93,9 @@ export function GameCard({
   if (isLoading) return <p>Loading tasks...</p>;
 
   return (
-    <div className={styles["game-card"]}>
+    <div
+      className={`${styles["game-card"]} ${isSelected ? styles.selected : ""}`}
+    >
       <div className={styles["game-card-header"]}>
         <div className={styles["game-card-left"]}>
           <div className={styles["game-badges"]}>

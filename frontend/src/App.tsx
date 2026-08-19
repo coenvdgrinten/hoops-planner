@@ -220,6 +220,7 @@ function AppInner() {
                 <Planner
                   season={selectedSeason}
                   onSelectTask={handleSelectTask}
+                  selectedGameId={selectedTask?.gameId}
                 />
               )}
               {currentView === "statistics" && <Statistics season={selectedSeason} />}

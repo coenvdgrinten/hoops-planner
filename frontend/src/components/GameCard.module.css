@@ -13,6 +13,13 @@
   border-color: var(--color-border-hover);
 }
 
+.game-card.selected {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 2px var(--color-primary-tint),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
 .game-card-header {
   display: flex;
   justify-content: space-between;

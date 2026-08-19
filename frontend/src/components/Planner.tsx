@@ -10,9 +10,10 @@ import styles from "./Planner.module.css";
 interface Props {
   season: Season;
   onSelectTask: (task: TaskWithAssignments, gameId: number) => void;
+  selectedGameId?: number | null;
 }
 
-export function Planner({ season, onSelectTask }: Props) {
+export function Planner({ season, onSelectTask, selectedGameId }: Props) {
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -138,6 +139,7 @@ export function Planner({ season, onSelectTask }: Props) {
                               <GameCard
                                 key={game.id}
                                 id={game.id}
+                                isSelected={game.id === selectedGameId}
                                 ownTeam={game.own_team}
                                 opponent={game.opponent}
                                 date={game.date}
