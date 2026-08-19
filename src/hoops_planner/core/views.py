@@ -287,6 +287,13 @@ class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
 
+    def get_queryset(self):
+        qs = Task.objects.all()
+        game = self.request.query_params.get("game")
+        if game:
+            qs = qs.filter(game_id=game)
+        return qs
+
     @action(detail=True, methods=["get"])
     def suggestions(self, request, pk=None):
         """Get candidate suggestions for a task slot."""

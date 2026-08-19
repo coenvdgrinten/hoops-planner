@@ -384,6 +384,42 @@ class TestGameViewSet:
 
 
 @pytest.mark.django_db
+class TestTaskViewSet:
+    def test_filters_by_game(self, api_client, task, season):
+        # A task on another game must not appear in the filtered list
+        other_team = Team.objects.create(
+            name="Vido X14-3",
+            age_category=Team.AgeCategory.X14,
+        )
+        other_game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Other Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 2),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        Task.objects.create(
+            game=other_game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+
+        response = api_client.get(f"/api/tasks/?game={task.game_id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["count"] == 1
+        assert data["results"][0]["id"] == task.id
+
+    def test_no_filter_returns_all(self, api_client, task):
+        response = api_client.get("/api/tasks/")
+        assert response.status_code == 200
+        data = response.json()
+        assert any(t["id"] == task.id for t in data["results"])
+
+
+@pytest.mark.django_db
 class TestPlayerEligibleEndpoint:
     def test_missing_task_param(self, api_client, season):
         response = api_client.get("/api/players/eligible/")
