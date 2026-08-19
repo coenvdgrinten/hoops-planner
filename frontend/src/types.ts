@@ -74,6 +74,8 @@ export interface TaskAssignment {
   player: Player;
   assigned_at: string;
   is_parent: boolean;
+  /** How much this assignment counts toward the player's effective total (1 or 2). */
+  effective_value?: number;
 }
 
 export interface EligiblePlayer {

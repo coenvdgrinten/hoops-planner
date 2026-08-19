@@ -381,6 +381,38 @@ class TestGameViewSet:
         assert len(data) == 1
         assert data[0]["task_type"] == "SCORER"
         assert len(data[0]["assignments"]) == 1
+        # Own team has a game on this date → counts single
+        assert data[0]["assignments"][0]["effective_value"] == 1
+
+    def test_tasks_with_assignments_effective_value_away(
+        self, api_client, player, season
+    ):
+        # Task on another team's game, on a date with no game for the
+        # player's own team → counts double
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        response = api_client.get(f"/api/games/{game.id}/tasks_with_assignments/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data[0]["assignments"][0]["effective_value"] == 2
 
 
 @pytest.mark.django_db

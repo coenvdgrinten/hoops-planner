@@ -179,6 +179,22 @@ export function AssignmentPanel({
                     {a.player.team.name}
                   </span>
                 </div>
+                {a.effective_value != null && (
+                  <span
+                    data-testid={`effective-value-${a.id}`}
+                    className={`${styles["effective-badge"]} ${
+                      a.effective_value > 1 ? styles["effective-away"] : ""
+                    }`}
+                    title={
+                      a.effective_value > 1
+                        ? `Counts double toward ${a.player.full_name}'s effective total (away day)`
+                        : `Counts once toward ${a.player.full_name}'s effective total`
+                    }
+                  >
+                    +{a.effective_value}
+                    {a.effective_value > 1 && "×"}
+                  </span>
+                )}
                 <button
                   className={styles["remove-btn"]}
                   onClick={() => unassign(a.id)}

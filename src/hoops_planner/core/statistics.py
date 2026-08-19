@@ -83,6 +83,19 @@ def get_player_stats(
     }
 
 
+def effective_multiplier_for(player: Player, game_date: date) -> int:
+    """How much one task on ``game_date`` counts toward the player's effective total.
+
+    Matches :func:`get_player_stats`: a task counts double (2) when none of
+    the player's teams (including coached ones) has a game on that date, and
+    single (1) otherwise.
+    """
+    has_own_game = Game.objects.filter(
+        own_team__in=player.all_teams, date=game_date
+    ).exists()
+    return 1 if has_own_game else 2
+
+
 def get_season_stats(
     season: Season,
     half: str | None = None,

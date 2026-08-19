@@ -14,6 +14,7 @@ from hoops_planner.core.models import (
     Team,
 )
 from hoops_planner.core.statistics import (
+    effective_multiplier_for,
     get_leaderboard,
     get_player_stats,
     get_season_stats,
@@ -165,6 +166,56 @@ class TestGetPlayerStats:
         # Filter by same season — should return the task
         stats = get_player_stats(player, season)
         assert stats["total_tasks"] == 1
+
+
+@pytest.mark.django_db
+class TestEffectiveMultiplierFor:
+    def test_single_when_own_team_has_game_that_date(self, player, season):
+        Game.objects.create(
+            season=season,
+            own_team=player.team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        assert effective_multiplier_for(player, dt.date(2025, 10, 1)) == 1
+
+    def test_double_when_no_own_team_game_that_date(self, player, season):
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        assert effective_multiplier_for(player, dt.date(2025, 10, 1)) == 2
+
+    def test_counts_coached_teams(self, player, team_x14, season):
+        # A different team the player coaches also makes the day "own"
+        coached = Team.objects.create(
+            name="Vido X10-2",
+            age_category=Team.AgeCategory.X10,
+        )
+        player.coached_teams.add(coached)
+        Game.objects.create(
+            season=season,
+            own_team=coached,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 2),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        assert effective_multiplier_for(player, dt.date(2025, 10, 2)) == 1
+        assert effective_multiplier_for(player, dt.date(2025, 10, 3)) == 2
 
 
 @pytest.mark.django_db

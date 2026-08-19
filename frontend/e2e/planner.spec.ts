@@ -5,9 +5,10 @@ const API = "/api";
 
 test.describe("Planner", () => {
   let seasonName: string;
+  let token: string;
 
   test.beforeEach(async ({ request, page }) => {
-    const token = await authenticate(request, page, `pl-${Date.now()}`);
+    token = await authenticate(request, page, `pl-${Date.now()}`);
     seasonName = `Planner-${Date.now()}`;
 
     // Seed data via API before each test
@@ -32,9 +33,9 @@ test.describe("Planner", () => {
     expect(memRes.status(), "import_members should succeed").toBe(201);
   });
 
-  async function selectSeason(page: Page) {
+  async function selectSeason(page: Page, name: string = seasonName) {
     await page.getByTestId("season-dropdown-toggle").click();
-    await page.getByTestId("season-dropdown-menu").getByText(seasonName, { exact: true }).click();
+    await page.getByTestId("season-dropdown-menu").getByText(name, { exact: true }).click();
   }
 
   test("displays games after selecting a season", async ({ page }: { page: Page }) => {
@@ -148,6 +149,239 @@ test.describe("Planner", () => {
     const secondCard = secondChip.locator("..").locator("..");
     await expect(secondCard).toHaveClass(/selected/);
     await expect(firstCard).not.toHaveClass(/selected/);
+  });
+
+  /** Find a season id by name, walking pages (fixed page size of 100). */
+  async function findSeasonId(request: any, name: string): Promise<number> {
+    for (let p = 1; p <= 10; p++) {
+      const data = await (
+        await request.get(`${API}/seasons/?page=${p}`, {
+          headers: { Authorization: `Token ${token}` },
+        })
+      ).json();
+      const found = (data.results ?? []).find(
+        (s: { name: string }) => s.name === name,
+      );
+      if (found) return found.id;
+    }
+    throw new Error(`season ${name} not found`);
+  }
+
+  /** Find a player id by exact name. */
+  async function findPlayerId(
+    request: any,
+    first: string,
+    last: string,
+  ): Promise<number> {
+    const data = await (
+      await request.get(`${API}/players/`, {
+        headers: { Authorization: `Token ${token}` },
+      })
+    ).json();
+    const found = (data.results ?? []).find(
+      (p: { first_name: string; last_name: string }) =>
+        p.first_name === first && p.last_name === last,
+    );
+    expect(found, `player ${first} ${last} should exist`).toBeTruthy();
+    return found.id;
+  }
+
+  /** Deepest div containing both texts/chips = the game card. */
+  function gameCard(page: Page, teamName: string) {
+    return page
+      .locator("div")
+      .filter({ hasText: teamName })
+      .filter({ has: page.locator('[data-testid^="task-chip-"]') })
+      .last();
+  }
+
+  test("shows how much an assignment counts toward the player's total", async ({
+    request,
+    page,
+  }: {
+    request: any;
+    page: Page;
+  }) => {
+    // Add a member of a third team (no games of its own on the date).
+    // Unique name per run: fixed names collide with other runs' players
+    // who share the seeded 14:00 slot ("already assigned at this time").
+    const ts = Date.now();
+    const samFirst = `Sam${ts}`;
+    const memRes = await request.post(`${API}/players/import_members/`, {
+      headers: { Authorization: `Token ${token}` },
+      data: {
+        csv_text: `first_name,last_name,team,is_coach,referee_certification\n${samFirst},Solo,ZS${ts},False,F`,
+        upsert: true,
+      },
+    });
+    expect(memRes.status()).toBe(201);
+
+    // Assign Sam to Team A's scorer task via the API
+    const seasonId = await findSeasonId(request, seasonName);
+    const gamesData = await (
+      await request.get(`${API}/games/?season=${seasonId}`, {
+        headers: { Authorization: `Token ${token}` },
+      })
+    ).json();
+    const teamAGame = (gamesData.results ?? []).find(
+      (g: { own_team: { name: string } }) => g.own_team.name === "Team A",
+    );
+    const tasksData = await (
+      await request.get(`${API}/tasks/?game=${teamAGame.id}`, {
+        headers: { Authorization: `Token ${token}` },
+      })
+    ).json();
+    const scorerTask = (tasksData.results ?? []).find(
+      (t: { task_type: string }) => t.task_type === "SCORER",
+    );
+    const samId = await findPlayerId(request, samFirst, "Solo");
+    const assignRes = await request.post(`${API}/assignments/`, {
+      headers: { Authorization: `Token ${token}` },
+      data: { task_id: scorerTask.id, player_id: samId },
+    });
+    expect(assignRes.status(), "assignment should succeed").toBe(201);
+
+    // Sam's team has no game on this date → the task counts double
+    const twa = await (
+      await request.get(`${API}/games/${teamAGame.id}/tasks_with_assignments/`, {
+        headers: { Authorization: `Token ${token}` },
+      })
+    ).json();
+    const assignment = (twa as { id: number; assignments: { effective_value: number }[] })
+      .find((t) => t.id === scorerTask.id)!
+      .assignments[0];
+    expect(assignment.effective_value).toBe(2);
+
+    // The panel shows the highlighted +2× badge next to his name
+    await page.goto("/");
+    await selectSeason(page);
+    const chip = gameCard(page, "Team A")
+      .getByTestId(/^task-chip-\d+$/)
+      .filter({ hasText: "SCORER" })
+      .first();
+    await chip.click();
+    const panel = page.getByTestId("assignment-panel");
+    await expect(panel).toBeVisible({ timeout: 10_000 });
+
+    // The assigned-player row contains both the name and the badge
+    const samRow = panel
+      .locator("div")
+      .filter({ has: page.getByText(`${samFirst} Solo`) })
+      .filter({ has: page.getByTestId(/^effective-value-\d+$/) })
+      .last();
+    const badge = samRow.getByTestId(/^effective-value-\d+$/);
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveClass(/away/);
+  });
+
+  test("marks own-team-day assignments as counting single", async ({
+    request,
+    page,
+  }: {
+    request: any;
+    page: Page;
+  }) => {
+    // Create a fresh season through the UI (auto-selected afterwards, so no
+    // pagination issues), then seed two home games at different times.
+    const ts = Date.now();
+    const seasonName = `EffOwn-${ts}`;
+    await page.goto("/");
+    await page.getByTestId("season-dropdown-toggle").click();
+    await page.getByText("＋ New season").click();
+    await page.getByPlaceholder("e.g. 2025-2026").fill(seasonName);
+    await page.getByRole("button", { name: "Create" }).click();
+    await expect(page.getByTestId("season-dropdown-value")).toHaveText(seasonName);
+
+    // Import the schedule through the UI: its onSuccess invalidates the
+    // ["games"] query, so the Planner picks up the new games. An API-only
+    // import would sit behind the 10s staleTime and the Planner would keep
+    // showing the cached (empty) list.
+    await page.getByRole("button", { name: "Import Schedule" }).click();
+    const modal = page.getByRole("dialog");
+    await expect(modal).toBeVisible();
+    await modal.getByPlaceholder("e.g. 2025-2026").fill(seasonName);
+    await modal.locator("textarea").fill(
+      [
+        "date,time,court,home_team,away_team",
+        `2025-11-10,18:00,1,ZA${ts},Rival Club`,
+        `2025-11-10,19:30,1,ZB${ts},Rival Two`,
+      ].join("\n"),
+    );
+    await modal.getByRole("button", { name: "Import Schedule" }).click();
+    await expect(modal).not.toBeVisible();
+
+    const kimFirst = `Kim${ts}`;
+    const memRes = await request.post(`${API}/players/import_members/`, {
+      headers: { Authorization: `Token ${token}` },
+      data: {
+        csv_text: `first_name,last_name,team,is_coach,referee_certification\n${kimFirst},Keeper,ZA${ts},False,F`,
+        upsert: true,
+      },
+    });
+    expect(memRes.status()).toBe(201);
+
+    // Locate the ZB game and its scorer task (used for the server-side
+    // check at the end).
+    const seasonId = await findSeasonId(request, seasonName);
+    const gamesData = await (
+      await request.get(`${API}/games/?season=${seasonId}`, {
+        headers: { Authorization: `Token ${token}` },
+      })
+    ).json();
+    const zbGame = (gamesData.results ?? []).find(
+      (g: { own_team: { name: string } }) => g.own_team.name === `ZB${ts}`,
+    );
+    const tasksData = await (
+      await request.get(`${API}/tasks/?game=${zbGame.id}`, {
+        headers: { Authorization: `Token ${token}` },
+      })
+    ).json();
+    const scorerTask = (tasksData.results ?? []).find(
+      (t: { task_type: string }) => t.task_type === "SCORER",
+    );
+    const kimId = await findPlayerId(request, kimFirst, "Keeper");
+
+    // The UI import invalidated the game list, so the imported games are
+    // visible in the Planner.
+    const chip = gameCard(page, `ZB${ts}`)
+      .getByTestId(/^task-chip-\d+$/)
+      .filter({ hasText: "SCORER" })
+      .first();
+    await expect(chip).toBeVisible({ timeout: 10_000 });
+    await chip.click();
+    const panel = page.getByTestId("assignment-panel");
+    await expect(panel).toBeVisible({ timeout: 10_000 });
+
+    // Assign Kim through the UI — her team ZA is not involved in this game,
+    // so she is eligible. An API-only assignment would sit behind the 10s
+    // staleTime and the panel would keep showing the cached (empty) list;
+    // the UI mutation invalidates the task cache instead. Searching by name
+    // puts her at the top of the Suggested list.
+    const searchBox = panel.getByPlaceholder("Search member or team...");
+    await searchBox.fill(`${kimFirst} Keeper`);
+    const addBtn = panel.getByTestId(`add-candidate-${kimId}`);
+    await expect(addBtn).toBeVisible({ timeout: 10_000 });
+    await addBtn.click();
+
+    // The Assigned section now shows a plain +1 badge next to her name.
+    // Kim is the only assignment on this task, so the panel has exactly one
+    // effective-value badge.
+    const assignedBadge = panel.getByTestId(/^effective-value-\d+$/).first();
+    await expect(assignedBadge).toBeVisible({ timeout: 10_000 });
+    await expect(assignedBadge).toHaveText("+1");
+    await expect(assignedBadge).not.toHaveClass(/away/);
+
+    // Kim's team plays on this date (at 18:00) → the task counts single.
+    // Verify server-side that the assignment carries effective_value 1.
+    const twa = await (
+      await request.get(`${API}/games/${zbGame.id}/tasks_with_assignments/`, {
+        headers: { Authorization: `Token ${token}` },
+      })
+    ).json();
+    const assignment = (twa as { id: number; assignments: { effective_value: number }[] })
+      .find((t) => t.id === scorerTask.id)!
+      .assignments[0];
+    expect(assignment.effective_value).toBe(1);
   });
 
   test("exports the schedule as CSV", async ({ page }: { page: Page }) => {

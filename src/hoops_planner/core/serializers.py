@@ -125,6 +125,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         write_only=True,
     )
     is_parent = serializers.SerializerMethodField()
+    effective_value = serializers.SerializerMethodField()
 
     class Meta:
         model = TaskAssignment
@@ -136,6 +137,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             "player_id",
             "assigned_at",
             "is_parent",
+            "effective_value",
         ]
 
     def get_is_parent(self, obj: TaskAssignment) -> bool:
@@ -143,6 +145,16 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         if obj.task.task_type not in ("SCORER", "TIMER"):
             return False
         return any(t.parent_responsible for t in obj.player.all_teams)
+
+    def get_effective_value(self, obj: TaskAssignment) -> int:
+        """How much this assignment counts toward the player's effective total.
+
+        2 when none of the player's teams has a game on the task's date
+        (away day), 1 otherwise — same rule as the season statistics.
+        """
+        from hoops_planner.core.statistics import effective_multiplier_for
+
+        return effective_multiplier_for(obj.player, obj.task.game.date)
 
     def create(self, validated_data):
         task = validated_data["task"]
