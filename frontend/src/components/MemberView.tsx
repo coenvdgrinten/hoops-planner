@@ -141,6 +141,7 @@ export function MemberView() {
       queryClient.invalidateQueries({ queryKey: ["players"] });
       setAddingTeam(false);
       setEditingTeamId(null);
+      setDeleteConfirm(null);
       setNewTeam({ name: "", age_category: "X14" });
     },
     onError: (err) => {
@@ -161,6 +162,7 @@ export function MemberView() {
       queryClient.invalidateQueries({ queryKey: ["players"] });
       setAddingPlayerForTeam(null);
       setEditingPlayerId(null);
+      setDeleteConfirm(null);
       setNewPlayer({ first_name: "", last_name: "", is_coach: false, referee_certification: "NONE", is_exempt: false });
     },
     onError: (err) => {
