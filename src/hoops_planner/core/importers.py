@@ -71,12 +71,13 @@ def import_schedule(
             own_team.age_category = expected_category
             own_team.save(update_fields=["age_category"])
 
-        # Parse optional half column
-        half_raw = row.get("half", "").strip()
+        # Parse optional half column. DictReader fills short rows with None,
+        # so guard against a missing value as well as an absent column.
+        half_raw = (row.get("half") or "").strip()
         half_value = half_raw if half_raw in ("1", "2") else Game.Half.FIRST
 
         # Parse optional game_type column (HOME or AWAY)
-        game_type_raw = row.get("game_type", "").strip().upper()
+        game_type_raw = (row.get("game_type") or "").strip().upper()
         game_type_value = (
             game_type_raw
             if game_type_raw in Game.GameType.values

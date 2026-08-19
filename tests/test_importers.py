@@ -148,6 +148,21 @@ class TestImportScheduleGameType:
             Game.objects.get(opponent="Achilles '71").game_type == Game.GameType.AWAY
         )
 
+    def test_mixed_rows_with_and_without_game_type(self):
+        """Rows shorter than the header must not crash (DictReader pads None)."""
+        csv_text = (
+            "date,time,court,home_team,away_team,game_type\n"
+            "2025-10-01,14:00,1,Vido X14-1,Achilles '71\n"
+            "2025-10-02,16:00,1,Vido X10-1,Jumping Giants,AWAY\n"
+        )
+        import_schedule(csv_text, "2025-2026")
+        assert (
+            Game.objects.get(opponent="Achilles '71").game_type == Game.GameType.HOME
+        )
+        assert (
+            Game.objects.get(opponent="Jumping Giants").game_type == Game.GameType.AWAY
+        )
+
 
 @pytest.mark.django_db
 class TestImportScheduleLocation:
