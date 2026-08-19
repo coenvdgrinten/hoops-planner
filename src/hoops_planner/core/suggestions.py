@@ -192,10 +192,14 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         total = 0.0
         for assignment in assignments:
             task_game_date = assignment.task.game.date
-            if task_game_date == game.date:
-                multiplier = 3.0
-            elif task_game_date in player_team_game_dates:
+            if task_game_date in player_team_game_dates:
+                # One of the player's teams plays that day: they are at the
+                # gym anyway, so the task counts single.
                 multiplier = 1.0
+            elif task_game_date == game.date:
+                # Same day as the target game (and no own-team game that
+                # day): double duty on a travel day.
+                multiplier = 3.0
             else:
                 multiplier = 2.0
             total += multiplier
@@ -298,9 +302,11 @@ def _player_game_position(player: Player, game: Game) -> str | None:
 def _effective_task_count(player: Player, game_date: dt.date) -> float:
     """Calculate the player's effective task count.
 
-    Tasks assigned on days the player has no game get a 2x multiplier.
-    Tasks assigned on the same day as `game_date` get a 3x multiplier
-    to deprioritize players who already have a task that day.
+    Tasks on days one of the player's teams (including coached ones) plays
+    count 1x — the player is at the gym anyway. Tasks on the same day as
+    ``game_date``, when none of the player's teams plays that day, count 3x
+    to deprioritize players who already have a task that day. All other
+    tasks (away days) count 2x.
     """
     assignments = player.assignments.select_related("task__game").all()
     # Pre-fetch all dates any of the player's teams has a game.
@@ -312,10 +318,14 @@ def _effective_task_count(player: Player, game_date: dt.date) -> float:
     total = 0.0
     for assignment in assignments:
         task_game_date = assignment.task.game.date
-        if task_game_date == game_date:
-            multiplier = 3.0
-        elif task_game_date in team_game_dates:
+        if task_game_date in team_game_dates:
+            # One of the player's teams plays that day: they are at the gym
+            # anyway, so the task counts single.
             multiplier = 1.0
+        elif task_game_date == game_date:
+            # Same day as the target game (and no own-team game that day):
+            # double duty on a travel day.
+            multiplier = 3.0
         else:
             multiplier = 2.0
         total += multiplier

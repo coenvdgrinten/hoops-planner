@@ -460,6 +460,86 @@ class TestTaskCounterTiebreaker:
         results = suggest_candidates(task)
         assert results[0] == player_low
 
+    def test_same_day_task_counts_single_when_own_team_plays(self, season):
+        # A player whose team plays on the target day must not get the 3x
+        # same-day penalty for a task that day — they are at the gym
+        # anyway, so the task counts single.
+        team = Team.objects.create(
+            name="Vido VSE-1",
+            age_category=Team.AgeCategory.VSE,
+        )
+        player = Player.objects.create(
+            first_name="Imke",
+            last_name="Player",
+            team=team,
+        )
+        # Her own team plays at 13:15 on the target day.
+        Game.objects.create(
+            season=season,
+            own_team=team,
+            opponent="Attacus VSE-1",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 9, 27),
+            time=dt.time(13, 15),
+            court=Game.Court.COURT_1,
+        )
+        # She referees another team's game earlier the same day (11:15).
+        other_team = Team.objects.create(
+            name="Vido X12-1",
+            age_category=Team.AgeCategory.X12,
+        )
+        other_game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Achilles '71 X12-2",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 9, 27),
+            time=dt.time(11, 15),
+            court=Game.Court.COURT_2,
+        )
+        other_task = Task.objects.create(
+            game=other_game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=other_task)
+
+        # Target: yet another team's game later the same day.
+        target_team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        target_game = Game.objects.create(
+            season=season,
+            own_team=target_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 9, 27),
+            time=dt.time(15, 15),
+            court=Game.Court.COURT_1,
+        )
+        target_task = Task.objects.create(
+            game=target_game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+
+        details = get_candidate_details(target_task)
+        found = [d for d in details if d[0] == player]
+        assert len(found) == 1
+        # Own team plays that day → the task counts 1x, not 3x.
+        assert found[0][1] == 1.0
+
+        # Same rule in the batched scorer used by the Teams & Members list.
+        teams = get_team_eligibility(target_task)
+        member = next(
+            p
+            for t in teams
+            for p in t["players"]
+            if p["player"] == player
+        )
+        assert member["task_count"] == 1.0
+
 
 @pytest.mark.django_db
 class TestGetCandidateDetails:
