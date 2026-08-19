@@ -10,7 +10,7 @@ import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
 import { ToastContextProvider, useToastContext } from "./components/ToastContext";
 import { useToast } from "./components/Toast";
-import { clearAuth, getUser, getToken } from "./api";
+import { clearAuth, getUser, getToken, logout } from "./api";
 import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
 import styles from "./App.module.css";
@@ -51,6 +51,8 @@ function AppInner() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    // Revoke the token server-side (best effort — we log out locally either way)
+    void logout().catch(() => {});
     clearAuth();
     setAuthenticated(false);
     setUser(null);
@@ -185,7 +187,7 @@ function AppInner() {
         {/* Main Content */}
         <main className={styles["main-content"]}>
           {currentView === "settings" ? (
-            <Settings />
+            <Settings isStaff={user?.is_staff ?? false} />
           ) : currentView === "availability" ? (
             selectedSeason ? (
               <Availability season={selectedSeason} />

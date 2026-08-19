@@ -28,6 +28,7 @@ router.register(r"availability", AvailabilityViewSet, basename="availability")
 
 urlpatterns = [
     path("auth/login/", auth_views.login, name="login"),
+    path("auth/logout/", auth_views.logout, name="logout"),
     path("auth/register/", auth_views.register, name="register"),
     path("auth/me/", auth_views.me, name="me"),
     path(

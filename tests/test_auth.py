@@ -3,6 +3,7 @@
 import pytest
 from django.contrib.auth.models import User  # noqa: F401
 from django.contrib.auth.tokens import default_token_generator
+from django.test import override_settings
 from rest_framework.test import APIClient
 
 from hoops_planner.core.models import EmailVerificationToken
@@ -89,9 +90,23 @@ class TestRegister:
         assert response.status_code == 201
         data = response.json()
         assert "detail" in data
-        assert "token" in data  # email verification token
+        assert "token" not in data
         user = User.objects.get(username="newuser")
         assert not user.is_active  # pending approval
+
+    @override_settings(DEBUG=True)
+    def test_register_success_returns_token_in_debug(self, auth_client):
+        response = auth_client.post(
+            "/api/auth/register/",
+            {
+                "username": "newuser",
+                "password": "newpass123",
+                "email": "new@example.com",
+            },
+            format="json",
+        )
+        assert response.status_code == 201
+        assert "token" in response.json()
 
     def test_register_missing_email(self, auth_client):
         response = auth_client.post(
@@ -184,6 +199,22 @@ class TestPasswordReset:
         )
         assert response.status_code == 200
         data = response.json()
+        assert "token" not in data
+        assert "uid" not in data
+
+    @override_settings(DEBUG=True)
+    def test_password_reset_request_returns_token_in_debug(
+        self,
+        auth_client,
+        test_user,
+    ):
+        response = auth_client.post(
+            "/api/auth/password_reset_request/",
+            {"email": "test@example.com"},
+            format="json",
+        )
+        assert response.status_code == 200
+        data = response.json()
         assert "token" in data
         assert data["uid"] == test_user.pk
 
@@ -215,8 +246,7 @@ class TestPasswordReset:
             format="json",
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["uid"] == test_user.pk
+        assert "uid" not in response.json()
 
     def test_password_reset_confirm_success(self, auth_client, test_user):
         token = default_token_generator.make_token(test_user)
@@ -276,10 +306,19 @@ class TestEmailVerification:
         auth_client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
         response = auth_client.post("/api/auth/verify_email_request/")
         assert response.status_code == 200
-        data = response.json()
-        assert "token" in data
+        assert "token" not in response.json()
         # Token should be stored in DB
         assert EmailVerificationToken.objects.filter(user=test_user).exists()
+
+    @override_settings(DEBUG=True)
+    def test_verify_email_request_returns_token_in_debug(self, auth_client, test_user):
+        from rest_framework.authtoken.models import Token
+
+        token = Token.objects.create(user=test_user)
+        auth_client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+        response = auth_client.post("/api/auth/verify_email_request/")
+        assert response.status_code == 200
+        assert "token" in response.json()
 
     def test_verify_email_request_cleans_old_tokens(
         self,

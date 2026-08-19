@@ -471,12 +471,21 @@ export function me() {
   return request<AuthUser>("/auth/me/");
 }
 
-export function passwordResetRequest(email: string) {
-  return request<{ token: string; uid: number }>("/auth/password_reset_request/", {
+export function logout() {
+  return request<{ detail: string }>("/auth/logout/", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
   });
+}
+
+export function passwordResetRequest(email: string) {
+  return request<{ detail: string; token?: string; uid?: number }>(
+    "/auth/password_reset_request/",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    },
+  );
 }
 
 export function passwordResetConfirm(token: string, uid: number, password: string) {

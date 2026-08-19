@@ -18,7 +18,10 @@ services:
     ports:
       - "8001:8000"
     environment:
-      - DEBUG=False
+      # Local dev profile: DEBUG is now honored by settings.py. For a real
+      # deployment set DEBUG=False and provide SECRET_KEY + SITE_URL (see
+      # .env.example); that also enables SSL redirect / HSTS / secure cookies.
+      - DEBUG=True
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
       - PYTHONPATH=/app/src
       - DB_ENGINE=django.db.backends.postgresql

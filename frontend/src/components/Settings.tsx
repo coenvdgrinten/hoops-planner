@@ -10,7 +10,11 @@ import {
 import type { Team } from "../types";
 import styles from "./Settings.module.css";
 
-export function Settings() {
+interface Props {
+  isStaff: boolean;
+}
+
+export function Settings({ isStaff }: Props) {
   const queryClient = useQueryClient();
   const { addToast } = useToastContext();
 
@@ -22,6 +26,7 @@ export function Settings() {
   const { data: pendingUsers = [] } = useQuery({
     queryKey: ["pending-users"],
     queryFn: getPendingUsers,
+    enabled: isStaff,
   });
 
   const teamMutation = useMutation({
@@ -157,7 +162,8 @@ export function Settings() {
         </tbody>
       </table>
 
-      {/* Pending Users */}
+      {/* Pending Users — admin only */}
+      {isStaff && (
       <div className={styles["settings-section"]}>
         <h3>Pending Users</h3>
         <p className={styles["settings-subtitle"]}>
@@ -207,6 +213,7 @@ export function Settings() {
           </table>
         )}
       </div>
+      )}
     </div>
   );
 }

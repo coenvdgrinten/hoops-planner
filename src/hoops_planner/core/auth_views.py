@@ -11,7 +11,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 
 from hoops_planner.core.models import EmailVerificationToken
@@ -274,16 +274,17 @@ def register(request):
         },
     )
 
-    return Response(
-        {
-            "detail": (
-                "Account created. Please check your email to verify "
-                "your address. An admin will then review your account."
-            ),
-            "token": token_value,
-        },
-        status=status.HTTP_201_CREATED,
-    )
+    response_data: dict[str, object] = {
+        "detail": (
+            "Account created. Please check your email to verify "
+            "your address. An admin will then review your account."
+        ),
+    }
+    # Only expose the token in development — in production the user
+    # follows the link from their email.
+    if settings.DEBUG:
+        response_data["token"] = token_value
+    return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])
@@ -328,14 +329,15 @@ def password_reset_request(request):
             "footer": "If you didn't request this, you can safely ignore this email.",
         },
     )
-    # Also return the token so the frontend can use it directly in dev
-    return Response(
-        {
-            "detail": "If the email exists, a reset link has been sent.",
-            "token": token,
-            "uid": user.pk,
-        }
-    )
+    response_data: dict[str, object] = {
+        "detail": "If the email exists, a reset link has been sent.",
+    }
+    # Only return the token/uid in development so the frontend can skip the
+    # email round-trip. In production the user must use the emailed link.
+    if settings.DEBUG:
+        response_data["token"] = token
+        response_data["uid"] = user.pk
+    return Response(response_data)
 
 
 @api_view(["POST"])
@@ -408,8 +410,11 @@ def verify_email_request(request):
         },
     )
 
-    # Return token for dev/frontend use
-    return Response({"detail": "Verification email sent.", "token": token_value})
+    # Only expose the token in development — in production the user
+    # follows the link from their email.
+    if settings.DEBUG:
+        return Response({"detail": "Verification email sent.", "token": token_value})
+    return Response({"detail": "Verification email sent."})
 
 
 @api_view(["POST"])
@@ -447,6 +452,7 @@ def verify_email_confirm(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAdminUser])
 def pending_users(request):
     """List users awaiting admin approval (inactive + verified email)."""
     # Get inactive users who have verified their email (no pending tokens)
@@ -474,6 +480,7 @@ def pending_users(request):
 
 
 @api_view(["POST"])
+@permission_classes([IsAdminUser])
 def approve_user(request):
     """Approve a pending user (admin only)."""
     user_id = request.data.get("user_id")
@@ -501,6 +508,7 @@ def approve_user(request):
 
 
 @api_view(["DELETE"])
+@permission_classes([IsAdminUser])
 def reject_user(request):
     """Reject and delete a pending user (admin only)."""
     user_id = request.data.get("user_id")
@@ -528,3 +536,12 @@ def reject_user(request):
     user.delete()
 
     return Response({"detail": f"User {username} has been rejected."})
+
+
+@api_view(["POST"])
+def logout(request):
+    """Revoke the caller's current auth token so it can no longer be used."""
+    if request.auth is not None:
+        # request.auth is the Token instance used for this request
+        request.auth.delete()
+    return Response({"detail": "Logged out."})
