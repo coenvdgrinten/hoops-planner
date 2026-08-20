@@ -27,7 +27,7 @@ const TASK_LABELS: Record<string, string> = {
   REFEREE: "REF",
   SCORER: "SCORER",
   TIMER: "TIMER",
-  SECOND_24_OPERATOR: "24 SEC",
+  ["24_SECOND_OPERATOR"]: "24 SEC",
 };
 
 export function GameCard({
@@ -143,7 +143,7 @@ export function GameCard({
               REFEREE: 0,
               SCORER: 1,
               TIMER: 2,
-              SECOND_24_OPERATOR: 3,
+              ["24_SECOND_OPERATOR"]: 3,
             };
             const aOrder = order[a.task_type] ?? 99;
             const bOrder = order[b.task_type] ?? 99;

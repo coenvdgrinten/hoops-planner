@@ -21,7 +21,7 @@ const TASK_LABELS: Record<string, string> = {
   REFEREE: "Referee",
   SCORER: "Scorer",
   TIMER: "Timer",
-  SECOND_24_OPERATOR: "24-sec Operator",
+  ["24_SECOND_OPERATOR"]: "24-sec Operator",
 };
 
 export function AssignmentPanel({
