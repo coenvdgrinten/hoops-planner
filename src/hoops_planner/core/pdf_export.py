@@ -10,7 +10,22 @@ from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
+from hoops_planner.core.eligibility import AGE_CATEGORY_ORDER
 from hoops_planner.core.models import Game, Season, Task, TaskAssignment, TaskType, Team
+
+
+def _team_age_key(team: Team) -> tuple[int, str]:
+    """Sort key ordering teams by ascending age, then name.
+
+    Reuses ``AGE_CATEGORY_ORDER`` (youngest first) so the PDF matches the
+    app's canonical age ordering; unknown categories sort last.
+    """
+    try:
+        idx = AGE_CATEGORY_ORDER.index(team.age_category)
+    except ValueError:
+        idx = len(AGE_CATEGORY_ORDER)
+    return (idx, team.name)
+
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Referee",
@@ -75,6 +90,10 @@ table {
     overflow: hidden;
     margin-bottom: 12pt;
     box-shadow: 0 1pt 3pt rgba(0,0,0,0.08);
+}
+
+.day-table {
+    page-break-inside: avoid;
 }
 
 th {
@@ -149,6 +168,17 @@ td.unassigned {
     font-weight: 600;
     margin: 12pt 0 6pt 0;
     color: #1a1a2e;
+}
+
+.summary-table {
+    page-break-inside: avoid;
+}
+
+.summary-subtitle {
+    font-size: 10pt;
+    font-weight: 600;
+    color: #ea580c;
+    margin: 10pt 0 4pt 0;
 }
 
 .summary-table th {
@@ -309,36 +339,33 @@ def _build_html(season: Season) -> str:
         "<body>",
         f'<div class="header">{logo_html}'
         f'<span class="title">Task Schedule — {season.name}</span></div>',
-        "<table>",
-        "<thead>",
-        "<tr>",
     ]
 
-    for h in headers:
-        html_parts.append(f"<th>{h}</th>")
+    # Shared column header row, reused in every per-day table so the labels
+    # repeat on each page and survive a page break inside a long day.
+    header_cells = "".join(f"<th>{h}</th>" for h in headers)
 
-    html_parts.extend(["</tr>", "</thead>", "<tbody>"])
-
+    # One table per day. ``page-break-inside: avoid`` keeps each day together
+    # so a date is never split across two pages (a day taller than a page
+    # still breaks, but its header stays with the first games).
     for game_date in sorted(by_date.keys()):
-        # Date header row — keep with following game rows
         date_str = game_date.strftime("%d-%m-%Y")
+        html_parts.append('<table class="day-table">')
+        html_parts.append(f"<thead><tr>{header_cells}</tr></thead>")
+        html_parts.append("<tbody>")
         html_parts.append(
-            f'<tr class="date-row" style="page-break-inside: avoid">'
-            f'<td colspan="2">{date_str}</td>'
+            f'<tr class="date-row"><td colspan="2">{date_str}</td>'
         )
         for _ in range(2, len(headers)):
             html_parts.append("<td></td>")
         html_parts.append("</tr>")
 
-        # Game rows — keep each game row together
         for game in by_date[game_date]:
             html_parts.append(
-                f'<tr style="page-break-inside: avoid">'
-                f"{_build_game_row_html(game, assigned, max_referees, has_24sec)}"
-                f"</tr>"
+                f"<tr>{_build_game_row_html(game, assigned, max_referees, has_24sec)}</tr>"
             )
 
-    html_parts.extend(["</tbody>", "</table>"])
+        html_parts.extend(["</tbody>", "</table>"])
 
     # Legend
     html_parts.append(
@@ -484,8 +511,8 @@ def _build_team_summary_html(season: Season) -> str:
     if not counts:
         return ""
 
-    teams = Team.objects.filter(id__in=counts.keys()).order_by(
-        "age_category", "name"
+    teams = sorted(
+        Team.objects.filter(id__in=counts.keys()), key=_team_age_key
     )
     rows = []
     for team in teams:
@@ -508,50 +535,52 @@ def _build_team_summary_html(season: Season) -> str:
 
 
 def _build_player_summary_html(season: Season) -> str:
-    """Build player summary HTML section."""
+    """Build player summary HTML sections, grouped by team.
+
+    Instead of one flat alphabetical list, players are split into a section
+    per team so each team's member statistics sit together.
+    """
     assignments = TaskAssignment.objects.filter(
         task__game__season=season
     ).select_related("player", "player__team", "task")
 
-    # Count assignments per player per task type
-    player_counts: dict[str, dict[str, int]] = {}
+    # Count assignments per player per task type, keyed by (team_id, name)
+    player_counts: dict[tuple[int, str], dict[str, int]] = {}
     for a in assignments:
-        name = a.player.full_name
-        if name not in player_counts:
-            player_counts[name] = {}
+        key = (a.player.team_id, a.player.full_name)
         task_label = TASK_LABELS.get(a.task.task_type, a.task.task_type)
-        player_counts[name][task_label] = player_counts[name].get(task_label, 0) + 1
+        counts = player_counts.setdefault(key, {})
+        counts[task_label] = counts.get(task_label, 0) + 1
 
     if not player_counts:
         return ""
 
-    # Sort by last name
-    sorted_players = sorted(player_counts.keys(), key=lambda x: x.lower())
+    # Group players by their team
+    by_team: dict[int, list[tuple[str, dict[str, int]]]] = {}
+    for (team_id, name), counts in player_counts.items():
+        by_team.setdefault(team_id, []).append((name, counts))
 
-    html_parts = [
-        '<div class="summary-title">Player Summary</div>',
-        '<table class="summary-table">',
-        "<thead>",
-        "<tr>",
-        "<th>Player</th>",
-    ]
+    teams = sorted(Team.objects.filter(id__in=by_team.keys()), key=_team_age_key)
+    labels = list(TASK_LABELS.values())
 
-    for label in TASK_LABELS.values():
-        html_parts.append(f"<th>{label}</th>")
-
-    html_parts.extend(["<th>Total</th>", "</tr>", "</thead>", "<tbody>"])
-
-    for name in sorted_players:
-        counts = player_counts[name]
-        total = 0
-        cells = [f"<td>{name}</td>"]
-        for label in TASK_LABELS.values():
-            count = counts.get(label, 0)
-            total += count
-            cells.append(f"<td>{count}</td>")
-        cells.append(f"<td>{total}</td>")
-        html_parts.append(f"<tr>{''.join(cells)}</tr>")
-
-    html_parts.extend(["</tbody>", "</table>"])
+    html_parts = ['<div class="summary-title">Player Summary</div>']
+    for team in teams:
+        members = sorted(by_team[team.id], key=lambda x: x[0].lower())
+        html_parts.append(f'<div class="summary-subtitle">{team.name}</div>')
+        html_parts.append('<table class="summary-table">')
+        html_parts.append("<thead><tr><th>Player</th>")
+        for label in labels:
+            html_parts.append(f"<th>{label}</th>")
+        html_parts.append("<th>Total</th></tr></thead><tbody>")
+        for name, counts in members:
+            cells = [f"<td>{name}</td>"]
+            total = 0
+            for label in labels:
+                count = counts.get(label, 0)
+                total += count
+                cells.append(f"<td>{count}</td>")
+            cells.append(f"<td>{total}</td>")
+            html_parts.append(f"<tr>{''.join(cells)}</tr>")
+        html_parts.extend(["</tbody>", "</table>"])
 
     return "\n".join(html_parts)
