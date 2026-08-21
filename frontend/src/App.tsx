@@ -221,6 +221,7 @@ function AppInner() {
                   season={selectedSeason}
                   onSelectTask={handleSelectTask}
                   selectedGameId={selectedTask?.gameId}
+                  selectedTaskId={selectedTask?.task.id}
                 />
               )}
               {currentView === "statistics" && <Statistics season={selectedSeason} />}

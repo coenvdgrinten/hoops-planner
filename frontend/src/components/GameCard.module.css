@@ -196,6 +196,13 @@
   background: var(--color-success-bg);
 }
 
+.task-chip.selected {
+  border-color: var(--color-primary);
+  box-shadow:
+    0 0 0 2px var(--color-primary-tint),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
 .chip-label {
   font-size: 10px;
   font-weight: 600;

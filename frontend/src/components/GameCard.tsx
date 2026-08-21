@@ -19,6 +19,7 @@ interface Props {
   court: string;
   location?: string;
   half?: string;
+  isSelectedTaskId?: number | null;
   onSelectTask: (task: TaskWithAssignments, gameId: number) => void;
   onEditGame: (gameId: number) => void;
 }
@@ -39,6 +40,7 @@ export function GameCard({
   time,
   location,
   half,
+  isSelectedTaskId,
   onSelectTask,
   onEditGame,
 }: Props) {
@@ -173,7 +175,7 @@ export function GameCard({
                     ? styles.optional
                     : styles.unfilled
                   : styles.filled
-              }`}
+              } ${task.id === isSelectedTaskId ? styles.selected : ""}`}
               onClick={() => handleSelectTask(task)}
             >
               <span className={styles["chip-label"]}>{displayLabel}</span>

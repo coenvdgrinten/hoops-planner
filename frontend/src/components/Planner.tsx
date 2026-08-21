@@ -11,9 +11,10 @@ interface Props {
   season: Season;
   onSelectTask: (task: TaskWithAssignments, gameId: number) => void;
   selectedGameId?: number | null;
+  selectedTaskId?: number | null;
 }
 
-export function Planner({ season, onSelectTask, selectedGameId }: Props) {
+export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }: Props) {
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -147,6 +148,7 @@ export function Planner({ season, onSelectTask, selectedGameId }: Props) {
                                 court={game.court}
                                 location={game.location}
                                 half={game.half}
+                                isSelectedTaskId={selectedTaskId}
                                 onSelectTask={handleSelectTask}
                                 onEditGame={handleEditGame}
                               />
