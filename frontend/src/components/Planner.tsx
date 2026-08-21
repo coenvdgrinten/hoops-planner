@@ -1,6 +1,12 @@
 import { Fragment, useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getGames, exportSeasonCsv, exportSeasonPdf, exportSeasonIcs } from "../api";
+import {
+  getGames,
+  getSeasonStats,
+  exportSeasonCsv,
+  exportSeasonPdf,
+  exportSeasonIcs,
+} from "../api";
 import type { Season, Game } from "../types";
 import type { TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
@@ -14,14 +20,36 @@ interface Props {
   selectedTaskId?: number | null;
 }
 
+const OPEN_TASK_LABELS: Record<string, string> = {
+  REFEREE: "Referee",
+  SCORER: "Scorer",
+  TIMER: "Timer",
+  ["24_SECOND_OPERATOR"]: "24-sec Operator",
+};
+
 export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }: Props) {
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPdfWarning, setShowPdfWarning] = useState(false);
 
   const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
     queryFn: () => getGames(season.id),
   });
+
+  const { data: stats } = useQuery({
+    queryKey: ["season-stats", season.id],
+    queryFn: () => getSeasonStats(season.id),
+  });
+  const openTasks = stats?.open_task_slots ?? 0;
+
+  const handleExportPdfClick = useCallback(() => {
+    if (openTasks > 0) {
+      setShowPdfWarning(true);
+    } else {
+      void exportSeasonPdf(season.id, season.name);
+    }
+  }, [openTasks, season]);
 
   // Away games have no tasks; they live in the Availability view instead.
   const games = allGames.filter((g) => g.game_type !== "AWAY");
@@ -103,7 +131,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           <button
             data-testid="export-pdf-btn"
             className={styles["btn-export"]}
-            onClick={() => exportSeasonPdf(season.id, season.name)}
+            onClick={handleExportPdfClick}
           >
             Export PDF
           </button>
@@ -207,6 +235,46 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           onClose={handleCreateClose}
           onSuccess={handleCreateClose}
         />
+      )}
+      {showPdfWarning && (
+        <div className="modal-overlay" onClick={() => setShowPdfWarning(false)}>
+          <div role="dialog" className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Export PDF</h2>
+            <p style={{ marginBottom: 8 }}>
+              There are still {openTasks} unplanned task{openTasks === 1 ? "" : "s"} in this
+              schedule:
+            </p>
+            <ul
+              data-testid="pdf-warning-list"
+              style={{
+                margin: "0 0 16px 20px",
+                fontSize: 13,
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              {Object.entries(stats?.open_by_task_type ?? {}).map(([type, count]) => (
+                <li key={type}>
+                  {count} × {OPEN_TASK_LABELS[type] ?? type}
+                </li>
+              ))}
+            </ul>
+            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
+              These will appear as empty slots in the exported PDF.
+            </p>
+            <div className="modal-actions">
+              <button onClick={() => setShowPdfWarning(false)}>Cancel</button>
+              <button
+                data-testid="pdf-warning-export-btn"
+                onClick={() => {
+                  setShowPdfWarning(false);
+                  void exportSeasonPdf(season.id, season.name);
+                }}
+              >
+                Export anyway
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

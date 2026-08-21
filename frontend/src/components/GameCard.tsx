@@ -73,6 +73,7 @@ export function GameCard({
     setShowClearConfirm(false);
     clearGameAssignments(id).then(() => {
       queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", id] });
+      queryClient.invalidateQueries({ queryKey: ["season-stats"] });
     });
   }, [id, queryClient]);
 

@@ -34,6 +34,7 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
       queryClient.invalidateQueries({ queryKey: ["seasons"] });
       queryClient.invalidateQueries({ queryKey: ["players"] });
       queryClient.invalidateQueries({ queryKey: ["games"] });
+      queryClient.invalidateQueries({ queryKey: ["season-stats"] });
       onSuccess();
     },
     onError: (err) => {

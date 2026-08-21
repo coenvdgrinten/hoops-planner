@@ -260,6 +260,55 @@ class TestGetSeasonStats:
         assert stats["total_assignments"] == 1
         assert stats["fill_rate"] == 100.0
 
+    def test_open_task_slots(self, season):
+        team = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        player = Player.objects.create(
+            first_name="Player",
+            last_name="One",
+            team=team,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        scorer_task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        ref_task = Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=1,
+        )
+        # Optional referee slot — must not count as open.
+        Task.objects.create(
+            game=game,
+            task_type=TaskType.REFEREE,
+            slot_number=2,
+            optional=True,
+        )
+        TaskAssignment.objects.create(player=player, task=scorer_task)
+
+        stats = get_season_stats(season)
+        # Only the unassigned required referee slot is open.
+        assert stats["open_task_slots"] == 1
+        assert stats["open_by_task_type"] == {TaskType.REFEREE: 1}
+
+        # Assigning the referee closes all open slots.
+        TaskAssignment.objects.create(player=player, task=ref_task)
+        stats = get_season_stats(season)
+        assert stats["open_task_slots"] == 0
+        assert stats["open_by_task_type"] == {}
+
     def test_by_task_type(self, season):
         team = Team.objects.create(
             name="Vido X14-1",

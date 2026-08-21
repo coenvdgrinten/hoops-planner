@@ -74,6 +74,7 @@ export function AssignmentPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
       queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
+      queryClient.invalidateQueries({ queryKey: ["season-stats"] });
     },
     onError: (err) => {
       console.error("Failed to assign player:", err);
@@ -87,6 +88,7 @@ export function AssignmentPanel({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
       queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
+      queryClient.invalidateQueries({ queryKey: ["season-stats"] });
     },
     onError: (err) => {
       console.error("Failed to unassign player:", err);

@@ -125,6 +125,10 @@ export interface SeasonStats {
   total_task_slots: number;
   total_assignments: number;
   fill_rate: number;
+  /** Required task slots that still have no assignment. */
+  open_task_slots: number;
+  /** Open slot count per task type, e.g. { REFEREE: 3, SCORER: 1 }. */
+  open_by_task_type: Record<string, number>;
   by_task_type: Record<string, { slots: number; filled: number }>;
   per_team: Record<string, { games: number; assignments: number }>;
 }

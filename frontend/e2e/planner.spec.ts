@@ -403,9 +403,47 @@ test.describe("Planner", () => {
     expect(csv).toContain("Team A");
   });
 
+  test("warns about open tasks before exporting PDF", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    // Seeded games have unassigned tasks, so clicking Export PDF should show
+    // the warning modal instead of downloading immediately.
+    await page.getByTestId("export-pdf-btn").click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await expect(dialog.getByText(/unplanned task/)).toBeVisible();
+    await expect(page.getByTestId("pdf-warning-list")).toBeVisible();
+
+    // Cancelling closes the modal without downloading.
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog).not.toBeVisible();
+  });
+
   test("exports the schedule as PDF", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
+
+    await page.getByTestId("export-pdf-btn").click();
+
+    // Open tasks exist → confirm through the warning modal first.
+    const dialog = page.getByRole("dialog");
+    if (await dialog.isVisible().catch(() => false)) {
+      const downloadPromise = page.waitForEvent("download");
+      await dialog.getByTestId("pdf-warning-export-btn").click();
+      const download = await downloadPromise;
+
+      expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.pdf`);
+
+      const stream = await download.createReadStream();
+      let pdf = "";
+      for await (const chunk of stream) {
+        pdf += chunk.toString();
+      }
+      expect(pdf).toContain("%PDF");
+      return;
+    }
 
     const downloadPromise = page.waitForEvent("download");
     await page.getByTestId("export-pdf-btn").click();

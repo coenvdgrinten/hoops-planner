@@ -4,6 +4,8 @@ from collections import defaultdict
 from datetime import date
 from typing import Any
 
+from django.db.models import Count
+
 from hoops_planner.core.models import (
     Game,
     Player,
@@ -154,6 +156,8 @@ def get_season_stats(
             "total_task_slots": int,
             "total_assignments": int,
             "fill_rate": float,  # assignments / task_slots
+            "open_task_slots": int,  # required slots with no assignment yet
+            "open_by_task_type": {TASK_TYPE: int, ...},
             "by_task_type": {TASK_TYPE: {"slots": int, "filled": int}, ...},
             "per_team": {team_name: {"games": int, "assignments": int}, ...},
         }
@@ -177,6 +181,17 @@ def get_season_stats(
     total_assignments = assignments.count()
 
     fill_rate = total_assignments / total_task_slots if total_task_slots > 0 else 0.0
+
+    # Open (unplanned) task slots — optional slots don't count as open.
+    open_tasks = list(
+        task_slots.filter(optional=False)
+        .annotate(num_assignments=Count("assignments"))
+        .filter(num_assignments=0)
+        .values_list("task_type", flat=True)
+    )
+    open_by_task_type: dict[str, int] = defaultdict(int)
+    for task_type in open_tasks:
+        open_by_task_type[task_type] += 1
 
     # By task type
     by_task_type: dict[str, dict[str, Any]] = {}
@@ -207,6 +222,8 @@ def get_season_stats(
         "total_task_slots": total_task_slots,
         "total_assignments": total_assignments,
         "fill_rate": round(fill_rate * 100, 1),
+        "open_task_slots": len(open_tasks),
+        "open_by_task_type": dict(open_by_task_type),
         "by_task_type": by_task_type,
         "per_team": dict(per_team),
     }

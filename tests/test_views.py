@@ -557,6 +557,40 @@ class TestSeasonStatsEndpoint:
         assert data["total_games"] == 1
         assert data["total_assignments"] == 1
 
+    def test_stats_open_task_slots(self, api_client, season, team_x14):
+        game = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        # One assigned scorer, one unassigned referee.
+        player = Player.objects.create(
+            first_name="P1", last_name="L1", team=team_x14
+        )
+        scorer = Task.objects.create(
+            game=game, task_type=TaskType.SCORER, slot_number=1
+        )
+        ref = Task.objects.create(
+            game=game, task_type=TaskType.REFEREE, slot_number=1
+        )
+        TaskAssignment.objects.create(player=player, task=scorer)
+
+        response = api_client.get(f"/api/seasons/{season.id}/stats/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["open_task_slots"] == 1
+        assert data["open_by_task_type"] == {TaskType.REFEREE: 1}
+
+        TaskAssignment.objects.create(player=player, task=ref)
+        response = api_client.get(f"/api/seasons/{season.id}/stats/")
+        data = response.json()
+        assert data["open_task_slots"] == 0
+        assert data["open_by_task_type"] == {}
+
 
 @pytest.mark.django_db
 class TestSeasonLeaderboardEndpoint:
@@ -671,6 +705,71 @@ class TestExportMembersEndpoint:
         assert list(reimported.coached_teams.values_list("name", flat=True)) == [
             "Vido X16-1"
         ]
+
+    def test_export_then_import_endpoint_round_trip(self, api_client):
+        """Export via the API, wipe the DB, re-import via the API, compare.
+
+        Exercises the exact flow a user would perform: download members.csv,
+        paste it into the Import Members modal. Uses a realistic roster with
+        coaches, coached teams, exemptions, and varied certifications.
+        """
+        t_x14 = Team.objects.create(name="Vido X14-1", age_category="X14")
+        t_x10 = Team.objects.create(name="Vido X10-1", age_category="X10")
+        t_vse = Team.objects.create(name="Vido VSE1", age_category="VSE")
+
+        coach = Player.objects.create(
+            first_name="Luc", last_name="Delaere", team=t_x14,
+            is_coach=True, referee_certification="T2",
+        )
+        # Coach also coaches two other teams (multi-value coached_teams).
+        coach.coached_teams.add(t_x10, t_vse)
+        exempt = Player.objects.create(
+            first_name="Jan", last_name="Janssens", team=t_x10, is_exempt=True,
+        )
+        senior = Player.objects.create(
+            first_name="Louis", last_name="Van Wijnendaele", team=t_vse,
+            referee_certification="SENIOR",
+        )
+        plain = Player.objects.create(
+            first_name="Pieter", last_name="Van Damme", team=t_x14,
+        )
+
+        def snapshot():
+            return {
+                p.full_name: {
+                    "team": p.team.name,
+                    "is_coach": p.is_coach,
+                    "cert": p.referee_certification,
+                    "is_exempt": p.is_exempt,
+                    "coached": sorted(p.coached_teams.values_list("name", flat=True)),
+                }
+                for p in Player.objects.select_related("team").all()
+            }
+
+        before = snapshot()
+
+        # 1. Export through the real endpoint.
+        csv_text = api_client.get("/api/players/export_members/").content.decode()
+
+        # 2. Wipe everything, as if starting from an empty club.
+        Player.objects.all().delete()
+        Team.objects.all().delete()
+        assert Player.objects.count() == 0
+
+        # 3. Re-import the exported bytes through the real endpoint.
+        resp = api_client.post(
+            "/api/players/import_members/",
+            {"csv_text": csv_text, "upsert": True},
+            format="json",
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["players_created"] == 4
+        assert body["players_updated"] == 0
+        assert Team.objects.count() == 3
+
+        after = snapshot()
+        assert after == before
 
 
 @pytest.mark.django_db
