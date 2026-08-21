@@ -107,6 +107,50 @@ class TestExportSchedulePdf:
         assert "Player Summary" in html
         assert "John Doe" in html
 
+    def test_pdf_contains_team_summary(self, season, team_x14, player):
+        """Verify the PDF HTML includes a per-team total task count."""
+        game = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        # Two tasks assigned to the same team's member → team total of 2.
+        scorer_task = Task.objects.create(
+            game=game, task_type=TaskType.SCORER, slot_number=1
+        )
+        timer_task = Task.objects.create(
+            game=game, task_type=TaskType.TIMER, slot_number=1
+        )
+        TaskAssignment.objects.create(task=scorer_task, player=player)
+        TaskAssignment.objects.create(task=timer_task, player=player)
+
+        html = _build_html(season)
+
+        # Team summary section should be present with the team name.
+        assert "Team Summary" in html
+        assert "Total Tasks" in html
+        assert "Vido X14-1" in html
+
+    def test_pdf_team_summary_absent_when_no_assignments(self, season, team_x14):
+        """No team summary section when nothing has been assigned."""
+        game = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
+
+        html = _build_html(season)
+        assert "Team Summary" not in html
+
     def test_pdf_contains_unassigned_indicator(self, season, team_x14):
         """Verify unassigned slots show a placeholder indicator."""
         game = Game.objects.create(

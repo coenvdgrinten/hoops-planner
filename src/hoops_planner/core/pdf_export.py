@@ -5,6 +5,7 @@ from datetime import date as date_type
 from pathlib import Path
 
 from django.conf import settings
+from django.db.models import Count
 from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.urls import URLFetcher, URLFetcherResponse
@@ -345,8 +346,13 @@ def _build_html(season: Season) -> str:
         "(counts 2× toward fair distribution)</div>"
     )
 
-    # Force page break before player summary
+    # Force page break before summaries
     html_parts.append('<div style="page-break-before: always"></div>')
+
+    # Team summary (total tasks per team)
+    team_summary_html = _build_team_summary_html(season)
+    if team_summary_html:
+        html_parts.append(team_summary_html)
 
     # Player summary
     summary_html = _build_player_summary_html(season)
@@ -457,6 +463,48 @@ def _build_game_row_html(
             cells.append("<td></td>")
 
     return "".join(cells)
+
+
+def _build_team_summary_html(season: Season) -> str:
+    """Build a per-team total task count section.
+
+    Mirrors the "NT" indicator in the UI: how many tasks each team's members
+    have been assigned this season, giving context for fair distribution
+    across differently-sized teams.
+    """
+    counts = {
+        tid: n
+        for tid, n in (
+            TaskAssignment.objects.filter(task__game__season=season)
+            .values("player__team_id")
+            .annotate(n=Count("id"))
+            .values_list("player__team_id", "n")
+        )
+    }
+    if not counts:
+        return ""
+
+    teams = Team.objects.filter(id__in=counts.keys()).order_by(
+        "age_category", "name"
+    )
+    rows = []
+    for team in teams:
+        rows.append(f"<tr><td>{team.name}</td><td>{counts[team.id]}</td></tr>")
+
+    html_parts = [
+        '<div class="summary-title">Team Summary</div>',
+        '<table class="summary-table">',
+        "<thead>",
+        "<tr>",
+        "<th>Team</th>",
+        "<th>Total Tasks</th>",
+        "</tr>",
+        "</thead>",
+        "<tbody>",
+    ]
+    html_parts.extend(rows)
+    html_parts.extend(["</tbody>", "</table>"])
+    return "\n".join(html_parts)
 
 
 def _build_player_summary_html(season: Season) -> str:
