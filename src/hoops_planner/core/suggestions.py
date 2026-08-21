@@ -11,6 +11,8 @@ The suggestion algorithm ranks eligible players by:
 import datetime as dt
 from typing import Any
 
+from django.db.models import Count
+
 from hoops_planner.core.eligibility import evaluate_player_eligibility_batched
 from hoops_planner.core.models import (
     Game,
@@ -78,12 +80,13 @@ def suggest_candidates(
     # bonus so they're preferred at equal load, but a lighter non-parent
     # can still outrank a heavily loaded parent.
     def _rank(p: Player) -> tuple[int, float]:
-        position, count, has_same_day_task = info[p.id]
+        position, count, has_same_day_task, boost_allowed = info[p.id]
+        eff_position = position if boost_allowed else None
         if _is_parent_for_task(p, task):
             count -= PARENT_TASK_BONUS
         elif has_same_day_task:
             count += SAME_DAY_TASK_PENALTY
-        return (0 if position else 1, count)
+        return (0 if eff_position else 1, count)
 
     ranked = sorted(eligible, key=_rank)
     return ranked[:limit]
@@ -108,18 +111,20 @@ def get_candidate_details(
     info = _batch_position_and_count(eligible, task.game)
     results: list[tuple[Player, float, str | None, str]] = []
     for player in eligible:
-        position, count, has_same_day_task = info[player.id]
+        position, count, _has_same_day_task, boost_allowed = info[player.id]
+        eff_position = position if boost_allowed else None
         is_parent = _is_parent_for_task(player, task)
-        reason = _get_suggestion_reason(position, count, is_parent)
-        results.append((player, count, position, reason))
+        reason = _get_suggestion_reason(eff_position, count, is_parent)
+        results.append((player, count, eff_position, reason))
 
     # Sort: players with a game (before/after) first, then by count
     # (ascending). Players already working a task on the target day get a
     # small penalty; parents get a bonus so they're preferred at equal load,
     # but a lighter non-parent can still outrank a heavily loaded parent.
+    # ``position`` here is already gated by the at-gym boost allowance.
     def _sort_key(entry: tuple[Player, float, str | None, str]) -> tuple[int, float]:
         player, count, position = entry[0], entry[1], entry[2]
-        _, _, has_same_day_task = info[player.id]
+        _, _, has_same_day_task, _boost_allowed = info[player.id]
         if _is_parent_for_task(player, task):
             count -= PARENT_TASK_BONUS
         elif has_same_day_task:
@@ -133,15 +138,22 @@ def get_candidate_details(
 def _batch_position_and_count(
     players: list[Player],
     game: Game,
-) -> dict[int, tuple[str | None, float, bool]]:
-    """Compute (adjacent-game position, effective task count, same-day flag).
+) -> dict[int, tuple[str | None, float, bool, bool]]:
+    """Compute (adjacent-game position, effective task count, same-day flag,
+    at-gym boost allowed).
 
-    Returns ``{player_id: (position, count, has_same_day_task)}`` where
-    position is "before", "after" or None and ``has_same_day_task`` is True
-    when the player already works a task on the target day. The count itself
-    matches the statistics rule (tasks on a day one of the player's teams
-    plays count single); the same-day flag is applied as a ranking-only
+    Returns ``{player_id: (position, count, has_same_day_task, boost_allowed)}``
+    where position is "before", "after" or None and ``has_same_day_task`` is
+    True when the player already works a task on the target day. The count
+    itself matches the statistics rule (tasks on a day one of the player's
+    teams plays count single); the same-day flag is applied as a ranking-only
     penalty by the callers so the displayed task load stays honest.
+
+    ``boost_allowed`` is False for members of a ``parent_responsible`` team
+    when the target game is not one of their own teams' games — such parents
+    are at the gym for their kid, but we don't want to recruit them onto
+    other teams' games before/after it. Callers use it to gate the at-gym
+    priority group; the raw position is kept for display surfaces.
     """
     if not players:
         return {}
@@ -161,6 +173,13 @@ def _batch_position_and_count(
         p.id: {p.team_id} | set(coached_map.get(p.id, [])) for p in players
     }
     all_team_ids: set[int] = set().union(*all_team_ids_by_player.values())
+
+    # Parenting-rule members (members of a parent_responsible team) only get
+    # the "already at the gym" boost for their own teams' games, so they are
+    # not recruited onto other teams' games before/after their kid's.
+    parent_responsible_team_ids = set(
+        Team.objects.filter(parent_responsible=True).values_list("id", flat=True)
+    )
 
     # --- Adjacent home games for the "already at the gym" check ---
     game_dt = dt.datetime.combine(game.date, game.time)
@@ -185,6 +204,13 @@ def _batch_position_and_count(
             if g:
                 return "before" if g.time < game.time else "after"
         return None
+
+    def _boost_allowed(player: Player) -> bool:
+        team_ids = all_team_ids_by_player[player.id]
+        if not (team_ids & parent_responsible_team_ids):
+            return True
+        # Parenting-rule member: only boost for their own teams' games.
+        return game.own_team_id in team_ids
 
     # --- Effective task counts ---
     assignments_by_player: dict[int, list[TaskAssignment]] = {}
@@ -221,7 +247,7 @@ def _batch_position_and_count(
                 has_same_day_task = True
         return total, has_same_day_task
 
-    return {p.id: (_position(p), *_count(p)) for p in players}
+    return {p.id: (_position(p), *_count(p), _boost_allowed(p)) for p in players}
 
 
 def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
@@ -269,6 +295,16 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     for p in all_players:
         players_by_team.setdefault(p.team_id, []).append(p)
 
+    # --- Total assigned tasks per team (whole season) ---
+    assignment_counts: dict[int, int] = {}
+    for pid, n in (
+        TaskAssignment.objects.values("player__team_id")
+        .annotate(n=Count("id"))
+        .values_list("player__team_id", "n")
+    ):
+        if pid is not None:
+            assignment_counts[pid] = n
+
     results = []
     for team in all_teams:
         team_players = players_by_team.get(team.id)
@@ -278,7 +314,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         players = []
         for player in team_players:
             eligible, reason = eligibility[player.id]
-            position, count, _ = info[player.id]
+            position, count, _same_day, _boost_allowed = info[player.id]
             players.append(
                 {
                     "player": player,
@@ -299,6 +335,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
                 "players": players,
                 "eligible_count": eligible_count,
                 "at_gym_day": team.id in teams_with_day_game,
+                "total_tasks": assignment_counts.get(team.id, 0),
             }
         )
 

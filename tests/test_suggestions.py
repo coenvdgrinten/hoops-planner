@@ -532,12 +532,7 @@ class TestTaskCounterTiebreaker:
 
         # Same rule in the batched scorer used by the Teams & Members list.
         teams = get_team_eligibility(target_task)
-        member = next(
-            p
-            for t in teams
-            for p in t["players"]
-            if p["player"] == player
-        )
+        member = next(p for t in teams for p in t["players"] if p["player"] == player)
         assert member["task_count"] == 1.0
 
     def test_same_day_task_still_penalized_when_own_team_plays(self, season):
@@ -916,9 +911,7 @@ class TestParentSuggestionBonus:
                 name=f"Vido X14-{i + 1}", age_category=Team.AgeCategory.X14
             )
             for j in range(3):
-                Player.objects.create(
-                    first_name=f"O{i}_{j}", last_name="Other", team=t
-                )
+                Player.objects.create(first_name=f"O{i}_{j}", last_name="Other", team=t)
             Game.objects.create(
                 season=season,
                 own_team=t,
@@ -937,9 +930,7 @@ class TestParentSuggestionBonus:
             time=dt.time(14, 0),
             court=Game.Court.COURT_1,
         )
-        task = Task.objects.create(
-            game=game, task_type=TaskType.SCORER, slot_number=1
-        )
+        task = Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
         return kid, parents, task
 
     def test_parent_preferred_at_equal_load(self, season):
@@ -949,9 +940,7 @@ class TestParentSuggestionBonus:
         # All candidates are zero-count and at the gym; the parent bonus must
         # pull every parent ahead of every non-parent.
         parent_ranks = sorted(ranks[p.id] for p in parents)
-        non_parent_ranks = [
-            i for i, d in enumerate(details) if d[0].team_id != kid.id
-        ]
+        non_parent_ranks = [i for i, d in enumerate(details) if d[0].team_id != kid.id]
         assert max(parent_ranks) < min(non_parent_ranks)
 
     def test_lighter_non_parent_still_outranks_heavy_parent(self, season):
@@ -1002,3 +991,89 @@ class TestParentSuggestionBonus:
         parent_reasons = [d[3] for d in details if d[0].team_id == kid.id]
         assert parent_reasons
         assert all(r == "Parent of this team" for r in parent_reasons)
+
+    def test_parent_not_boosted_for_adjacent_other_team_game(self, season):
+        # A parenting-rule member's kid plays at 15:00; the target task is on
+        # a DIFFERENT team's game at 17:00 (both inside the 2h window). The
+        # parent must not inherit the "already at the gym" boost for that
+        # other team's game — otherwise they'd be recruited to stick around.
+        kid = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+            parent_responsible=True,
+        )
+        parent = Player.objects.create(first_name="Kid", last_name="Parent", team=kid)
+        Game.objects.create(
+            season=season,
+            own_team=kid,
+            opponent="Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(15, 0),
+            court=Game.Court.COURT_1,
+        )
+        # A non-parent whose own team plays at 16:00 (also in the window).
+        other = Team.objects.create(
+            name="Vido X14-2", age_category=Team.AgeCategory.X14
+        )
+        other_member = Player.objects.create(
+            first_name="Free", last_name="Member", team=other
+        )
+        Game.objects.create(
+            season=season,
+            own_team=other,
+            opponent="Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(16, 0),
+            court=Game.Court.COURT_2,
+        )
+        # Target: a third team's game at 17:00.
+        target_team = Team.objects.create(
+            name="Vido X14-1", age_category=Team.AgeCategory.X14
+        )
+        target_game = Game.objects.create(
+            season=season,
+            own_team=target_team,
+            opponent="Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(17, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=target_game, task_type=TaskType.SCORER, slot_number=1
+        )
+
+        details = {d[0]: d for d in get_candidate_details(task, limit=100)}
+        # Parent's kid game is adjacent, but the boost is suppressed for this
+        # other team's game → no at-gym position, plain load-based reason.
+        assert details[parent][2] is None
+        assert details[parent][3] == "Lowest task load"
+        # The free non-parent keeps the boost and ranks ahead of the parent.
+        assert details[other_member][2] == "before"
+        order = [d[0] for d in get_candidate_details(task, limit=100)]
+        assert order.index(other_member) < order.index(parent)
+
+    def test_parent_still_boosted_for_own_team_game(self, season):
+        # The suppression only applies to OTHER teams' games. On their own
+        # team's game the parenting member keeps the at-gym boost.
+        kid = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+            parent_responsible=True,
+        )
+        parent = Player.objects.create(first_name="Kid", last_name="Parent", team=kid)
+        game = Game.objects.create(
+            season=season,
+            own_team=kid,
+            opponent="Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
+        details = {d[0]: d for d in get_candidate_details(task, limit=100)}
+        # Own team's game → at-gym boost retained (position is set).
+        assert details[parent][2] in ("before", "after")

@@ -15,6 +15,8 @@ from hoops_planner.core.models import (
 
 
 class TeamSerializer(serializers.ModelSerializer):
+    total_tasks = serializers.SerializerMethodField()
+
     class Meta:
         model = Team
         fields = [
@@ -27,7 +29,11 @@ class TeamSerializer(serializers.ModelSerializer):
             "require_timer",
             "requires_24_second_operator",
             "parent_responsible",
+            "total_tasks",
         ]
+
+    def get_total_tasks(self, obj) -> int:
+        return TaskAssignment.objects.filter(player__team=obj).count()
 
 
 class PlayerSerializer(serializers.ModelSerializer):

@@ -375,6 +375,7 @@ class TaskViewSet(viewsets.ModelViewSet):
                     ],
                     "eligible_count": team_result["eligible_count"],
                     "at_gym_day": team_result["at_gym_day"],
+                    "total_tasks": team_result["total_tasks"],
                 }
             )
         return Response(data)

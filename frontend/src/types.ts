@@ -24,6 +24,7 @@ export interface Team {
   require_timer: boolean;
   requires_24_second_operator: boolean;
   parent_responsible: boolean;
+  total_tasks: number;
 }
 
 export interface Player {
@@ -108,6 +109,7 @@ export interface TeamEligibility {
   players: TeamPlayerEligibility[];
   eligible_count: number;
   at_gym_day: boolean;
+  total_tasks: number;
 }
 
 export interface UpcomingAssignment {

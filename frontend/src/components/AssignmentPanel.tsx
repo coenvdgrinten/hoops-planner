@@ -283,6 +283,9 @@ export function AssignmentPanel({
                 >
                   <span className={`${styles["team-chevron"]} ${isExpanded ? styles.expanded : ""}`}>▸</span>
                   <span className={styles["team-name"]}>{teamData.team.name}</span>
+                  <span className={styles["team-badge"]} title="Total assigned tasks (season)">
+                    {teamData.total_tasks}T
+                  </span>
                   <span className={styles["team-badge"]} title="Eligible members">
                     {teamData.eligible_count}/{teamData.players.length}
                   </span>

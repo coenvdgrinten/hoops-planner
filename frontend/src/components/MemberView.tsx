@@ -330,6 +330,9 @@ export function MemberView() {
                   <span className={styles["team-chevron"]}>{isExpanded ? "▾" : "▸"}</span>
                   <span className={styles["team-age-badge"]}>{team.age_category}</span>
                   <span className={styles["team-name"]}>{team.name}</span>
+                  <span className={styles["team-member-count"]} title="Total assigned tasks (season)">
+                    {team.total_tasks}T
+                  </span>
                   <span className={styles["team-member-count"]}>{teamPlayers.length}</span>
                 </button>
                 <div className={styles["team-actions"]}>
