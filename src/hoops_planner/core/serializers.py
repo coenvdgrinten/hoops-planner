@@ -144,14 +144,23 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         """True when the player is acting as a parent for this task."""
         if obj.task.task_type not in ("SCORER", "TIMER"):
             return False
-        return any(t.parent_responsible for t in obj.player.all_teams)
+        # Use the prefetched coached_teams (no extra query) plus own team.
+        teams = [obj.player.team] + list(obj.player.coached_teams.all())
+        return any(t.parent_responsible for t in teams)
 
     def get_effective_value(self, obj: TaskAssignment) -> int:
         """How much this assignment counts toward the player's effective total.
 
         2 when none of the player's teams has a game on the task's date
         (away day), 1 otherwise — same rule as the season statistics.
+
+        When the caller precomputes ``effective_multiplier_map`` and passes it
+        via context (the bulk endpoints do), that value is used to avoid a
+        per-assignment query. Otherwise fall back to the single-player helper.
         """
+        multiplier_map = self.context.get("effective_multiplier_map")
+        if multiplier_map is not None:
+            return multiplier_map[obj.player_id][obj.task.game.date]
         from hoops_planner.core.statistics import effective_multiplier_for
 
         return effective_multiplier_for(obj.player, obj.task.game.date)

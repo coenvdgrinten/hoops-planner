@@ -11,7 +11,7 @@ The suggestion algorithm ranks eligible players by:
 import datetime as dt
 from typing import Any
 
-from hoops_planner.core.eligibility import get_eligible_players
+from hoops_planner.core.eligibility import evaluate_player_eligibility_batched
 from hoops_planner.core.models import (
     Game,
     Player,
@@ -53,34 +53,25 @@ def suggest_candidates(
     list[Player]
         Ranked list of eligible players.
     """
-    eligible = get_eligible_players(task)
+    all_players = list(Player.objects.all().select_related("team"))
+    eligibility = evaluate_player_eligibility_batched(task, all_players)
+    eligible = [p for p in all_players if eligibility[p.id][0]]
     if not eligible:
         return []
 
-    # Separate players who have an adjacent game.
-    has_game = []
-    no_game = []
-    for player in eligible:
-        if _player_game_position(player, task.game):
-            has_game.append(player)
-        else:
-            no_game.append(player)
+    info = _batch_position_and_count(eligible, task.game)
 
-    # Sort each group by effective task count (penalizes same-day tasks).
-    # Parents filling a scorer/timer slot for their own kid's team get a
-    # small bonus so they're preferred at equal load, but a lighter
-    # non-parent can still outrank a heavily loaded parent.
-    def _rank(p: Player) -> float:
-        count = _effective_task_count(p, task.game.date)
+    # Rank key: players with an adjacent game first, then by effective task
+    # count. Parents filling a scorer/timer slot for their own kid's team get a
+    # small bonus so they're preferred at equal load, but a lighter non-parent
+    # can still outrank a heavily loaded parent.
+    def _rank(p: Player) -> tuple[int, float]:
+        position, count = info[p.id]
         if _is_parent_for_task(p, task):
             count -= PARENT_TASK_BONUS
-        return count
+        return (0 if position else 1, count)
 
-    has_game.sort(key=_rank)
-    no_game.sort(key=_rank)
-
-    # Prefer players with an adjacent game, then fall back to others.
-    ranked = has_game + no_game
+    ranked = sorted(eligible, key=_rank)
     return ranked[:limit]
 
 
@@ -94,11 +85,16 @@ def get_candidate_details(
     game_position is "before" | "after" | None.
     suggestion_reason explains why this player is suggested.
     """
-    eligible = get_eligible_players(task)
+    all_players = list(Player.objects.all().select_related("team"))
+    eligibility = evaluate_player_eligibility_batched(task, all_players)
+    eligible = [p for p in all_players if eligibility[p.id][0]]
+    if not eligible:
+        return []
+
+    info = _batch_position_and_count(eligible, task.game)
     results: list[tuple[Player, float, str | None, str]] = []
     for player in eligible:
-        position = _player_game_position(player, task.game)
-        count = _effective_task_count(player, task.game.date)
+        position, count = info[player.id]
         is_parent = _is_parent_for_task(player, task)
         reason = _get_suggestion_reason(position, count, is_parent)
         results.append((player, count, position, reason))
@@ -115,6 +111,94 @@ def get_candidate_details(
     return results[:limit]
 
 
+def _batch_position_and_count(
+    players: list[Player],
+    game: Game,
+) -> dict[int, tuple[str | None, float]]:
+    """Compute (adjacent-game position, effective task count) for many players.
+
+    Returns ``{player_id: (position, count)}`` where position is "before",
+    "after" or None. Produces exactly the same values as the single-player
+    :func:`_player_game_position` / :func:`_effective_task_count` helpers but in
+    a handful of queries instead of one per player.
+    """
+    if not players:
+        return {}
+
+    # --- Each player's responsible teams (own + coached) ---
+    player_ids = [p.id for p in players]
+    coached_map: dict[int, list[int]] = {}
+    for row in (
+        Player.objects.filter(id__in=player_ids)
+        .prefetch_related("coached_teams")
+        .values_list("id", "coached_teams__id")
+    ):
+        _, ct_id = row
+        if ct_id is not None:
+            coached_map.setdefault(row[0], []).append(ct_id)
+    all_team_ids_by_player: dict[int, set[int]] = {
+        p.id: {p.team_id} | set(coached_map.get(p.id, [])) for p in players
+    }
+    all_team_ids: set[int] = set().union(*all_team_ids_by_player.values())
+
+    # --- Adjacent home games for the "already at the gym" check ---
+    game_dt = dt.datetime.combine(game.date, game.time)
+    time_start = game_dt - ADJACENT_TIME_WINDOW
+    time_end = game_dt + ADJACENT_TIME_WINDOW
+    adjacent_games_qs = Game.objects.filter(
+        own_team__id__in=list(all_team_ids),
+        game_type=Game.GameType.HOME,
+        date__gte=time_start.date(),
+        date__lte=time_end.date(),
+    ).order_by("time")
+    adjacent_by_team: dict[int, Game] = {}
+    for g in adjacent_games_qs:
+        g_dt = dt.datetime.combine(g.date, g.time)
+        if time_start <= g_dt <= time_end:
+            if g.own_team_id not in adjacent_by_team:
+                adjacent_by_team[g.own_team_id] = g
+
+    def _position(player: Player) -> str | None:
+        for tid in all_team_ids_by_player[player.id]:
+            g = adjacent_by_team.get(tid)
+            if g:
+                return "before" if g.time < game.time else "after"
+        return None
+
+    # --- Effective task counts ---
+    assignments_by_player: dict[int, list[TaskAssignment]] = {}
+    for a in TaskAssignment.objects.filter(player_id__in=player_ids).select_related(
+        "task__game"
+    ):
+        assignments_by_player.setdefault(a.player_id, []).append(a)
+
+    team_game_dates_map: dict[int, set[dt.date]] = {}
+    if all_team_ids:
+        for tid, d in Game.objects.filter(own_team_id__in=all_team_ids).values_list(
+            "own_team_id", "date"
+        ):
+            team_game_dates_map.setdefault(tid, set()).add(d)
+
+    def _count(player: Player) -> float:
+        assignments = assignments_by_player.get(player.id, [])
+        player_team_game_dates: set[dt.date] = set()
+        for tid in all_team_ids_by_player[player.id]:
+            player_team_game_dates |= team_game_dates_map.get(tid, set())
+        total = 0.0
+        for assignment in assignments:
+            task_game_date = assignment.task.game.date
+            if task_game_date in player_team_game_dates:
+                multiplier = 1.0
+            elif task_game_date == game.date:
+                multiplier = 3.0
+            else:
+                multiplier = 2.0
+            total += multiplier
+        return total
+
+    return {p.id: (_position(p), _count(p)) for p in players}
+
+
 def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     """Return all teams with their members, eligibility, and task counts.
 
@@ -123,19 +207,16 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     - players: list of dicts with player, eligible, task_count, at_gym
     - eligible_count: number of eligible players in this team
 
-    Optimized: batches all DB queries to avoid N+Q per player.
+    Batches every database access up front so the endpoint issues a handful of
+    queries instead of one per player per rule.
     """
-    from hoops_planner.core.eligibility import (
-        get_ineligibility_reason,
-        is_eligible,
-    )
-
     game = task.game
 
-    # --- Batch 1: fetch all players with team pre-selected ---
+    # --- Players (with team) and their eligibility against this task ---
     all_players = list(Player.objects.all().select_related("team"))
+    eligibility = evaluate_player_eligibility_batched(task, all_players)
 
-    # --- Batch 2: fetch all teams ---
+    # --- Teams, ordered oldest-to-youngest then by name ---
     all_teams = Team.objects.all().order_by("name")
     all_teams = sorted(
         all_teams,
@@ -147,89 +228,10 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         ),
     )
 
-    # --- Batch 3: collect all team IDs players are responsible for ---
-    all_team_ids: set[int] = set()
-    for p in all_players:
-        all_team_ids.add(p.team_id)
-        # We need coached_teams too – prefetch them
-    # Re-fetch players with coached_teams prefetched
-    player_coached = {
-        p.id: [ct.id for ct in p.coached_teams.all()]
-        for p in Player.objects.filter(
-            id__in=[p.id for p in all_players]
-        ).prefetch_related("coached_teams")
-    }
+    # --- Position + effective count for every player, in a few queries ---
+    info = _batch_position_and_count(all_players, game)
 
-    # Build all_teams set per player (own + coached)
-    player_all_team_ids: dict[int, set[int]] = {}
-    for p in all_players:
-        ids = {p.team_id} | set(player_coached.get(p.id, []))
-        player_all_team_ids[p.id] = ids
-
-    # --- Batch 4: pre-compute adjacent games for "at gym" check ---
-    game_dt = dt.datetime.combine(game.date, game.time)
-    time_start = game_dt - ADJACENT_TIME_WINDOW
-    time_end = game_dt + ADJACENT_TIME_WINDOW
-    all_team_ids_list = list(all_team_ids)
-    adjacent_games_qs = Game.objects.filter(
-        own_team__id__in=all_team_ids_list,
-        game_type=Game.GameType.HOME,
-        date__gte=time_start.date(),
-        date__lte=time_end.date(),
-    ).order_by("time")
-    # Map team_id -> first adjacent game
-    adjacent_by_team: dict[int, Game] = {}
-    for g in adjacent_games_qs:
-        g_dt = dt.datetime.combine(g.date, g.time)
-        if time_start <= g_dt <= time_end:
-            if g.own_team_id not in adjacent_by_team:
-                adjacent_by_team[g.own_team_id] = g
-
-    def _player_game_position_batched(player: Player) -> str | None:
-        for tid in player_all_team_ids[player.id]:
-            g = adjacent_by_team.get(tid)
-            if g:
-                return "before" if g.time < game.time else "after"
-        return None
-
-    # --- Batch 5: pre-compute effective task counts ---
-    # Fetch all assignments with game info
-    all_assignments = TaskAssignment.objects.filter(
-        player__in=[p.id for p in all_players]
-    ).select_related("task__game")
-    assignments_by_player: dict[int, list[TaskAssignment]] = {}
-    for a in all_assignments:
-        assignments_by_player.setdefault(a.player_id, []).append(a)
-
-    # Fetch all game dates for all teams
-    team_game_dates_map: dict[int, set[dt.date]] = {}
-    for tid in all_team_ids:
-        team_game_dates_map[tid] = set(
-            Game.objects.filter(own_team_id=tid).values_list("date", flat=True)
-        )
-
-    def _effective_task_count_batched(player: Player) -> float:
-        assignments = assignments_by_player.get(player.id, [])
-        player_team_game_dates = set()
-        for tid in player_all_team_ids[player.id]:
-            player_team_game_dates |= team_game_dates_map.get(tid, set())
-        total = 0.0
-        for assignment in assignments:
-            task_game_date = assignment.task.game.date
-            if task_game_date in player_team_game_dates:
-                # One of the player's teams plays that day: they are at the
-                # gym anyway, so the task counts single.
-                multiplier = 1.0
-            elif task_game_date == game.date:
-                # Same day as the target game (and no own-team game that
-                # day): double duty on a travel day.
-                multiplier = 3.0
-            else:
-                multiplier = 2.0
-            total += multiplier
-        return total
-
-    # --- Batch 6: pre-compute team_at_gym_day for each team ---
+    # --- Teams that have a home game on the task's date ("at gym" day) ---
     teams_with_day_game = set(
         Game.objects.filter(
             own_team__in=all_teams,
@@ -237,19 +239,21 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         ).values_list("own_team_id", flat=True)
     )
 
-    # --- Build results ---
+    # --- Group players by team for display ---
+    players_by_team: dict[int, list[Player]] = {}
+    for p in all_players:
+        players_by_team.setdefault(p.team_id, []).append(p)
+
     results = []
     for team in all_teams:
-        team_players = [p for p in all_players if p.team == team]
+        team_players = players_by_team.get(team.id)
         if not team_players:
             continue
 
         players = []
         for player in team_players:
-            eligible = is_eligible(player, task)
-            reason = get_ineligibility_reason(player, task)
-            position = _player_game_position_batched(player)
-            count = _effective_task_count_batched(player)
+            eligible, reason = eligibility[player.id]
+            position, count = info[player.id]
             players.append(
                 {
                     "player": player,

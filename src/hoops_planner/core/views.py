@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from hoops_planner.core import statistics as stats_logic
 from hoops_planner.core import suggestions as suggestion_logic
 from hoops_planner.core.calendar_export import export_schedule_ics
-from hoops_planner.core.csv_export import export_schedule_csv
+from hoops_planner.core.csv_export import export_members_csv, export_schedule_csv
 from hoops_planner.core.demo_seed import seed_demo_data
 from hoops_planner.core.eligibility import (
     find_conflicting_assignments,
@@ -194,6 +194,18 @@ class PlayerViewSet(viewsets.ModelViewSet):
         return Response(result, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"])
+    def export_members(self, request):
+        """Export all team members as a CSV (same format as the members import)."""
+        csv_text = export_members_csv()
+        return HttpResponse(
+            csv_text,
+            content_type="text/csv",
+            headers={
+                "Content-Disposition": 'attachment; filename="members.csv"',
+            },
+        )
+
+    @action(detail=False, methods=["get"])
     def eligible(self, request):
         """Get eligible players for a task, with eligibility indicator."""
         task_id = request.query_params.get("task")
@@ -273,8 +285,27 @@ class GameViewSet(viewsets.ModelViewSet):
     def tasks_with_assignments(self, request, pk=None):
         """Get all tasks for this game with nested assignments."""
         game = self.get_object()
-        tasks = Task.objects.filter(game=game).order_by("task_type", "slot_number")
-        serializer = TaskWithAssignmentsSerializer(tasks, many=True)
+        tasks = (
+            Task.objects.filter(game=game)
+            .select_related("game")
+            .prefetch_related(
+                "assignments__player",
+                "assignments__player__team",
+                "assignments__player__coached_teams",
+            )
+            .order_by("task_type", "slot_number")
+        )
+        # Precompute each assigned player's effective multiplier in a couple of
+        # queries so the serializer doesn't fire one per assignment.
+        players = list(
+            {a.player for t in tasks for a in t.assignments.all()}
+        )
+        multiplier_map = stats_logic.effective_multiplier_map(
+            players, {game.date}
+        )
+        serializer = TaskWithAssignmentsSerializer(
+            tasks, many=True, context={"effective_multiplier_map": multiplier_map}
+        )
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"])

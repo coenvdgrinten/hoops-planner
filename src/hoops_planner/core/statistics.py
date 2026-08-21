@@ -96,6 +96,52 @@ def effective_multiplier_for(player: Player, game_date: date) -> int:
     return 1 if has_own_game else 2
 
 
+def effective_multiplier_map(
+    players: list[Player], game_dates: set[date]
+) -> dict[int, dict[date, int]]:
+    """Batch version of :func:`effective_multiplier_for`.
+
+    Returns ``{player_id: {game_date: multiplier}}`` computed in a few queries
+    instead of one per (player, date). Used to avoid N+Q when serializing many
+    assignments at once.
+    """
+    if not players or not game_dates:
+        return {}
+
+    # Each player's responsible teams (own + coached), in one query.
+    player_ids = [p.id for p in players]
+    coached_map: dict[int, list[int]] = {}
+    for row in (
+        Player.objects.filter(id__in=player_ids)
+        .prefetch_related("coached_teams")
+        .values_list("id", "coached_teams__id")
+    ):
+        _, ct_id = row
+        if ct_id is not None:
+            coached_map.setdefault(row[0], []).append(ct_id)
+    all_team_ids_by_player: dict[int, set[int]] = {
+        p.id: {p.team_id} | set(coached_map.get(p.id, [])) for p in players
+    }
+    all_team_ids: set[int] = set().union(*all_team_ids_by_player.values())
+
+    # Which of those teams have a game on which date.
+    dates_with_game: dict[date, set[int]] = {}
+    if all_team_ids:
+        for d, tid in Game.objects.filter(
+            own_team_id__in=all_team_ids, date__in=game_dates
+        ).values_list("date", "own_team_id"):
+            dates_with_game.setdefault(d, set()).add(tid)
+
+    result: dict[int, dict[date, int]] = {}
+    for p in players:
+        team_ids = all_team_ids_by_player[p.id]
+        result[p.id] = {
+            d: (1 if team_ids & dates_with_game.get(d, set()) else 2)
+            for d in game_dates
+        }
+    return result
+
+
 def get_season_stats(
     season: Season,
     half: str | None = None,

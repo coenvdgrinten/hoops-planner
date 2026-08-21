@@ -9,6 +9,7 @@ from hoops_planner.core.models import (
     Task,
     TaskAssignment,
     TaskType,
+    Team,
 )
 
 # Ordering of age categories for comparison (lower index = younger).
@@ -69,6 +70,123 @@ def get_eligible_players_with_indicator(task: Task) -> list[tuple[Player, bool]]
     """
     all_players = Player.objects.all()
     return [(p, is_eligible(p, task)) for p in all_players]
+
+
+def evaluate_player_eligibility_batched(
+    task: Task,
+    players: list[Player],
+) -> dict[int, tuple[bool, str | None]]:
+    """Evaluate eligibility for many players against one task in a few queries.
+
+    Returns ``{player_id: (is_eligible, ineligible_reason_or_None)}``.
+
+    This produces byte-for-byte the same reasons as :func:`get_ineligibility_reason`
+    (same checks, same order, same messages) but batches every database access
+    up front instead of firing a query per player per rule. It is the fast path
+    used by the suggestion endpoints; the single-player helpers above remain the
+    source of truth for write-time validation.
+    """
+    game = task.game
+
+    # --- Batch 1: every team's age category (for the referee age check) ---
+    age_by_team: dict[int, str] = dict(
+        Team.objects.values_list("id", "age_category")
+    )
+
+    # --- Batch 2: each player's responsible teams (own + coached) ---
+    player_ids = [p.id for p in players]
+    coached_map: dict[int, list[int]] = {}
+    if player_ids:
+        for row in (
+            Player.objects.filter(id__in=player_ids)
+            .prefetch_related("coached_teams")
+            .values_list("id", "coached_teams__id")
+        ):
+            _, ct_id = row
+            if ct_id is not None:
+                coached_map.setdefault(row[0], []).append(ct_id)
+    all_team_ids_by_player: dict[int, set[int]] = {
+        p.id: {p.team_id} | set(coached_map.get(p.id, [])) for p in players
+    }
+
+    # --- Batch 3: games that disqualify by schedule ---
+    home_same_time_ids = set(
+        Game.objects.filter(
+            game_type=Game.GameType.HOME,
+            date=game.date,
+            time=game.time,
+        )
+        .exclude(pk=game.pk)
+        .values_list("own_team_id", flat=True)
+    )
+    away_same_day_ids = set(
+        Game.objects.filter(
+            game_type=Game.GameType.AWAY,
+            date=game.date,
+        ).values_list("own_team_id", flat=True)
+    )
+
+    # --- Batch 4: existing assignments that disqualify by double-booking ---
+    assigned_to_game_ids = set(
+        TaskAssignment.objects.filter(task__game=game).values_list(
+            "player_id", flat=True
+        )
+    )
+    assigned_same_time_ids = set(
+        TaskAssignment.objects.filter(
+            task__game__date=game.date,
+            task__game__time=game.time,
+        )
+        .exclude(task__game=game)
+        .values_list("player_id", flat=True)
+    )
+
+    game_own_team_id = game.own_team_id
+    game_order = _age_category_index(game.own_team.age_category)
+    is_referee = task.task_type == TaskType.REFEREE
+    parent_exception = (
+        task.task_type in (TaskType.SCORER, TaskType.TIMER)
+        and game.own_team.parent_responsible
+    )
+
+    result: dict[int, tuple[bool, str | None]] = {}
+    for p in players:
+        team_ids = all_team_ids_by_player[p.id]
+
+        if p.is_exempt:
+            result[p.id] = (False, "Exempt from task assignments")
+            continue
+        if p.id in assigned_to_game_ids:
+            result[p.id] = (False, "Already assigned to this game")
+            continue
+        if p.id in assigned_same_time_ids:
+            result[p.id] = (False, "Already assigned to another task at this time")
+            continue
+        if team_ids & home_same_time_ids:
+            result[p.id] = (False, "Team has a home game at the same time")
+            continue
+        if team_ids & away_same_day_ids:
+            result[p.id] = (False, "Team has an away game on the same day")
+            continue
+        if game_own_team_id in team_ids and not parent_exception:
+            result[p.id] = (False, "Cannot be assigned to own team's game")
+            continue
+        if is_referee:
+            cats = {age_by_team[tid] for tid in team_ids if tid in age_by_team}
+            if not (cats & {"VSE", "MSE"}):
+                highest = max(
+                    (_age_category_index(age_by_team[tid]) for tid in team_ids),
+                    default=0,
+                )
+                if highest < game_order:
+                    result[p.id] = (False, "Player's team is younger than game team")
+                    continue
+            if p.referee_certification == Player.RefereeCertification.NONE:
+                result[p.id] = (False, "Missing required referee certification")
+                continue
+        result[p.id] = (True, None)
+
+    return result
 
 
 # ---------------------------------------------------------------------------
