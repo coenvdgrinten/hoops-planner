@@ -306,6 +306,30 @@ export function importMembers(csvText: string) {
   });
 }
 
+/** Download all team members as a CSV (same format as the members import). */
+export async function exportMembersCsv() {
+  const token = getToken();
+  const res = await fetch(`${API}/players/export_members/`, {
+    headers: token ? { Authorization: `Token ${token}` } : {},
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearAuth();
+      window.dispatchEvent(new CustomEvent("auth:logout"));
+    }
+    throw new Error(`Export failed: ${res.status}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "members.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // Games
 export function getGames(season: number) {
   return request<Game[]>(`/games/?season=${season}`);

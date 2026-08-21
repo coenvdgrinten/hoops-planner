@@ -639,6 +639,41 @@ class TestImportEndpoints:
 
 
 @pytest.mark.django_db
+class TestExportMembersEndpoint:
+    def test_export_members_csv(self, api_client, team_x14, player):
+        response = api_client.get("/api/players/export_members/")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/csv"
+        assert response["Content-Disposition"] == 'attachment; filename="members.csv"'
+        body = response.content.decode()
+        header = body.splitlines()[0]
+        assert header.startswith("first_name,last_name,team,is_coach")
+        assert "John,Doe,Vido X14-1,False,NONE" in body
+
+    def test_export_round_trip_reimports(self, api_client, team_x14, player, referee):
+        """The exported CSV must be re-importable without creating duplicates."""
+        from hoops_planner.core.importers import import_members
+
+        # Give the coach an extra coached team so the column is exercised.
+        other = Team.objects.create(name="Vido X16-1", age_category="X16")
+        referee.coached_teams.add(other)
+
+        csv_text = api_client.get("/api/players/export_members/").content.decode()
+
+        # Wipe everything, then re-import the exported text.
+        Player.objects.all().delete()
+        Team.objects.all().delete()
+        result = import_members(csv_text)
+        assert result["players_created"] == 2
+        assert result["teams"] == 2
+        # Coached teams survived the round trip.
+        reimported = Player.objects.get(first_name="Jane")
+        assert list(reimported.coached_teams.values_list("name", flat=True)) == [
+            "Vido X16-1"
+        ]
+
+
+@pytest.mark.django_db
 class TestSettingsEndpoint:
     def test_list_returns_all_teams(self, api_client):
         Team.objects.create(name="Vido X14-1", age_category="X14")

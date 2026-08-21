@@ -12,6 +12,7 @@ import {
   createPlayer,
   updatePlayer,
   deletePlayer,
+  exportMembersCsv,
 } from "../api";
 import type { Player, Team, AgeCategory } from "../types";
 import styles from "./MemberView.module.css";
@@ -174,6 +175,14 @@ export function MemberView() {
     certMutation.mutate({ playerId, cert });
   };
 
+  const handleExportCsv = async () => {
+    try {
+      await exportMembersCsv();
+    } catch (err) {
+      addToast(err instanceof Error ? err.message : "Export failed", "error");
+    }
+  };
+
   const handleExemptChange = (playerId: number, isExempt: boolean) => {
     exemptMutation.mutate({ playerId, isExempt });
   };
@@ -250,15 +259,25 @@ export function MemberView() {
           <span className={styles["summary-badge"]}>{totalTeams} teams</span>
           <span className={styles["summary-badge"]}>{totalMembers} members</span>
         </div>
-        <button
-          className={styles["add-team-btn"]}
-          onClick={() => {
-            setAddingTeam((v) => !v);
-            setEditingTeamId(null);
-          }}
-        >
-          + Add Team
-        </button>
+        <div className={styles["roster-actions"]}>
+          <button
+            data-testid="export-members-csv"
+            className={styles["export-csv-btn"]}
+            title="Download all members as a CSV (same format as the import)"
+            onClick={handleExportCsv}
+          >
+            ⬇ Export CSV
+          </button>
+          <button
+            className={styles["add-team-btn"]}
+            onClick={() => {
+              setAddingTeam((v) => !v);
+              setEditingTeamId(null);
+            }}
+          >
+            + Add Team
+          </button>
+        </div>
       </div>
 
       {addingTeam && (

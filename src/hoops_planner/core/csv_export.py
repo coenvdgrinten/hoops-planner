@@ -1,10 +1,10 @@
-"""CSV export for the task schedule (assignments)."""
+"""CSV export for the task schedule (assignments) and member roster."""
 
 import csv
 import io
 from typing import Any
 
-from hoops_planner.core.models import Season, Task, TaskAssignment, TaskType
+from hoops_planner.core.models import Player, Season, Task, TaskAssignment, TaskType
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Referee",
@@ -89,3 +89,49 @@ def _row(game: Any, task: Any, assignment: TaskAssignment | None) -> list[str]:
         player_name,
         player_team,
     ]
+
+
+def export_members_csv() -> str:
+    """Generate a CSV of all team members.
+
+    The output matches the format expected by ``import_members`` so it can be
+    re-imported as-is:
+
+        first_name, last_name, team, is_coach, referee_certification,
+        coached_teams, is_exempt
+
+    Returns the CSV as a string.
+    """
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+
+    writer.writerow(
+        [
+            "first_name",
+            "last_name",
+            "team",
+            "is_coach",
+            "referee_certification",
+            "coached_teams",
+            "is_exempt",
+        ]
+    )
+
+    players = Player.objects.select_related("team").prefetch_related(
+        "coached_teams"
+    ).order_by("last_name", "first_name")
+    for player in players:
+        coached = ",".join(t.name for t in player.coached_teams.all())
+        writer.writerow(
+            [
+                player.first_name,
+                player.last_name,
+                player.team.name if player.team else "",
+                str(player.is_coach),
+                player.referee_certification,
+                coached,
+                str(player.is_exempt),
+            ]
+        )
+
+    return buffer.getvalue()
