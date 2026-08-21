@@ -542,10 +542,10 @@ class TestTaskCounterTiebreaker:
 
     def test_same_day_task_still_penalized_when_own_team_plays(self, season):
         # Regression: a player whose team plays later on the target day
-        # already works a task earlier that day. Such a player must be
-        # ranked below a free teammate who is equally "at the gym", even
-        # though their own team plays that day (which makes the existing
-        # task count single).
+        # already works a task earlier that day. Because their own team
+        # plays that day, the task counts single — but it must still weigh
+        # 3x in the *ranking*, otherwise they outrank a teammate whose only
+        # task is on an off-day (2x) despite already being double-booked.
         #
         # Mirrors the reported bug: Thomas van Dongen (MSE-1, home game
         # 17:15) had a task at 15:15 yet was suggested first for the
@@ -559,14 +559,14 @@ class TestTaskCounterTiebreaker:
             last_name="van Dongen",
             team=busy_team,
         )
-        fresh_team = Team.objects.create(
+        rival_team = Team.objects.create(
             name="Vido MSE-2",
             age_category=Team.AgeCategory.MSE,
         )
-        fresh_player = Player.objects.create(
-            first_name="Free",
-            last_name="Player",
-            team=fresh_team,
+        rival_player = Player.objects.create(
+            first_name="Jan",
+            last_name="Hulva",
+            team=rival_team,
         )
         # Both teams play at home on the target day, inside the 2h window
         # of the 19:15 target game.
@@ -581,7 +581,7 @@ class TestTaskCounterTiebreaker:
         )
         Game.objects.create(
             season=season,
-            own_team=fresh_team,
+            own_team=rival_team,
             opponent="Venlo Sport Crusaders MSE-1",
             game_type=Game.GameType.HOME,
             date=dt.date(2025, 10, 5),
@@ -608,6 +608,26 @@ class TestTaskCounterTiebreaker:
             slot_number=1,
         )
         TaskAssignment.objects.create(player=busy_player, task=other_task)
+        # Rival's only task is on an off-day (counts 2x).
+        away_team = Team.objects.create(
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
+        )
+        away_game = Game.objects.create(
+            season=season,
+            own_team=away_team,
+            opponent="Valkenswaard Falcons M16-2",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 9, 20),
+            time=dt.time(17, 15),
+            court=Game.Court.COURT_1,
+        )
+        away_task = Task.objects.create(
+            game=away_game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=rival_player, task=away_task)
 
         # Target: a third team's game later the same day.
         target_team = Team.objects.create(
@@ -630,14 +650,15 @@ class TestTaskCounterTiebreaker:
         )
 
         results = suggest_candidates(target_task)
-        # Both are "already at the gym"; the free player must outrank the
-        # busy one via the ranking-only same-day penalty.
-        assert results.index(fresh_player) < results.index(busy_player)
+        # Both are "already at the gym". The rival's off-day task (2x) must
+        # rank above the busy player's same-day task, which weighs 3x for
+        # ranking even though it displays as 1x.
+        assert results.index(rival_player) < results.index(busy_player)
 
         # The displayed count stays honest: the busy player's task counts
         # single because their own team plays that day.
         details = {d[0]: d for d in get_candidate_details(target_task)}
-        assert details[fresh_player][1] == 0.0
+        assert details[rival_player][1] == 2.0
         assert details[busy_player][1] == 1.0
 
 
