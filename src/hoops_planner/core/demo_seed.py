@@ -55,7 +55,7 @@ DEMO_SEASONS = ["2025-2026"]
 
 # 12 teams across mixed age categories. Kids teams (X10/X12) use
 # parent_responsible so parents fill scorer/timer roles.
-TEAMS: list[dict] = [
+TEAMS: list[dict[str, str | bool]] = [
     {"name": "Vido X10-1", "age_category": "X10", "parent_responsible": True},
     {"name": "Vido X10-2", "age_category": "X10", "parent_responsible": True},
     {"name": "Vido X12-1", "age_category": "X12", "parent_responsible": True},
