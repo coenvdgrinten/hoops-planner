@@ -34,6 +34,15 @@ ADJACENT_TIME_WINDOW = dt.timedelta(hours=2)
 # still outrank a heavily loaded parent.
 PARENT_TASK_BONUS = 1.0
 
+# Ranking-only surcharge for players who already work a task on the target
+# day. Deliberately kept out of the effective task count itself, which must
+# stay consistent with the statistics rule (tasks on a day one of the
+# player's teams plays count single). It makes a same-day task weigh 3x in
+# the ranking (1x counted + 2x penalty); without it, a player whose team
+# plays later that day would outrank a free teammate despite already being
+# double-booked for the evening.
+SAME_DAY_TASK_PENALTY = 2.0
+
 
 def suggest_candidates(
     task: Task,
@@ -62,13 +71,18 @@ def suggest_candidates(
     info = _batch_position_and_count(eligible, task.game)
 
     # Rank key: players with an adjacent game first, then by effective task
-    # count. Parents filling a scorer/timer slot for their own kid's team get a
-    # small bonus so they're preferred at equal load, but a lighter non-parent
+    # count. Players who already work a task on the target day get a small
+    # penalty so a free teammate outranks them at equal load — even when
+    # their own team plays that day (which would otherwise count single).
+    # Parents filling a scorer/timer slot for their own kid's team get a
+    # bonus so they're preferred at equal load, but a lighter non-parent
     # can still outrank a heavily loaded parent.
     def _rank(p: Player) -> tuple[int, float]:
-        position, count = info[p.id]
+        position, count, has_same_day_task = info[p.id]
         if _is_parent_for_task(p, task):
             count -= PARENT_TASK_BONUS
+        elif has_same_day_task:
+            count += SAME_DAY_TASK_PENALTY
         return (0 if position else 1, count)
 
     ranked = sorted(eligible, key=_rank)
@@ -94,33 +108,40 @@ def get_candidate_details(
     info = _batch_position_and_count(eligible, task.game)
     results: list[tuple[Player, float, str | None, str]] = []
     for player in eligible:
-        position, count = info[player.id]
+        position, count, has_same_day_task = info[player.id]
         is_parent = _is_parent_for_task(player, task)
         reason = _get_suggestion_reason(position, count, is_parent)
         results.append((player, count, position, reason))
 
     # Sort: players with a game (before/after) first, then by count
-    # (ascending). Parents get a bonus so they're preferred at equal load,
+    # (ascending). Players already working a task on the target day get a
+    # small penalty; parents get a bonus so they're preferred at equal load,
     # but a lighter non-parent can still outrank a heavily loaded parent.
-    results.sort(
-        key=lambda x: (
-            0 if x[2] else 1,
-            x[1] - (PARENT_TASK_BONUS if _is_parent_for_task(x[0], task) else 0.0),
-        )
-    )
+    def _sort_key(entry: tuple[Player, float, str | None, str]) -> tuple[int, float]:
+        player, count, position = entry[0], entry[1], entry[2]
+        _, _, has_same_day_task = info[player.id]
+        if _is_parent_for_task(player, task):
+            count -= PARENT_TASK_BONUS
+        elif has_same_day_task:
+            count += SAME_DAY_TASK_PENALTY
+        return (0 if position else 1, count)
+
+    results.sort(key=_sort_key)
     return results[:limit]
 
 
 def _batch_position_and_count(
     players: list[Player],
     game: Game,
-) -> dict[int, tuple[str | None, float]]:
-    """Compute (adjacent-game position, effective task count) for many players.
+) -> dict[int, tuple[str | None, float, bool]]:
+    """Compute (adjacent-game position, effective task count, same-day flag).
 
-    Returns ``{player_id: (position, count)}`` where position is "before",
-    "after" or None. Produces exactly the same values as the single-player
-    :func:`_player_game_position` / :func:`_effective_task_count` helpers but in
-    a handful of queries instead of one per player.
+    Returns ``{player_id: (position, count, has_same_day_task)}`` where
+    position is "before", "after" or None and ``has_same_day_task`` is True
+    when the player already works a task on the target day. The count itself
+    matches the statistics rule (tasks on a day one of the player's teams
+    plays count single); the same-day flag is applied as a ranking-only
+    penalty by the callers so the displayed task load stays honest.
     """
     if not players:
         return {}
@@ -179,12 +200,14 @@ def _batch_position_and_count(
         ):
             team_game_dates_map.setdefault(tid, set()).add(d)
 
-    def _count(player: Player) -> float:
+    def _count(player: Player) -> tuple[float, bool]:
+        """Return (effective task count, has_a_task_on_the_target_day)."""
         assignments = assignments_by_player.get(player.id, [])
         player_team_game_dates: set[dt.date] = set()
         for tid in all_team_ids_by_player[player.id]:
             player_team_game_dates |= team_game_dates_map.get(tid, set())
         total = 0.0
+        has_same_day_task = False
         for assignment in assignments:
             task_game_date = assignment.task.game.date
             if task_game_date in player_team_game_dates:
@@ -194,9 +217,11 @@ def _batch_position_and_count(
             else:
                 multiplier = 2.0
             total += multiplier
-        return total
+            if task_game_date == game.date:
+                has_same_day_task = True
+        return total, has_same_day_task
 
-    return {p.id: (_position(p), _count(p)) for p in players}
+    return {p.id: (_position(p), *_count(p)) for p in players}
 
 
 def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
@@ -253,7 +278,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         players = []
         for player in team_players:
             eligible, reason = eligibility[player.id]
-            position, count = info[player.id]
+            position, count, _ = info[player.id]
             players.append(
                 {
                     "player": player,
