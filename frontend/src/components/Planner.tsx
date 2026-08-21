@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getGames, exportSeasonCsv, exportSeasonPdf, exportSeasonIcs } from "../api";
 import type { Season, Game } from "../types";
@@ -51,8 +51,14 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   if (error) return <p className="error">Error: {error.message}</p>;
   const hasGames = games.length > 0;
 
-  // Group games by half, then by date, then by court
-  const grouped: Record<string, Record<string, Record<string, Game[]>>> = {};
+  // Group games by half, then by date, then by time slot. Within a slot each
+  // court maps to at most one game, so games sharing a time always land in the
+  // same visual row regardless of how tall their cards are.
+  interface TimeSlot {
+    time: string;
+    cells: Record<string, Game>;
+  }
+  const grouped: Record<string, Record<string, TimeSlot[]>> = {};
   const sorted = [...games].sort((a, b) => {
     const ha = a.half || "1";
     const hb = b.half || "1";
@@ -64,11 +70,17 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   for (const game of sorted) {
     const h = game.half || "1";
     const d = game.date || "";
+    const t = game.time || "";
     const c = game.court || "1";
     if (!grouped[h]) grouped[h] = {};
-    if (!grouped[h][d]) grouped[h][d] = {};
-    if (!grouped[h][d][c]) grouped[h][d][c] = [];
-    grouped[h][d][c].push(game);
+    if (!grouped[h][d]) grouped[h][d] = [];
+    const slots = grouped[h][d];
+    let slot = slots.find((s) => s.time === t);
+    if (!slot) {
+      slot = { time: t, cells: {} };
+      slots.push(slot);
+    }
+    slot.cells[c] = game;
   }
 
   return (
@@ -114,7 +126,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           return (
             <div key={halfKey} className={styles["half-group"]}>
               <div className={styles["half-label"]}>{halfLabel}</div>
-              {Object.entries(dates).map(([date, courts]) => {
+              {Object.entries(dates).map(([date, slots]) => {
                 const dateObj = new Date(`${date || "1970-01-01"}T00:00`);
                 const formattedDate = dateObj.toLocaleDateString("nl-BE", {
                   weekday: "long",
@@ -124,37 +136,51 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const isFuture = dateObj >= today;
-                const sortedCourts = Object.entries(courts).sort(([a], [b]) => Number(a) - Number(b));
+                const courts = Array.from(
+                  new Set(slots.flatMap((s) => Object.keys(s.cells)))
+                ).sort((a, b) => Number(a) - Number(b));
+                const sortedSlots = [...slots].sort((a, b) => a.time.localeCompare(b.time));
                 return (
                   <div key={date} className={styles["date-group"]}>
                     <div data-testid="date-label" className={styles["date-label"]}>
                       {isFuture && <span className={styles["upcoming-badge"]}>Upcoming Games</span>}
                       <span>{formattedDate}</span>
                     </div>
-                    <div className={styles["courts-row"]}>
-                      {sortedCourts.map(([court, courtGames]) => (
-                        <div key={court} className={styles["court-column"]}>
-                          <div className={styles["court-header"]}>Court {court}</div>
-                          <div className={styles["court-games"]}>
-                            {courtGames.map((game) => (
-                              <GameCard
-                                key={game.id}
-                                id={game.id}
-                                isSelected={game.id === selectedGameId}
-                                ownTeam={game.own_team}
-                                opponent={game.opponent}
-                                date={game.date}
-                                time={game.time}
-                                court={game.court}
-                                location={game.location}
-                                half={game.half}
-                                isSelectedTaskId={selectedTaskId}
-                                onSelectTask={handleSelectTask}
-                                onEditGame={handleEditGame}
-                              />
-                            ))}
-                          </div>
+                    <div
+                      className={styles["schedule-grid"]}
+                      style={{ gridTemplateColumns: `repeat(${courts.length}, minmax(0, 1fr))` }}
+                    >
+                      {courts.map((court) => (
+                        <div key={`header-${court}`} className={styles["court-header"]}>
+                          Court {court}
                         </div>
+                      ))}
+                      {sortedSlots.map((slot) => (
+                        <Fragment key={slot.time}>
+                          {courts.map((court) => {
+                            const game = slot.cells[court];
+                            return (
+                              <div key={`${slot.time}-${court}`} className={styles["grid-cell"]}>
+                                {game && (
+                                  <GameCard
+                                    id={game.id}
+                                    isSelected={game.id === selectedGameId}
+                                    ownTeam={game.own_team}
+                                    opponent={game.opponent}
+                                    date={game.date}
+                                    time={game.time}
+                                    court={game.court}
+                                    location={game.location}
+                                    half={game.half}
+                                    isSelectedTaskId={selectedTaskId}
+                                    onSelectTask={handleSelectTask}
+                                    onEditGame={handleEditGame}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </Fragment>
                       ))}
                     </div>
                   </div>
