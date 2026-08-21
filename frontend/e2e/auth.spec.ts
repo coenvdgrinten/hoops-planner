@@ -15,7 +15,7 @@ async function seedApprovedUser(
   const body = await res.json();
 
   const adminRes = await request.post(`${API}/auth/login/`, {
-    data: { username: "admin", password: "adminpass123" },
+    data: { username: "admin", password: "admin" },
   });
   expect(adminRes.status(), "admin login should succeed").toBe(200);
   const adminToken = (await adminRes.json()).token;

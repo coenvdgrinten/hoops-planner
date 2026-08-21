@@ -1,15 +1,17 @@
 """API views for Hoops Planner."""
 
+from django.conf import settings
 from django.http import HttpResponse
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
 from hoops_planner.core import statistics as stats_logic
 from hoops_planner.core import suggestions as suggestion_logic
 from hoops_planner.core.calendar_export import export_schedule_ics
 from hoops_planner.core.csv_export import export_schedule_csv
+from hoops_planner.core.demo_seed import seed_demo_data
 from hoops_planner.core.eligibility import (
     find_conflicting_assignments,
     get_eligible_players_with_indicator,
@@ -515,3 +517,21 @@ def _generate_single_game_ics(game: Game) -> bytes:
     )
 
     return ics_content.encode("utf-8")
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def seed(request):
+    """Seed demo data (admin only, and only when DEBUG is enabled).
+
+    A development convenience so the Playwright e2e fixture — or a human — can
+    populate the database over HTTP without needing shell access to the
+    backend container. It is disabled entirely outside DEBUG.
+    """
+    if not settings.DEBUG:
+        return Response(
+            {"detail": "Seeding is only available in DEBUG mode."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    summary = seed_demo_data()
+    return Response(summary, status=status.HTTP_201_CREATED)

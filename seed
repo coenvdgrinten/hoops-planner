@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+echo "Seeding demo data (wipes existing club data first)..."
+# Wipes all games/tasks/assignments/players/teams + non-demo seasons, then
+# seeds. Pass --no-flush to keep existing data instead.
+docker compose exec backend uv run manage.py seed_demo "$@"
+echo ""
+echo "✓ Seeded! Log in at http://localhost:5173 (username = password):"
+echo "    planner   or   coach   or   admin"

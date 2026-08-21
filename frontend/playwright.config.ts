@@ -2,6 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  // Seed demo data (users, teams, schedules) before the suite so you can log
+  // in and click around / debug without importing CSVs by hand. Best-effort:
+  // it warns and continues if the backend isn't reachable.
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

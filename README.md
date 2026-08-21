@@ -32,14 +32,24 @@ A task planning application for basketball clubs. Assign referees, scorers, time
 
 ## Table of Contents
 
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Development](#development)
-- [Configuration](#configuration)
-- [Project Structure](#project-structure)
-- [Task Types](#task-types)
-- [Eligibility Rules](#eligibility-rules)
-- [License](#license)
+- [Hoops Planner 🏀](#hoops-planner-)
+  - [Screenshots](#screenshots)
+    - [Schedule Planner](#schedule-planner)
+    - [Member Roster](#member-roster)
+    - [Statistics](#statistics)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Tech Stack](#tech-stack)
+  - [Quick Start](#quick-start)
+  - [Demo Data](#demo-data)
+  - [Development](#development)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+  - [Configuration](#configuration)
+  - [Project Structure](#project-structure)
+  - [Task Types](#task-types)
+  - [Eligibility Rules](#eligibility-rules)
+  - [License](#license)
 
 ---
 
@@ -84,6 +94,46 @@ docker compose up --build
 
 - Frontend: <http://localhost:5173>
 - Backend API: <http://localhost:8000/api/>
+
+---
+
+## Demo Data
+
+Populate the database with a ready-to-explore club — 12 teams across mixed age
+categories, a roster of players/coaches/referees, one season of scheduled games,
+and a handful of pre-filled task assignments — so you can log in and click around
+without importing CSVs by hand.
+
+```bash
+# Wipe existing club data and seed fresh demo data (default)
+./seed
+```
+
+Log in at <http://localhost:5173> — each account's password equals its username:
+
+| Username  | Password  |
+| --------- | --------- |
+| `planner` | `planner` |
+| `coach`   | `coach`   |
+| `admin`   | `admin`   |
+
+By default `./seed` wipes all games, tasks, assignments, players, and teams (plus
+any non-demo seasons) before seeding, so you always get a clean, known state. Pass
+`--no-flush` to keep existing data and only upsert the demo users/teams/players:
+
+```bash
+./seed --no-flush
+```
+
+You can also run the underlying management command directly:
+
+```bash
+docker compose exec backend uv run manage.py seed_demo        # wipe + seed
+uv run python manage.py seed_demo --no-flush                  # merge (local SQLite)
+```
+
+> **E2E:** the Playwright suite seeds automatically via a global-setup fixture
+> (`frontend/e2e/global-setup.ts`) before tests run, so no manual step is needed.
 
 ---
 
@@ -154,6 +204,7 @@ Set via environment variables (or `.env`):
 ├── Dockerfile
 ├── manage.py
 ├── pyproject.toml
+├── seed
 ├── frontend/
 │   ├── src/
 │   │   ├── api.ts
@@ -173,7 +224,11 @@ Set via environment variables (or `.env`):
 │           ├── suggestions.py
 │           ├── statistics.py
 │           ├── importers.py
+│           ├── demo_seed.py
 │           ├── pdf_export.py
+│           ├── management/
+│           │   └── commands/
+│           │       └── seed_demo.py
 │           └── migrations/
 └── tests/
 ```

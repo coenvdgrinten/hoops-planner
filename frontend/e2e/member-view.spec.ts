@@ -4,7 +4,7 @@ const API = "/api";
 
 // The dev entrypoint bootstraps this admin account (registration requires
 // admin approval, so the e2e suite needs an approver).
-const ADMIN = { username: "admin", password: "adminpass123" };
+const ADMIN = { username: "admin", password: "admin" };
 
 let adminToken: string | null = null;
 

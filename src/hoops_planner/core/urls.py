@@ -14,6 +14,7 @@ from hoops_planner.core.views import (
     TaskViewSet,
     TeamViewSet,
     game_ics,
+    seed,
 )
 
 router = DefaultRouter()
@@ -55,4 +56,6 @@ urlpatterns = [
     path("auth/approve_user/", auth_views.approve_user, name="approve_user"),
     path("auth/reject_user/", auth_views.reject_user, name="reject_user"),
     path("game_ics/", game_ics, name="game_ics"),
+    # Development-only: seed demo data (admin + DEBUG). Used by the e2e fixture.
+    path("seed/", seed, name="seed"),
 ] + router.urls
