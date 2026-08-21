@@ -170,15 +170,16 @@ td.unassigned {
     color: #1a1a2e;
 }
 
-.summary-table {
-    page-break-inside: avoid;
+.team-row {
+    page-break-after: avoid;
 }
 
-.summary-subtitle {
-    font-size: 10pt;
-    font-weight: 600;
+.team-row td {
+    background: #fff7ed;
     color: #ea580c;
-    margin: 10pt 0 4pt 0;
+    font-weight: 600;
+    text-align: left;
+    border-top: 0.75pt solid #ea580c;
 }
 
 .summary-table th {
@@ -562,16 +563,23 @@ def _build_player_summary_html(season: Season) -> str:
 
     teams = sorted(Team.objects.filter(id__in=by_team.keys()), key=_team_age_key)
     labels = list(TASK_LABELS.values())
+    col_count = len(labels) + 2  # Player + task-type columns + Total
 
+    # One continuous table for all teams; each team is introduced by a
+    # full-width separator row so the summary stays compact (no repeated
+    # column headers per team) and flows cleanly across pages.
     html_parts = ['<div class="summary-title">Player Summary</div>']
+    html_parts.append('<table class="summary-table">')
+    html_parts.append("<thead><tr><th>Player</th>")
+    for label in labels:
+        html_parts.append(f"<th>{label}</th>")
+    html_parts.append("<th>Total</th></tr></thead><tbody>")
     for team in teams:
         members = sorted(by_team[team.id], key=lambda x: x[0].lower())
-        html_parts.append(f'<div class="summary-subtitle">{team.name}</div>')
-        html_parts.append('<table class="summary-table">')
-        html_parts.append("<thead><tr><th>Player</th>")
-        for label in labels:
-            html_parts.append(f"<th>{label}</th>")
-        html_parts.append("<th>Total</th></tr></thead><tbody>")
+        html_parts.append(
+            f'<tr class="team-row">'
+            f'<td colspan="{col_count}">{team.name}</td></tr>'
+        )
         for name, counts in members:
             cells = [f"<td>{name}</td>"]
             total = 0
@@ -581,6 +589,6 @@ def _build_player_summary_html(season: Season) -> str:
                 cells.append(f"<td>{count}</td>")
             cells.append(f"<td>{total}</td>")
             html_parts.append(f"<tr>{''.join(cells)}</tr>")
-        html_parts.extend(["</tbody>", "</table>"])
+    html_parts.extend(["</tbody>", "</table>"])
 
     return "\n".join(html_parts)
