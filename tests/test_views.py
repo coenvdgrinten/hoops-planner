@@ -723,14 +723,14 @@ class TestExportMembersEndpoint:
         )
         # Coach also coaches two other teams (multi-value coached_teams).
         coach.coached_teams.add(t_x10, t_vse)
-        exempt = Player.objects.create(
+        Player.objects.create(
             first_name="Jan", last_name="Janssens", team=t_x10, is_exempt=True,
         )
-        senior = Player.objects.create(
+        Player.objects.create(
             first_name="Louis", last_name="Van Wijnendaele", team=t_vse,
             referee_certification="SENIOR",
         )
-        plain = Player.objects.create(
+        Player.objects.create(
             first_name="Pieter", last_name="Van Damme", team=t_x14,
         )
 
