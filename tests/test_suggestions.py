@@ -764,3 +764,120 @@ class TestGetTeamEligibility:
         team_result = [r for r in results if r["team"] == team_a][0]
         p_info = team_result["players"][0]
         assert p_info["at_gym"] == "before"  # Returns position string, not bool
+
+
+@pytest.mark.django_db
+class TestParentSuggestionBonus:
+    """Parents filling scorer/timer for their own kid's team get a ranking
+    bonus (a nudge), but a lighter non-parent can still outrank them."""
+
+    def _busy_day(self, season):
+        """Kid team plays at 14:00; six other teams have adjacent home games."""
+        kid = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+            parent_responsible=True,
+        )
+        parents = [
+            Player.objects.create(first_name=f"P{i}", last_name="Parent", team=kid)
+            for i in range(3)
+        ]
+        slots = [
+            (dt.time(12, 0), Game.Court.COURT_1),
+            (dt.time(13, 0), Game.Court.COURT_1),
+            (dt.time(13, 0), Game.Court.COURT_2),
+            (dt.time(15, 0), Game.Court.COURT_1),
+            (dt.time(16, 0), Game.Court.COURT_1),
+            (dt.time(16, 0), Game.Court.COURT_2),
+        ]
+        for i, (slot_time, slot_court) in enumerate(slots):
+            t = Team.objects.create(
+                name=f"Vido X14-{i + 1}", age_category=Team.AgeCategory.X14
+            )
+            for j in range(3):
+                Player.objects.create(
+                    first_name=f"O{i}_{j}", last_name="Other", team=t
+                )
+            Game.objects.create(
+                season=season,
+                own_team=t,
+                opponent="Opp",
+                game_type=Game.GameType.HOME,
+                date=dt.date(2025, 10, 1),
+                time=slot_time,
+                court=slot_court,
+            )
+        game = Game.objects.create(
+            season=season,
+            own_team=kid,
+            opponent="Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game, task_type=TaskType.SCORER, slot_number=1
+        )
+        return kid, parents, task
+
+    def test_parent_preferred_at_equal_load(self, season):
+        kid, parents, task = self._busy_day(season)
+        details = get_candidate_details(task, limit=100)
+        ranks = {d[0].id: i for i, d in enumerate(details)}
+        # All candidates are zero-count and at the gym; the parent bonus must
+        # pull every parent ahead of every non-parent.
+        parent_ranks = sorted(ranks[p.id] for p in parents)
+        non_parent_ranks = [
+            i for i, d in enumerate(details) if d[0].team_id != kid.id
+        ]
+        assert max(parent_ranks) < min(non_parent_ranks)
+
+    def test_lighter_non_parent_still_outranks_heavy_parent(self, season):
+        kid, parents, task = self._busy_day(season)
+        heavy_parent = parents[0]
+        # Give the heavy parent several away-day tasks (2x each).
+        filler = Team.objects.create(
+            name="Vido M16-1", age_category=Team.AgeCategory.M16
+        )
+        for k in range(3):
+            g = Game.objects.create(
+                season=season,
+                own_team=filler,
+                opponent=f"Old{k}",
+                game_type=Game.GameType.HOME,
+                date=dt.date(2025, 9, 1 + k),
+                time=dt.time(14, 0),
+                court=Game.Court.COURT_1,
+            )
+            t = Task.objects.create(game=g, task_type=TaskType.SCORER, slot_number=1)
+            TaskAssignment.objects.create(player=heavy_parent, task=t)
+
+        details = get_candidate_details(task, limit=100)
+        order = [d[0] for d in details]
+        # A zero-load non-parent must rank above the heavily loaded parent.
+        light = next(
+            p for p in order if p.team_id != kid.id and p.assignments.count() == 0
+        )
+        assert order.index(light) < order.index(heavy_parent)
+
+    def test_no_bonus_for_referee_task(self, season):
+        kid, parents, scorer_task = self._busy_day(season)
+        # Give every player an F-diploma so referees are uniformly eligible.
+        for p in Player.objects.all():
+            p.referee_certification = Player.RefereeCertification.F
+            p.save(update_fields=["referee_certification"])
+        referee_task = Task.objects.create(
+            game=scorer_task.game, task_type=TaskType.REFEREE, slot_number=1
+        )
+        details = get_candidate_details(referee_task, limit=100)
+        # No parent bonus applies to refereeing — no special reason label.
+        reasons = {d[3] for d in details}
+        assert "Parent of this team" not in reasons
+
+    def test_parent_reason_label(self, season):
+        kid, parents, task = self._busy_day(season)
+        details = get_candidate_details(task, limit=100)
+        parent_reasons = [d[3] for d in details if d[0].team_id == kid.id]
+        assert parent_reasons
+        assert all(r == "Parent of this team" for r in parent_reasons)

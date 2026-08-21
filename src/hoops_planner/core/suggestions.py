@@ -17,6 +17,7 @@ from hoops_planner.core.models import (
     Player,
     Task,
     TaskAssignment,
+    TaskType,
     Team,
 )
 
@@ -26,6 +27,12 @@ CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X12", "X10"]
 # Players whose team has a home game within this window are considered
 # "already at the gym".
 ADJACENT_TIME_WINDOW = dt.timedelta(hours=2)
+
+# Credit (in effective-task units) given to a parent filling a scorer/timer
+# slot for their own kid's team. It nudges parents up the ranking at equal
+# load without making them unbeatable: a noticeably lighter non-parent can
+# still outrank a heavily loaded parent.
+PARENT_TASK_BONUS = 1.0
 
 
 def suggest_candidates(
@@ -60,8 +67,17 @@ def suggest_candidates(
             no_game.append(player)
 
     # Sort each group by effective task count (penalizes same-day tasks).
-    has_game.sort(key=lambda p: _effective_task_count(p, task.game.date))
-    no_game.sort(key=lambda p: _effective_task_count(p, task.game.date))
+    # Parents filling a scorer/timer slot for their own kid's team get a
+    # small bonus so they're preferred at equal load, but a lighter
+    # non-parent can still outrank a heavily loaded parent.
+    def _rank(p: Player) -> float:
+        count = _effective_task_count(p, task.game.date)
+        if _is_parent_for_task(p, task):
+            count -= PARENT_TASK_BONUS
+        return count
+
+    has_game.sort(key=_rank)
+    no_game.sort(key=_rank)
 
     # Prefer players with an adjacent game, then fall back to others.
     ranked = has_game + no_game
@@ -83,11 +99,19 @@ def get_candidate_details(
     for player in eligible:
         position = _player_game_position(player, task.game)
         count = _effective_task_count(player, task.game.date)
-        reason = _get_suggestion_reason(position, count)
+        is_parent = _is_parent_for_task(player, task)
+        reason = _get_suggestion_reason(position, count, is_parent)
         results.append((player, count, position, reason))
 
-    # Sort: players with a game (before/after) first, then by count (ascending).
-    results.sort(key=lambda x: (0 if x[2] else 1, x[1]))
+    # Sort: players with a game (before/after) first, then by count
+    # (ascending). Parents get a bonus so they're preferred at equal load,
+    # but a lighter non-parent can still outrank a heavily loaded parent.
+    results.sort(
+        key=lambda x: (
+            0 if x[2] else 1,
+            x[1] - (PARENT_TASK_BONUS if _is_parent_for_task(x[0], task) else 0.0),
+        )
+    )
     return results[:limit]
 
 
@@ -257,8 +281,26 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 
-def _get_suggestion_reason(position: str | None, _count: float) -> str:
+def _is_parent_for_task(player: Player, task: Task) -> bool:
+    """True when the player is a responsible adult for the task's own team.
+
+    Applies only to SCORER/TIMER tasks on a team with ``parent_responsible``
+    set — the situation where parents are expected to fill the slot for their
+    kid's team. Used to give such parents a ranking bonus in suggestions.
+    """
+    if task.task_type not in (TaskType.SCORER, TaskType.TIMER):
+        return False
+    if not task.game.own_team.parent_responsible:
+        return False
+    return task.game.own_team in player.all_teams
+
+
+def _get_suggestion_reason(
+    position: str | None, _count: float, is_parent: bool = False
+) -> str:
     """Return a human-readable suggestion reason."""
+    if is_parent:
+        return "Parent of this team"
     if position == "before":
         return "Already at the gym (game before)"
     elif position == "after":
