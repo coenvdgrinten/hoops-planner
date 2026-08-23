@@ -535,11 +535,12 @@ def game_ics(request):
             content_type="text/plain",
         )
     ics_bytes = _generate_single_game_ics(game)
+    filename = f"{game.own_team} vs {game.opponent} {game.date.isoformat()}.ics"
     return HttpResponse(
         ics_bytes,
         content_type="text/calendar; charset=utf-8",
         headers={
-            "Content-Disposition": (f'attachment; filename="game_{game.id}.ics"'),
+            "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
 
