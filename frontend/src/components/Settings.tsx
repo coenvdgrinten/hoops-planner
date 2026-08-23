@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToastContext } from "./ToastContext";
 import {
-  getBrand,
-  setBrand,
+  getSiteConfig,
+  setSiteConfig,
   getTeamSettings,
   updateTeamSettings,
   getPendingUsers,
@@ -20,7 +20,29 @@ interface Props {
 export function Settings({ isStaff }: Props) {
   const queryClient = useQueryClient();
   const { addToast } = useToastContext();
-  const [brandName, setBrandName] = useState(getBrand());
+
+  // Club name from server
+  const { data: siteConfig } = useQuery({
+    queryKey: ["site-config"],
+    queryFn: getSiteConfig,
+  });
+  const [brandName, setBrandName] = useState(siteConfig?.club_name ?? "");
+
+  // Sync input when server data arrives (query may resolve after mount)
+  useEffect(() => {
+    if (siteConfig) {
+      setBrandName(siteConfig.club_name);
+    }
+  }, [siteConfig]);
+
+  const brandMutation = useMutation({
+    mutationFn: (name: string) => setSiteConfig(name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["site-config"] });
+    },
+    onError: (err) =>
+      addToast(err instanceof Error ? err.message : "Failed to save", "error"),
+  });
 
   const { data: teams = [], isLoading, error } = useQuery({
     queryKey: ["team-settings"],
@@ -101,15 +123,16 @@ export function Settings({ isStaff }: Props) {
             type="text"
             value={brandName}
             placeholder="e.g. BC Vido"
+            disabled={brandMutation.isPending}
             onChange={(e) => setBrandName(e.target.value)}
             onBlur={() => {
-              if (brandName.trim() !== getBrand()) {
-                setBrand(brandName);
+              if (brandName.trim() !== (siteConfig?.club_name ?? "")) {
+                brandMutation.mutate(brandName);
               }
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                setBrand(brandName);
+                brandMutation.mutate(brandName);
                 (e.target as HTMLInputElement).blur();
               }
             }}

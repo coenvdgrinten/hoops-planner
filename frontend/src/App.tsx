@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { SeasonSelector } from "./components/SeasonSelector";
 import { Planner } from "./components/Planner";
 import { Statistics } from "./components/Statistics";
@@ -10,7 +11,7 @@ import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
 import { ToastContextProvider, useToastContext } from "./components/ToastContext";
 import { useToast } from "./components/Toast";
-import { clearAuth, getBrand, getUser, getToken, logout } from "./api";
+import { clearAuth, getSiteConfig, getUser, getToken, logout } from "./api";
 import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
 import styles from "./App.module.css";
@@ -40,13 +41,12 @@ function AppInner() {
     return () => window.removeEventListener("auth:logout", handleLogout);
   }, []);
 
-  // Brand (club name) from Settings — live-updated
-  const [brand, setBrandName] = useState(getBrand());
-  useEffect(() => {
-    const handleBrandChange = () => setBrandName(getBrand());
-    window.addEventListener("brand:changed", handleBrandChange);
-    return () => window.removeEventListener("brand:changed", handleBrandChange);
-  }, []);
+  // Club name from server-side site config (public read)
+  const { data: siteConfig } = useQuery({
+    queryKey: ["site-config"],
+    queryFn: getSiteConfig,
+  });
+  const brand = siteConfig?.club_name ?? "";
 
   // Close assignment panel when switching views
   const handleViewChange = useCallback((view: View) => {

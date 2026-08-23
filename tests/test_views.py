@@ -1132,3 +1132,41 @@ class TestTaskSuggestionsEndpoint:
         assert "players" in data[0]
         assert "eligible_count" in data[0]
         assert "at_gym_day" in data[0]
+
+
+@pytest.mark.django_db
+class TestSiteConfig:
+    def test_get_site_config(self, client):
+        """GET is public (no auth needed) and returns club_name."""
+        from hoops_planner.core.models import SiteConfig
+
+        SiteConfig.objects.update_or_create(
+            pk=1, defaults={"club_name": "BC Vido"}
+        )
+        response = client.get("/api/site-config/")
+        assert response.status_code == 200
+        assert response.json() == {"club_name": "BC Vido"}
+
+    def test_put_site_config_requires_auth(self, client):
+        """PUT without authentication is rejected."""
+        response = client.put(
+            "/api/site-config/",
+            {"club_name": "New Name"},
+            format="json",
+        )
+        assert response.status_code == 403
+
+    def test_put_site_config_updates(self, api_client):
+        """Authenticated PUT updates the club name."""
+        response = api_client.put(
+            "/api/site-config/",
+            {"club_name": "Vido Basketball"},
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.json() == {"club_name": "Vido Basketball"}
+
+        # Verify persistence
+        from hoops_planner.core.models import SiteConfig
+
+        assert SiteConfig.load().club_name == "Vido Basketball"

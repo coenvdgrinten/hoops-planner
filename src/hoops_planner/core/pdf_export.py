@@ -15,6 +15,7 @@ from hoops_planner.core.models import (
     Game,
     Player,
     Season,
+    SiteConfig,
     Task,
     TaskAssignment,
     TaskType,
@@ -250,12 +251,12 @@ td.unassigned {
 .legend-box {
     border: 0.75pt solid #e0e0e0;
     border-radius: 4pt;
-    padding: 6pt 10pt;
+    padding: 5pt 10pt;
     margin: 8pt 0;
     font-size: 7.5pt;
     color: #555;
     display: flex;
-    gap: 16pt;
+    gap: 14pt;
 }
 .legend-box .item { display: flex; align-items: center; gap: 4pt; }
 .legend-box .swatch {
@@ -372,6 +373,12 @@ def _build_html(season: Season) -> str:
         logo_url = f"file://{LOGO_PATH.absolute()}"
         logo_html = f'<img src="{logo_url}" class="logo" alt="Logo">'
 
+    # Club name from site config (empty string if not set)
+    club_name = SiteConfig.load().club_name
+    club_html = (
+        f'<span class="club-name">{club_name}</span>' if club_name else ""
+    )
+
     html_parts = [
         "<!DOCTYPE html>",
         "<html>",
@@ -379,16 +386,15 @@ def _build_html(season: Season) -> str:
         f"<style>{CSS_STYLES}</style>",
         "</head>",
         "<body>",
-        f'<div class="header">{logo_html}'
-        f'<span class="club-name">Vido Basketball</span>'
+        f'<div class="header">{logo_html}{club_html}'
         f'<span class="title">Task Schedule — {season.name}</span></div>',
     ]
 
     # Legend box
     legend_items = (
-        ('swatch-red', 'Away day (team has no game, counts 2\u00d7)'),
+        ('swatch-red', 'Away day (counts 2\u00d7)'),
         ('swatch-pink', 'Unfilled slot'),
-        ('swatch-parent', '"Ouder van" = parent covers scorer/timer'),
+        ('swatch-parent', '"Ouder van" = parent'),
     )
     items_html = "".join(
         f'<span class="item"><span class="swatch {cls}"></span> {txt}</span>'

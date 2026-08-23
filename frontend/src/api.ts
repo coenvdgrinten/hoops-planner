@@ -56,22 +56,6 @@ export function clearAuth() {
   localStorage.removeItem(USER_KEY);
 }
 
-const BRAND_KEY = "hoops_brand";
-
-export function getBrand(): string {
-  return localStorage.getItem(BRAND_KEY)?.trim() ?? "";
-}
-
-export function setBrand(name: string) {
-  const trimmed = name.trim();
-  if (trimmed) {
-    localStorage.setItem(BRAND_KEY, trimmed);
-  } else {
-    localStorage.removeItem(BRAND_KEY);
-  }
-  window.dispatchEvent(new Event("brand:changed"));
-}
-
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -443,6 +427,18 @@ export function getSeasonStats(seasonId: number, half?: string) {
 export function getLeaderboard(seasonId: number, half?: string) {
   const qs = half ? `?half=${half}` : "";
   return request<LeaderboardEntry[]>(`/seasons/${seasonId}/leaderboard/${qs}`);
+}
+
+// Site config (club name)
+export function getSiteConfig() {
+  return request<{ club_name: string }>("/site-config/");
+}
+
+export function setSiteConfig(clubName: string) {
+  return request<{ club_name: string }>("/site-config/", {
+    method: "PUT",
+    body: JSON.stringify({ club_name: clubName }),
+  });
 }
 
 // Settings

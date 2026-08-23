@@ -118,6 +118,29 @@ class Player(models.Model):
         ).distinct()
 
 
+class SiteConfig(models.Model):
+    """Singleton for site-wide configuration (club name, etc.)."""
+
+    club_name = models.CharField(
+        max_length=100,
+        blank=True,
+        default="",
+        help_text="Club or organization name shown in the header and PDF.",
+    )
+
+    class Meta:
+        verbose_name = "Site Configuration"
+        verbose_name_plural = "Site Configuration"
+
+    def __str__(self) -> str:
+        return self.club_name or "(not set)"
+
+    @classmethod
+    def load(cls) -> "SiteConfig":
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class Season(models.Model):
     """A basketball season."""
 

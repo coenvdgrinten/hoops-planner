@@ -22,6 +22,7 @@ from hoops_planner.core.models import (
     Game,
     Player,
     Season,
+    SiteConfig,
     Task,
     TaskAssignment,
     Team,
@@ -397,6 +398,28 @@ class TaskViewSet(viewsets.ModelViewSet):
 class TaskAssignmentViewSet(viewsets.ModelViewSet):
     queryset = TaskAssignment.objects.all()
     serializer_class = TaskAssignmentSerializer
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([AllowAny])
+def site_config(request):
+    """Get or update site-wide configuration (club name).
+
+    GET is public so the login screen can show the club name before auth;
+    PUT requires an authenticated user (checked explicitly).
+    """
+    config = SiteConfig.load()
+    if request.method == "GET":
+        return Response({"club_name": config.club_name})
+    if not request.user.is_authenticated:
+        return Response(
+            {"detail": "Authentication required."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    club_name = request.data.get("club_name", "").strip()[:100]
+    config.club_name = club_name
+    config.save(update_fields=["club_name"])
+    return Response({"club_name": config.club_name})
 
 
 class SettingsViewSet(viewsets.ViewSet):
