@@ -167,10 +167,10 @@ class TestSeasonViewSet:
         )
         assert response.content.startswith(b"%PDF")
 
-    def test_export_ics(self, api_client, season, team_x14, player):
+    def test_export_ics(self, api_client, season, team_x14):
         from datetime import date, time
 
-        from hoops_planner.core.models import Game, Task, TaskAssignment
+        from hoops_planner.core.models import Game, Task
 
         game = Game.objects.create(
             season=season,
@@ -181,8 +181,7 @@ class TestSeasonViewSet:
             time=time(14, 0),
             court=Game.Court.COURT_1,
         )
-        task = Task.objects.create(game=game, task_type="SCORER", slot_number=1)
-        TaskAssignment.objects.create(task=task, player=player)
+        Task.objects.create(game=game, task_type="SCORER", slot_number=1)
 
         response = api_client.get(f"/api/seasons/{season.id}/export_ics/")
         assert response.status_code == 200
@@ -195,8 +194,7 @@ class TestSeasonViewSet:
         assert "BEGIN:VCALENDAR" in body
         assert "BEGIN:VEVENT" in body
         assert "END:VCALENDAR" in body
-        assert "Vido X14-1" in body
-        assert "John Doe" in body
+        assert "Scoren Vido X14-1 vs Opponent" in body
 
     def test_game_ics_public_access(self, season, team_x14, player):
         """The game_ics endpoint should be accessible without authentication."""
@@ -230,7 +228,7 @@ class TestSeasonViewSet:
         assert "Vido X14-1" in body
         # Public endpoint must NOT expose player names (PII)
         assert "John Doe" not in body
-        assert "Scorer: 1 assigned" in body
+        assert "Scoren: 1 assigned" in body
 
     def test_game_ics_missing_game_id(self):
         """The game_ics endpoint should return 400 when game_id is missing."""

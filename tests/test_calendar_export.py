@@ -8,15 +8,14 @@ from hoops_planner.core.calendar_export import export_schedule_ics
 from hoops_planner.core.models import (
     Game,
     Task,
-    TaskAssignment,
     TaskType,
 )
 
 
 @pytest.mark.django_db
 class TestExportScheduleIcs:
-    def test_produces_valid_ics(self, season, team_x14, player):
-        """Verify the .ics output is valid and contains game data."""
+    def test_produces_valid_ics(self, season, team_x14):
+        """Verify the .ics output is valid and contains task events."""
         game = Game.objects.create(
             season=season,
             own_team=team_x14,
@@ -26,12 +25,8 @@ class TestExportScheduleIcs:
             time=dt.time(14, 0),
             court=Game.Court.COURT_1,
         )
-        scorer_task = Task.objects.create(
-            game=game,
-            task_type=TaskType.SCORER,
-            slot_number=1,
-        )
-        TaskAssignment.objects.create(task=scorer_task, player=player)
+        Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
+        Task.objects.create(game=game, task_type=TaskType.REFEREE, slot_number=1)
 
         ics_bytes = export_schedule_ics(season)
         ics_text = ics_bytes.decode("utf-8")
@@ -40,19 +35,20 @@ class TestExportScheduleIcs:
         assert "BEGIN:VCALENDAR" in ics_text
         assert "END:VCALENDAR" in ics_text
         assert "VERSION:2.0" in ics_text
-        assert "BEGIN:VEVENT" in ics_text
-        assert "END:VEVENT" in ics_text
 
-        # Game data should be present
-        assert "Vido X14-1" in ics_text
-        assert "Achilles '71" in ics_text
+        # One event per task slot
+        assert ics_text.count("BEGIN:VEVENT") == 2
+        assert ics_text.count("END:VEVENT") == 2
+
+        # Task type in summary
+        assert "Scoren Vido X14-1 vs Achilles '71" in ics_text
+        assert "Fluiten Vido X14-1 vs Achilles '71" in ics_text
 
         # Date/time in ICS format (YYYYMMDDTHHMMSS)
         assert "20251001T140000" in ics_text
 
-        # Player assignment should appear in description
-        assert "John Doe" in ics_text
-        assert "Scorer" in ics_text
+        # No player names in output
+        assert "John Doe" not in ics_text
 
         # Location should mention the venue and court
         assert "Den Ekkerman" in ics_text
@@ -68,8 +64,8 @@ class TestExportScheduleIcs:
         assert "BEGIN:VEVENT" not in ics_text
 
     def test_multiple_games(self, season, team_x14):
-        """Multiple games should each produce a VEVENT."""
-        Game.objects.create(
+        """Each task across multiple games produces its own VEVENT."""
+        game_a = Game.objects.create(
             season=season,
             own_team=team_x14,
             opponent="Opponent A",
@@ -78,7 +74,7 @@ class TestExportScheduleIcs:
             time=dt.time(14, 0),
             court=Game.Court.COURT_1,
         )
-        Game.objects.create(
+        game_b = Game.objects.create(
             season=season,
             own_team=team_x14,
             opponent="Opponent B",
@@ -87,11 +83,13 @@ class TestExportScheduleIcs:
             time=dt.time(16, 0),
             court=Game.Court.COURT_2,
         )
+        Task.objects.create(game=game_a, task_type=TaskType.SCORER, slot_number=1)
+        Task.objects.create(game=game_b, task_type=TaskType.REFEREE, slot_number=1)
 
         ics_bytes = export_schedule_ics(season)
         ics_text = ics_bytes.decode("utf-8")
 
-        # Should have two VEVENTs
+        # One VEVENT per task
         assert ics_text.count("BEGIN:VEVENT") == 2
         assert ics_text.count("END:VEVENT") == 2
 
@@ -99,7 +97,7 @@ class TestExportScheduleIcs:
         assert "Opponent A" in ics_text
         assert "Opponent B" in ics_text
 
-    def test_custom_location_in_ics(self, season, team_x14, player):
+    def test_custom_location_in_ics(self, season, team_x14):
         """Custom location should appear in the ICS output."""
         game = Game.objects.create(
             season=season,
@@ -111,12 +109,7 @@ class TestExportScheduleIcs:
             court=Game.Court.COURT_1,
             location="De Kempencampus",
         )
-        scorer_task = Task.objects.create(
-            game=game,
-            task_type=TaskType.SCORER,
-            slot_number=1,
-        )
-        TaskAssignment.objects.create(task=scorer_task, player=player)
+        Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
 
         ics_bytes = export_schedule_ics(season)
         ics_text = ics_bytes.decode("utf-8")
