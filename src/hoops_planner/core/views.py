@@ -545,46 +545,40 @@ def game_ics(request):
 
 
 def _generate_single_game_ics(game: Game) -> bytes:
-    """Generate a .ics file for a single game (public endpoint \u2014 no PII)."""
+    """Generate a .ics file for a single game (public endpoint — no PII)."""
     from datetime import datetime, timedelta
 
     from hoops_planner.core.calendar_export import TASK_LABELS
-    from hoops_planner.core.models import TaskAssignment
+    from hoops_planner.core.models import Task
 
     dtstart = datetime.combine(game.date, game.time)
     dtend = dtstart + timedelta(hours=2)
-    summary = f"{game.own_team} vs {game.opponent}"
+    location = f"{game.location or 'Den Ekkerman'} - Court {game.court}"
 
-    # Count assigned tasks by type only \u2014 never expose player names publicly
-    assignments = TaskAssignment.objects.filter(task__game=game).select_related("task")
-    if assignments:
-        type_counts: dict[str, int] = {}
-        for a in assignments:
-            label = TASK_LABELS.get(a.task.task_type, a.task.task_type)
-            type_counts[label] = type_counts.get(label, 0) + 1
-        desc_parts = [
-            f"{label}: {count} assigned" for label, count in type_counts.items()
-        ]
-        description = " | ".join(desc_parts)
-    else:
-        description = "No tasks assigned yet"
+    tasks = Task.objects.filter(game=game).order_by("task_type", "slot_number")
 
-    ics_content = (
-        "BEGIN:VCALENDAR\n"
-        "VERSION:2.0\n"
-        "PRODID:-//Hoops Planner//Game Event//EN\n"
-        "BEGIN:VEVENT\n"
-        f"DTSTART:{dtstart.strftime('%Y%m%dT%H%M%S')}\n"
-        f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}\n"
-        f"SUMMARY:{summary}\n"
-        f"DESCRIPTION:{description}\n"
-        f"LOCATION:{game.location or 'Den Ekkerman'} - Court {game.court}\n"
-        "STATUS:CONFIRMED\n"
-        "END:VEVENT\n"
-        "END:VCALENDAR\n"
-    )
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Hoops Planner//Game Event//EN",
+    ]
+    for task in tasks:
+        label = TASK_LABELS.get(task.task_type, task.task_type)
+        summary = f"{label} {game.own_team} vs {game.opponent}"
+        lines.extend(
+            [
+                "BEGIN:VEVENT",
+                f"DTSTART:{dtstart.strftime('%Y%m%dT%H%M%S')}",
+                f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}",
+                f"SUMMARY:{summary}",
+                f"LOCATION:{location}",
+                "STATUS:CONFIRMED",
+                "END:VEVENT",
+            ]
+        )
+    lines.append("END:VCALENDAR")
 
-    return ics_content.encode("utf-8")
+    return "\r\n".join(lines).encode("utf-8")
 
 
 @api_view(["POST"])

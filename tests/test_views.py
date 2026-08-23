@@ -225,10 +225,10 @@ class TestSeasonViewSet:
         assert "BEGIN:VCALENDAR" in body
         assert "BEGIN:VEVENT" in body
         assert "END:VCALENDAR" in body
-        assert "Vido X14-1" in body
+        # One event per task with the label in the summary
+        assert "Tafelen (Scorer) Vido X14-1 vs Opponent" in body
         # Public endpoint must NOT expose player names (PII)
         assert "John Doe" not in body
-        assert "Tafelen (Scorer): 1 assigned" in body
 
     def test_game_ics_missing_game_id(self):
         """The game_ics endpoint should return 400 when game_id is missing."""
