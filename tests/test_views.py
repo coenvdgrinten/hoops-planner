@@ -225,8 +225,8 @@ class TestSeasonViewSet:
         assert "BEGIN:VCALENDAR" in body
         assert "BEGIN:VEVENT" in body
         assert "END:VCALENDAR" in body
-        # One event per task with the label in the summary
-        assert "Tafelen (Scorer) Vido X14-1 vs Opponent" in body
+        # Single event for the game
+        assert "Vido X14-1 vs Opponent" in body
         # Public endpoint must NOT expose player names (PII)
         assert "John Doe" not in body
 
@@ -1138,9 +1138,7 @@ class TestSiteConfig:
         """GET is public (no auth needed) and returns club_name."""
         from hoops_planner.core.models import SiteConfig
 
-        SiteConfig.objects.update_or_create(
-            pk=1, defaults={"club_name": "BC Vido"}
-        )
+        SiteConfig.objects.update_or_create(pk=1, defaults={"club_name": "BC Vido"})
         response = client.get("/api/site-config/")
         assert response.status_code == 200
         assert response.json() == {"club_name": "BC Vido"}

@@ -21,9 +21,11 @@ def export_schedule_ics(season: Season) -> bytes:
 
     # Pre-fetch all tasks
     game_ids = [g.id for g in games]
-    tasks = Task.objects.filter(game__id__in=game_ids).order_by(
-        "game", "task_type", "slot_number"
-    ).select_related("game")
+    tasks = (
+        Task.objects.filter(game__id__in=game_ids)
+        .order_by("game", "task_type", "slot_number")
+        .select_related("game")
+    )
 
     lines = [
         "BEGIN:VCALENDAR",

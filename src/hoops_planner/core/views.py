@@ -549,37 +549,26 @@ def _generate_single_game_ics(game: Game) -> bytes:
     """Generate a .ics file for a single game (public endpoint — no PII)."""
     from datetime import datetime, timedelta
 
-    from hoops_planner.core.calendar_export import TASK_LABELS
-    from hoops_planner.core.models import Task
-
     dtstart = datetime.combine(game.date, game.time)
     dtend = dtstart + timedelta(hours=2)
+    summary = f"{game.own_team} vs {game.opponent}"
     location = f"{game.location or 'Den Ekkerman'} - Court {game.court}"
 
-    tasks = Task.objects.filter(game=game).order_by("task_type", "slot_number")
+    ics_content = (
+        "BEGIN:VCALENDAR\r\n"
+        "VERSION:2.0\r\n"
+        "PRODID:-//Hoops Planner//Game Event//EN\r\n"
+        "BEGIN:VEVENT\r\n"
+        f"DTSTART:{dtstart.strftime('%Y%m%dT%H%M%S')}\r\n"
+        f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}\r\n"
+        f"SUMMARY:{summary}\r\n"
+        f"LOCATION:{location}\r\n"
+        "STATUS:CONFIRMED\r\n"
+        "END:VEVENT\r\n"
+        "END:VCALENDAR\r\n"
+    )
 
-    lines = [
-        "BEGIN:VCALENDAR",
-        "VERSION:2.0",
-        "PRODID:-//Hoops Planner//Game Event//EN",
-    ]
-    for task in tasks:
-        label = TASK_LABELS.get(task.task_type, task.task_type)
-        summary = f"{label} {game.own_team} vs {game.opponent}"
-        lines.extend(
-            [
-                "BEGIN:VEVENT",
-                f"DTSTART:{dtstart.strftime('%Y%m%dT%H%M%S')}",
-                f"DTEND:{dtend.strftime('%Y%m%dT%H%M%S')}",
-                f"SUMMARY:{summary}",
-                f"LOCATION:{location}",
-                "STATUS:CONFIRMED",
-                "END:VEVENT",
-            ]
-        )
-    lines.append("END:VCALENDAR")
-
-    return "\r\n".join(lines).encode("utf-8")
+    return ics_content.encode("utf-8")
 
 
 @api_view(["POST"])

@@ -375,9 +375,7 @@ def _build_html(season: Season) -> str:
 
     # Club name from site config (empty string if not set)
     club_name = SiteConfig.load().club_name
-    club_html = (
-        f'<span class="club-name">{club_name}</span>' if club_name else ""
-    )
+    club_html = f'<span class="club-name">{club_name}</span>' if club_name else ""
 
     html_parts = [
         "<!DOCTYPE html>",
@@ -392,9 +390,9 @@ def _build_html(season: Season) -> str:
 
     # Legend box
     legend_items = (
-        ('swatch-red', 'Away day (counts 2\u00d7)'),
-        ('swatch-pink', 'Unfilled slot'),
-        ('swatch-parent', '"Ouder van" = parent'),
+        ("swatch-red", "Away day (counts 2\u00d7)"),
+        ("swatch-pink", "Unfilled slot"),
+        ("swatch-parent", '"Ouder van" = parent'),
     )
     items_html = "".join(
         f'<span class="item"><span class="swatch {cls}"></span> {txt}</span>'
@@ -424,7 +422,6 @@ def _build_html(season: Season) -> str:
             html_parts.append(f"<tr>{row}</tr>")
 
         html_parts.extend(["</tbody>", "</table>"])
-
 
     # Force page break before summaries
     html_parts.append('<div style="page-break-before: always"></div>')
@@ -610,17 +607,13 @@ def _build_player_summary_html(season: Season) -> str:
     # --- Effective-load data (same rule as statistics.get_player_stats) ---
     # Which teams play on which date.
     date_teams: dict[date_type, set[int]] = {}
-    for d, tid in Game.objects.filter(season=season).values_list(
-        "date", "own_team_id"
-    ):
+    for d, tid in Game.objects.filter(season=season).values_list("date", "own_team_id"):
         date_teams.setdefault(d, set()).add(tid)
 
     # Each player's responsible teams (own + coached).
     player_team_ids: dict[int, set[int]] = {}
     for p in Player.objects.all().prefetch_related("coached_teams"):
-        player_team_ids[p.id] = {p.team_id} | {
-            t.id for t in p.coached_teams.all()
-        }
+        player_team_ids[p.id] = {p.team_id} | {t.id for t in p.coached_teams.all()}
 
     # Count assignments per player per task type AND effective total.
     player_counts: dict[tuple[int, str], dict[str, int]] = {}

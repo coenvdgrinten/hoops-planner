@@ -108,9 +108,7 @@ class TestExportSchedulePdf:
         assert "Player Summary" in html
         assert "John Doe" in html
 
-    def test_pdf_player_summary_eff_column(
-        self, season, team_x14, player
-    ):
+    def test_pdf_player_summary_eff_column(self, season, team_x14, player):
         """Player Summary includes an 'Eff.' column with weighted totals."""
         # Game on team_x14's date → own-team task counts 1×.
         game = Game.objects.create(
@@ -123,13 +121,16 @@ class TestExportSchedulePdf:
             court=Game.Court.COURT_1,
         )
         scorer_task = Task.objects.create(
-            game=game, task_type=TaskType.SCORER, slot_number=1,
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
         )
         TaskAssignment.objects.create(task=scorer_task, player=player)
 
         # Away-day game (different team, different date) → counts 2×.
         other_team = Team.objects.create(
-            name="Vido X16-1", age_category=Team.AgeCategory.X16,
+            name="Vido X16-1",
+            age_category=Team.AgeCategory.X16,
         )
         away_game = Game.objects.create(
             season=season,
@@ -141,7 +142,9 @@ class TestExportSchedulePdf:
             court=Game.Court.COURT_1,
         )
         timer_task = Task.objects.create(
-            game=away_game, task_type=TaskType.TIMER, slot_number=1,
+            game=away_game,
+            task_type=TaskType.TIMER,
+            slot_number=1,
         )
         TaskAssignment.objects.create(task=timer_task, player=player)
 
