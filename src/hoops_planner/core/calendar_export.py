@@ -6,8 +6,8 @@ from hoops_planner.core.models import Season, Task, TaskType
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Fluiten",
-    TaskType.SCORER: "Scoren",
-    TaskType.TIMER: "Tijd",
+    TaskType.SCORER: "Tafelen",
+    TaskType.TIMER: "Tafelen",
     TaskType.SECOND_24_OPERATOR: "24-seconde",
 }
 
