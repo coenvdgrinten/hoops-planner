@@ -362,9 +362,8 @@ def _build_html(season: Season) -> str:
         html_parts.append("</tr>")
 
         for game in by_date[game_date]:
-            html_parts.append(
-                f"<tr>{_build_game_row_html(game, assigned, max_referees, has_24sec)}</tr>"
-            )
+            row = _build_game_row_html(game, assigned, max_referees, has_24sec)
+            html_parts.append(f"<tr>{row}</tr>")
 
         html_parts.extend(["</tbody>", "</table>"])
 
