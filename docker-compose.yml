@@ -41,7 +41,7 @@ services:
     volumes:
       - ./src:/app/src          # Mount source for hot-reload
       - ./tests:/app/tests      # Mount tests
-      - media-data:/app/media   # Persist uploaded files
+      - ./media:/app/media      # Club assets (logo etc.) — tracked in git
     depends_on:
       - db
 
@@ -59,4 +59,3 @@ services:
 
 volumes:
   pgdata:
-  media-data:
