@@ -31,6 +31,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPdfWarning, setShowPdfWarning] = useState(false);
+  const [pdfExporting, setPdfExporting] = useState(false);
 
   const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
@@ -43,13 +44,23 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   });
   const openTasks = stats?.open_task_slots ?? 0;
 
+  const doExportPdf = useCallback(async () => {
+    setPdfExporting(true);
+    try {
+      await exportSeasonPdf(season.id, season.name);
+    } finally {
+      setPdfExporting(false);
+    }
+  }, [season]);
+
   const handleExportPdfClick = useCallback(() => {
+    if (pdfExporting) return;
     if (openTasks > 0) {
       setShowPdfWarning(true);
     } else {
-      void exportSeasonPdf(season.id, season.name);
+      void doExportPdf();
     }
-  }, [openTasks, season]);
+  }, [openTasks, pdfExporting, doExportPdf]);
 
   // Away games have no tasks; they live in the Availability view instead.
   const games = allGames.filter((g) => g.game_type !== "AWAY");
@@ -132,8 +143,9 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
             data-testid="export-pdf-btn"
             className={styles["btn-export"]}
             onClick={handleExportPdfClick}
+            disabled={pdfExporting}
           >
-            Export PDF
+            {pdfExporting ? "Generating…" : "Export PDF"}
           </button>
           <button
             data-testid="export-ics-btn"
@@ -267,7 +279,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
                 data-testid="pdf-warning-export-btn"
                 onClick={() => {
                   setShowPdfWarning(false);
-                  void exportSeasonPdf(season.id, season.name);
+                  void doExportPdf();
                 }}
               >
                 Export anyway
