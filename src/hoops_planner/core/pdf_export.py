@@ -231,6 +231,10 @@ td.unassigned {
     padding-top: 6pt;
     border-top: 0.5pt solid #ddd;
 }
+.footer a {
+    color: #f97316;
+    text-decoration: none;
+}
 
 .legend {
     text-align: right;
