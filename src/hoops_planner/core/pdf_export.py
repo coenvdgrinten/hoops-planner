@@ -508,7 +508,7 @@ def _build_team_summary_html(season: Season) -> str:
 
     Mirrors the "NT" indicator in the UI: how many tasks each team's members
     have been assigned this season, giving context for fair distribution
-    across differently-sized teams.
+    across differently-sized teams. Also shows the average tasks per member.
     """
     counts = {
         tid: n
@@ -522,10 +522,27 @@ def _build_team_summary_html(season: Season) -> str:
     if not counts:
         return ""
 
+    # Member count per team.
+    member_counts = {
+        tid: n
+        for tid, n in (
+            Player.objects.filter(team_id__in=counts.keys())
+            .values("team_id")
+            .annotate(n=Count("id"))
+            .values_list("team_id", "n")
+        )
+    }
+
     teams = sorted(Team.objects.filter(id__in=counts.keys()), key=_team_age_key)
     rows = []
     for team in teams:
-        rows.append(f"<tr><td>{team.name}</td><td>{counts[team.id]}</td></tr>")
+        total = counts[team.id]
+        members = member_counts.get(team.id, 0)
+        avg = f"{total / members:.1f}" if members else "—"
+        rows.append(
+            f"<tr><td>{team.name}</td><td>{total}</td>"
+            f"<td>{members}</td><td>{avg}</td></tr>"
+        )
 
     html_parts = [
         '<div class="summary-title">Team Summary</div>',
@@ -534,6 +551,8 @@ def _build_team_summary_html(season: Season) -> str:
         "<tr>",
         "<th>Team</th>",
         "<th>Total Tasks</th>",
+        "<th>Members</th>",
+        "<th>Avg/Member</th>",
         "</tr>",
         "</thead>",
         "<tbody>",
