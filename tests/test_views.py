@@ -568,15 +568,11 @@ class TestSeasonStatsEndpoint:
             court=Game.Court.COURT_1,
         )
         # One assigned scorer, one unassigned referee.
-        player = Player.objects.create(
-            first_name="P1", last_name="L1", team=team_x14
-        )
+        player = Player.objects.create(first_name="P1", last_name="L1", team=team_x14)
         scorer = Task.objects.create(
             game=game, task_type=TaskType.SCORER, slot_number=1
         )
-        ref = Task.objects.create(
-            game=game, task_type=TaskType.REFEREE, slot_number=1
-        )
+        ref = Task.objects.create(game=game, task_type=TaskType.REFEREE, slot_number=1)
         TaskAssignment.objects.create(player=player, task=scorer)
 
         response = api_client.get(f"/api/seasons/{season.id}/stats/")
@@ -718,20 +714,30 @@ class TestExportMembersEndpoint:
         t_vse = Team.objects.create(name="Vido VSE1", age_category="VSE")
 
         coach = Player.objects.create(
-            first_name="Luc", last_name="Delaere", team=t_x14,
-            is_coach=True, referee_certification="T2",
+            first_name="Luc",
+            last_name="Delaere",
+            team=t_x14,
+            is_coach=True,
+            referee_certification="T2",
         )
         # Coach also coaches two other teams (multi-value coached_teams).
         coach.coached_teams.add(t_x10, t_vse)
         Player.objects.create(
-            first_name="Jan", last_name="Janssens", team=t_x10, is_exempt=True,
+            first_name="Jan",
+            last_name="Janssens",
+            team=t_x10,
+            is_exempt=True,
         )
         Player.objects.create(
-            first_name="Louis", last_name="Van Wijnendaele", team=t_vse,
+            first_name="Louis",
+            last_name="Van Wijnendaele",
+            team=t_vse,
             referee_certification="SENIOR",
         )
         Player.objects.create(
-            first_name="Pieter", last_name="Van Damme", team=t_x14,
+            first_name="Pieter",
+            last_name="Van Damme",
+            team=t_x14,
         )
 
         def snapshot():

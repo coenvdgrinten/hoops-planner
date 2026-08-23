@@ -298,12 +298,8 @@ class GameViewSet(viewsets.ModelViewSet):
         )
         # Precompute each assigned player's effective multiplier in a couple of
         # queries so the serializer doesn't fire one per assignment.
-        players = list(
-            {a.player for t in tasks for a in t.assignments.all()}
-        )
-        multiplier_map = stats_logic.effective_multiplier_map(
-            players, {game.date}
-        )
+        players = list({a.player for t in tasks for a in t.assignments.all()})
+        multiplier_map = stats_logic.effective_multiplier_map(players, {game.date})
         # Players who already hold more than one task on this date (any game),
         # so the UI can flag double-duty. One query.
         same_day_multi = set(

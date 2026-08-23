@@ -11,7 +11,15 @@ from weasyprint.text.fonts import FontConfiguration
 from weasyprint.urls import URLFetcher, URLFetcherResponse
 
 from hoops_planner.core.eligibility import AGE_CATEGORY_ORDER
-from hoops_planner.core.models import Game, Season, Task, TaskAssignment, TaskType, Team
+from hoops_planner.core.models import (
+    Game,
+    Player,
+    Season,
+    Task,
+    TaskAssignment,
+    TaskType,
+    Team,
+)
 
 
 def _team_age_key(team: Team) -> tuple[int, str]:
@@ -359,9 +367,7 @@ def _build_html(season: Season) -> str:
         html_parts.append('<table class="day-table">')
         html_parts.append(f"<thead><tr>{header_cells}</tr></thead>")
         html_parts.append("<tbody>")
-        html_parts.append(
-            f'<tr class="date-row"><td colspan="2">{date_str}</td>'
-        )
+        html_parts.append(f'<tr class="date-row"><td colspan="2">{date_str}</td>')
         for _ in range(2, len(headers)):
             html_parts.append("<td></td>")
         html_parts.append("</tr>")
@@ -516,9 +522,7 @@ def _build_team_summary_html(season: Season) -> str:
     if not counts:
         return ""
 
-    teams = sorted(
-        Team.objects.filter(id__in=counts.keys()), key=_team_age_key
-    )
+    teams = sorted(Team.objects.filter(id__in=counts.keys()), key=_team_age_key)
     rows = []
     for team in teams:
         rows.append(f"<tr><td>{team.name}</td><td>{counts[team.id]}</td></tr>")
@@ -543,19 +547,43 @@ def _build_player_summary_html(season: Season) -> str:
     """Build player summary HTML sections, grouped by team.
 
     Instead of one flat alphabetical list, players are split into a section
-    per team so each team's member statistics sit together.
+    per team so each team's member statistics sit together. Includes an
+    "Eff." column showing the multiplier-weighted total (2× when the
+    player's team has no game that day), matching the app's fairness logic.
     """
     assignments = TaskAssignment.objects.filter(
         task__game__season=season
-    ).select_related("player", "player__team", "task")
+    ).select_related("player", "player__team", "task__game")
 
-    # Count assignments per player per task type, keyed by (team_id, name)
+    # --- Effective-load data (same rule as statistics.get_player_stats) ---
+    # Which teams play on which date.
+    date_teams: dict[date_type, set[int]] = {}
+    for d, tid in Game.objects.filter(season=season).values_list(
+        "date", "own_team_id"
+    ):
+        date_teams.setdefault(d, set()).add(tid)
+
+    # Each player's responsible teams (own + coached).
+    player_team_ids: dict[int, set[int]] = {}
+    for p in Player.objects.all().prefetch_related("coached_teams"):
+        player_team_ids[p.id] = {p.team_id} | {
+            t.id for t in p.coached_teams.all()
+        }
+
+    # Count assignments per player per task type AND effective total.
     player_counts: dict[tuple[int, str], dict[str, int]] = {}
+    player_effective: dict[tuple[int, str], float] = {}
     for a in assignments:
         key = (a.player.team_id, a.player.full_name)
         task_label = TASK_LABELS.get(a.task.task_type, a.task.task_type)
         counts = player_counts.setdefault(key, {})
         counts[task_label] = counts.get(task_label, 0) + 1
+
+        # Effective: 1 if any of the player's teams plays that day, else 2.
+        game_date = a.task.game.date
+        my_teams = player_team_ids.get(a.player.id, {a.player.team_id})
+        mult = 1 if my_teams & date_teams.get(game_date, set()) else 2
+        player_effective[key] = player_effective.get(key, 0) + mult
 
     if not player_counts:
         return ""
@@ -567,7 +595,7 @@ def _build_player_summary_html(season: Season) -> str:
 
     teams = sorted(Team.objects.filter(id__in=by_team.keys()), key=_team_age_key)
     labels = list(TASK_LABELS.values())
-    col_count = len(labels) + 2  # Player + task-type columns + Total
+    col_count = len(labels) + 3  # Player + task-type columns + Total + Eff.
 
     # One continuous table for all teams; each team is introduced by a
     # full-width separator row so the summary stays compact (no repeated
@@ -577,12 +605,11 @@ def _build_player_summary_html(season: Season) -> str:
     html_parts.append("<thead><tr><th>Player</th>")
     for label in labels:
         html_parts.append(f"<th>{label}</th>")
-    html_parts.append("<th>Total</th></tr></thead><tbody>")
+    html_parts.append("<th>Total</th><th>Eff.</th></tr></thead><tbody>")
     for team in teams:
         members = sorted(by_team[team.id], key=lambda x: x[0].lower())
         html_parts.append(
-            f'<tr class="team-row">'
-            f'<td colspan="{col_count}">{team.name}</td></tr>'
+            f'<tr class="team-row"><td colspan="{col_count}">{team.name}</td></tr>'
         )
         for name, counts in members:
             cells = [f"<td>{name}</td>"]
@@ -591,7 +618,10 @@ def _build_player_summary_html(season: Season) -> str:
                 count = counts.get(label, 0)
                 total += count
                 cells.append(f"<td>{count}</td>")
+            eff = player_effective.get((team.id, name), float(total))
+            eff_display = int(eff) if eff == int(eff) else f"{eff:.1f}"
             cells.append(f"<td>{total}</td>")
+            cells.append(f"<td>{eff_display}</td>")
             html_parts.append(f"<tr>{''.join(cells)}</tr>")
     html_parts.extend(["</tbody>", "</table>"])
 

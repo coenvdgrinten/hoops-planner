@@ -67,7 +67,9 @@ class TestTaskAssignmentSerializer:
             age_category=Team.AgeCategory.VSE,
         )
         coach = Player.objects.create(
-            first_name="Tessa", last_name="Kramer", team=adult_team,
+            first_name="Tessa",
+            last_name="Kramer",
+            team=adult_team,
         )
         coach.coached_teams.add(kid_team)
 
@@ -95,7 +97,9 @@ class TestTaskAssignmentSerializer:
             parent_responsible=True,
         )
         parent = Player.objects.create(
-            first_name="Naima", last_name="Boerebach", team=kid_team,
+            first_name="Naima",
+            last_name="Boerebach",
+            team=kid_team,
         )
         game = Game.objects.create(
             season=season,

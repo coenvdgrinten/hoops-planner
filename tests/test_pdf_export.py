@@ -108,6 +108,51 @@ class TestExportSchedulePdf:
         assert "Player Summary" in html
         assert "John Doe" in html
 
+    def test_pdf_player_summary_eff_column(
+        self, season, team_x14, player
+    ):
+        """Player Summary includes an 'Eff.' column with weighted totals."""
+        # Game on team_x14's date → own-team task counts 1×.
+        game = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        scorer_task = Task.objects.create(
+            game=game, task_type=TaskType.SCORER, slot_number=1,
+        )
+        TaskAssignment.objects.create(task=scorer_task, player=player)
+
+        # Away-day game (different team, different date) → counts 2×.
+        other_team = Team.objects.create(
+            name="Vido X16-1", age_category=Team.AgeCategory.X16,
+        )
+        away_game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Away Opp",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 8),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        timer_task = Task.objects.create(
+            game=away_game, task_type=TaskType.TIMER, slot_number=1,
+        )
+        TaskAssignment.objects.create(task=timer_task, player=player)
+
+        html = _build_html(season)
+        # Header includes Eff.
+        assert "<th>Eff.</th>" in html
+        # John Doe: 1 own-day task (eff 1) + 1 away-day task (eff 2) = eff 3, total 2
+        # The row should show both "2" (total) and "3" (eff)
+        john_rows = [line for line in html.split("\n") if "John Doe" in line]
+        assert any("<td>2</td><td>3</td>" in line for line in john_rows)
+
     def test_pdf_contains_team_summary(self, season, team_x14, player):
         """Verify the PDF HTML includes a per-team total task count."""
         game = Game.objects.create(
@@ -251,7 +296,9 @@ class TestExportSchedulePdf:
             age_category=Team.AgeCategory.VSE,
         )
         coach = Player.objects.create(
-            first_name="Tessa", last_name="Kramer", team=adult_team,
+            first_name="Tessa",
+            last_name="Kramer",
+            team=adult_team,
         )
         coach.coached_teams.add(kid_team)
 
@@ -266,7 +313,9 @@ class TestExportSchedulePdf:
             court=Game.Court.COURT_1,
         )
         scorer_task = Task.objects.create(
-            game=game, task_type=TaskType.SCORER, slot_number=1,
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
         )
         TaskAssignment.objects.create(task=scorer_task, player=coach)
 
