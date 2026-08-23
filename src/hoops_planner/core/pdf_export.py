@@ -230,6 +230,10 @@ td.unassigned {
     font-weight: 600;
 }
 
+.parent {
+    color: #2e7d32;
+}
+
 .footer {
     text-align: center;
     font-size: 8pt;
@@ -470,18 +474,24 @@ def _build_game_row_html(
     # Calendar event link for this game
     ics_url = f"{getattr(settings, 'SITE_URL', 'http://localhost:5173')}/api/game_ics/?game_id={game.id}"
 
+    def _cell(name: str, team: str, is_away: bool) -> tuple[str, str]:
+        away_cls = " away-day" if is_away else ""
+        name_cls = "center" + away_cls
+        if name.startswith("Ouder van"):
+            name_cls += " parent"
+        return (
+            f'<td class="{name_cls}">{name} '
+            f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>',
+            f'<td class="team{away_cls}">{team}</td>',
+        )
+
     # Referee columns
     for i in range(1, max_referees + 1):
         key = (game.id, TaskType.REFEREE)
         players = assigned.get(key, [])
         if i <= len(players):
             name, team, is_away = players[i - 1]
-            away_class = " away-day" if is_away else ""
-            cells.append(
-                f'<td class="center{away_class}">{name} '
-                f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
-            )
-            cells.append(f'<td class="team{away_class}">{team}</td>')
+            cells.extend(_cell(name, team, is_away))
         else:
             cells.append('<td class="unassigned">—</td>')
             cells.append("<td></td>")
@@ -491,12 +501,7 @@ def _build_game_row_html(
     scorers = assigned.get(scorer_key, [])
     if scorers:
         name, team, is_away = scorers[0]
-        away_class = " away-day" if is_away else ""
-        cells.append(
-            f'<td class="center{away_class}">{name} '
-            f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
-        )
-        cells.append(f'<td class="team{away_class}">{team}</td>')
+        cells.extend(_cell(name, team, is_away))
     else:
         cells.append('<td class="unassigned">—</td>')
         cells.append("<td></td>")
@@ -506,12 +511,7 @@ def _build_game_row_html(
     timers = assigned.get(timer_key, [])
     if timers:
         name, team, is_away = timers[0]
-        away_class = " away-day" if is_away else ""
-        cells.append(
-            f'<td class="center{away_class}">{name} '
-            f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
-        )
-        cells.append(f'<td class="team{away_class}">{team}</td>')
+        cells.extend(_cell(name, team, is_away))
     else:
         cells.append('<td class="unassigned">—</td>')
         cells.append("<td></td>")
@@ -522,12 +522,7 @@ def _build_game_row_html(
         ops = assigned.get(op_key, [])
         if ops:
             name, team, is_away = ops[0]
-            away_class = " away-day" if is_away else ""
-            cells.append(
-                f'<td class="center{away_class}">{name} '
-                f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>'
-            )
-            cells.append(f'<td class="team{away_class}">{team}</td>')
+            cells.extend(_cell(name, team, is_away))
         else:
             cells.append('<td class="unassigned">—</td>')
             cells.append("<td></td>")
