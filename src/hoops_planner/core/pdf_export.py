@@ -287,7 +287,12 @@ def _build_html(season: Season) -> str:
                 key = (t.game.id, t.task_type)
                 name = a.player.full_name
                 if t.task_type in (TaskType.SCORER, TaskType.TIMER):
-                    if any(tr.parent_responsible for tr in a.player.all_teams):
+                    # Only label "Ouder van" when the task's own team is
+                    # parent_responsible AND the player is a member/coach of
+                    # that specific team. A VSE member coaching X12 must not be
+                    # labelled a parent for an unrelated team's slot.
+                    own_team = t.game.own_team
+                    if own_team.parent_responsible and own_team in a.player.all_teams:
                         name = f"Ouder van {a.player.full_name}"
                 # Away day = player's team has no game on this date → 2x multiplier
                 player_team = a.player.team

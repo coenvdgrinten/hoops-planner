@@ -6,6 +6,7 @@ import pytest
 
 from hoops_planner.core.models import (
     Game,
+    Player,
     Task,
     TaskAssignment,
     TaskType,
@@ -234,6 +235,45 @@ class TestExportSchedulePdf:
 
         html = _build_html(season)
         assert "Ouder van John Doe" in html
+
+    def test_pdf_no_parent_label_for_coach_of_other_parent_team(self, season, team_x14):
+        """A member of a non-parent team who COACHES a parent team must not be
+        labelled 'Ouder van' for the non-parent team's scorer/timer slot."""
+        # A kids team with parent_responsible that the player coaches.
+        kid_team = Team.objects.create(
+            name="Vido X12-2",
+            age_category=Team.AgeCategory.X12,
+            parent_responsible=True,
+        )
+        # The player belongs to an adult (non-parent) team.
+        adult_team = Team.objects.create(
+            name="Vido VSE1",
+            age_category=Team.AgeCategory.VSE,
+        )
+        coach = Player.objects.create(
+            first_name="Tessa", last_name="Kramer", team=adult_team,
+        )
+        coach.coached_teams.add(kid_team)
+
+        # Task is on the ADULT team's game (not the kid team).
+        game = Game.objects.create(
+            season=season,
+            own_team=adult_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        scorer_task = Task.objects.create(
+            game=game, task_type=TaskType.SCORER, slot_number=1,
+        )
+        TaskAssignment.objects.create(task=scorer_task, player=coach)
+
+        html = _build_html(season)
+        # Plain name, no "Ouder van" prefix.
+        assert "Ouder van Tessa Kramer" not in html
+        assert "Tessa Kramer" in html
 
     def test_pdf_away_day_multiplier(self, season, team_x14, player):
         """Away-day class when the player's team plays no game that date."""

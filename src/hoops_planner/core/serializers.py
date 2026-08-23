@@ -149,12 +149,23 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_parent(self, obj: TaskAssignment) -> bool:
-        """True when the player is acting as a parent for this task."""
+        """True when the player is acting as a parent for this task.
+
+        Only applies when the *task's own team* is a ``parent_responsible``
+        team and the player is a member or coach of that specific team. A
+        player who merely coaches some other parent-responsible team (e.g. a
+        VSE member coaching X12) must NOT be labelled a parent for an unrelated
+        team's scorer/timer slot. Mirrors ``suggestions._is_parent_for_task``.
+        """
         if obj.task.task_type not in ("SCORER", "TIMER"):
             return False
-        # Use the prefetched coached_teams (no extra query) plus own team.
-        teams = [obj.player.team] + list(obj.player.coached_teams.all())
-        return any(t.parent_responsible for t in teams)
+        own_team = obj.task.game.own_team
+        if not own_team.parent_responsible:
+            return False
+        # Member or coach of the task's own team (uses prefetched data).
+        if own_team.id == obj.player.team_id:
+            return True
+        return any(t.id == own_team.id for t in obj.player.coached_teams.all())
 
     def get_effective_value(self, obj: TaskAssignment) -> int:
         """How much this assignment counts toward the player's effective total.
