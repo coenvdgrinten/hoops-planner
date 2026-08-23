@@ -230,7 +230,15 @@ export function AssignmentPanel({
                     {player.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   <div className={styles["suggested-details"]}>
-                    <span className={styles["suggested-name"]}>{player.full_name}</span>
+                    <span className={styles["suggested-name"]}>
+                      {player.full_name}
+                      {candidate.has_other_task_same_day && (
+                        <span
+                          className={styles["sameday-dot"]}
+                          title="Already has another task this day"
+                        />
+                      )}
+                    </span>
                     <span className={styles["suggested-meta"]}>
                       {player.team.name} · {candidate.task_count} task{candidate.task_count !== 1 ? 's' : ''}
                     </span>
@@ -307,7 +315,15 @@ export function AssignmentPanel({
                               {player.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                             </div>
                             <div className={styles["member-details"]}>
-                              <span className={styles["member-name"]}>{player.full_name}</span>
+                              <span className={styles["member-name"]}>
+                                {player.full_name}
+                                {pData.has_other_task_same_day && (
+                                  <span
+                                    className={styles["sameday-dot"]}
+                                    title="Already has another task this day"
+                                  />
+                                )}
+                              </span>
                               <span className={styles["member-meta"]}>
                                 {pData.at_gym === "before" ? "Game before" : pData.at_gym === "after" ? "Game after" : ""}
                               </span>

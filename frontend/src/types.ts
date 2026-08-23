@@ -96,6 +96,8 @@ export interface CandidateDetail {
   task_count: number;
   at_gym: "before" | "after" | null;
   suggestion_reason: string;
+  /** True when the player holds another task on the same date. */
+  has_other_task_same_day?: boolean;
 }
 
 export interface TeamPlayerEligibility {
@@ -104,6 +106,8 @@ export interface TeamPlayerEligibility {
   ineligible_reason: string | null;
   task_count: number;
   at_gym: "before" | "after" | null;
+  /** True when the player holds another task on the same date. */
+  has_other_task_same_day?: boolean;
 }
 
 export interface TeamEligibility {

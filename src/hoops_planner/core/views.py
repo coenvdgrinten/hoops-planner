@@ -363,8 +363,9 @@ class TaskViewSet(viewsets.ModelViewSet):
                 "task_count": player.assignments.count(),
                 "at_gym": position,
                 "suggestion_reason": reason,
+                "has_other_task_same_day": has_same_day,
             }
-            for player, task_count, position, reason in details
+            for player, task_count, position, reason, has_same_day in details
         ]
         return Response(data)
 
@@ -385,6 +386,7 @@ class TaskViewSet(viewsets.ModelViewSet):
                             "ineligible_reason": p.get("ineligible_reason"),
                             "task_count": p["task_count"],
                             "at_gym": p["at_gym"],
+                            "has_other_task_same_day": p["has_same_day_task"],
                         }
                         for p in team_result["players"]
                     ],

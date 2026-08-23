@@ -95,11 +95,11 @@ def suggest_candidates(
 def get_candidate_details(
     task: Task,
     limit: int = 5,
-) -> list[tuple[Player, float, str | None, str]]:
+) -> list[tuple[Player, float, str | None, str, bool]]:
     """Return candidate details with task count, at_gym flag, and suggestion reason.
 
-    Each tuple is (player, effective_task_count, game_position, suggestion_reason).
-    game_position is "before" | "after" | None.
+    Each tuple is (player, effective_task_count, game_position, suggestion_reason,
+    has_other_task_same_day). game_position is "before" | "after" | None.
     suggestion_reason explains why this player is suggested.
     """
     all_players = list(Player.objects.all().select_related("team"))
@@ -109,20 +109,22 @@ def get_candidate_details(
         return []
 
     info = _batch_position_and_count(eligible, task.game)
-    results: list[tuple[Player, float, str | None, str]] = []
+    results: list[tuple[Player, float, str | None, str, bool]] = []
     for player in eligible:
-        position, count, _has_same_day_task, boost_allowed = info[player.id]
+        position, count, has_same_day_task, boost_allowed = info[player.id]
         eff_position = position if boost_allowed else None
         is_parent = _is_parent_for_task(player, task)
         reason = _get_suggestion_reason(eff_position, count, is_parent)
-        results.append((player, count, eff_position, reason))
+        results.append((player, count, eff_position, reason, has_same_day_task))
 
     # Sort: players with a game (before/after) first, then by count
     # (ascending). Players already working a task on the target day get a
     # small penalty; parents get a bonus so they're preferred at equal load,
     # but a lighter non-parent can still outrank a heavily loaded parent.
     # ``position`` here is already gated by the at-gym boost allowance.
-    def _sort_key(entry: tuple[Player, float, str | None, str]) -> tuple[int, float]:
+    def _sort_key(
+        entry: tuple[Player, float, str | None, str, bool],
+    ) -> tuple[int, float]:
         player, count, position = entry[0], entry[1], entry[2]
         _, _, has_same_day_task, _boost_allowed = info[player.id]
         if _is_parent_for_task(player, task):
@@ -314,7 +316,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         players = []
         for player in team_players:
             eligible, reason = eligibility[player.id]
-            position, count, _same_day, _boost_allowed = info[player.id]
+            position, count, same_day, _boost_allowed = info[player.id]
             players.append(
                 {
                     "player": player,
@@ -322,6 +324,7 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
                     "ineligible_reason": reason,
                     "task_count": count,
                     "at_gym": position,
+                    "has_same_day_task": same_day,
                 }
             )
 
