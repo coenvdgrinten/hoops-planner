@@ -162,9 +162,14 @@ export function GameCard({
           const isOptionalRef =
             task.task_type === "REFEREE" && task.optional;
 
-          const displayName = assigned[0]?.is_parent
-            ? `Ouder van ${assigned[0].player.first_name} ${assigned[0].player.last_name}`
-            : assigned[0]?.player?.full_name;
+          const first = assigned[0];
+          const displayName = first?.is_parent
+            ? `Ouder van ${first.player.first_name} ${first.player.last_name}`
+            : first?.player?.full_name;
+
+          // Away day: player's team has no game on this date (counts 2×).
+          const isAwayDay = first?.effective_value === 2;
+          const hasOtherSameDay = !!first?.has_other_task_same_day;
 
           return (
             <div
@@ -175,7 +180,9 @@ export function GameCard({
                   ? isOptionalRef
                     ? styles.optional
                     : styles.unfilled
-                  : styles.filled
+                  : isAwayDay
+                    ? `${styles.filled} ${styles.away}`
+                    : styles.filled
               } ${task.id === isSelectedTaskId ? styles.selected : ""}`}
               onClick={() => handleSelectTask(task)}
             >
@@ -183,6 +190,17 @@ export function GameCard({
               {assigned.length > 0 ? (
                 <span className={styles["chip-player"]}>
                   {displayName}
+                  {first?.player?.team?.age_category && (
+                    <span className={styles["chip-team"]} title={first.player.team.name}>
+                      {first.player.team.age_category}
+                    </span>
+                  )}
+                  {hasOtherSameDay && (
+                    <span
+                      className={styles["chip-sameday"]}
+                      title="Already has another task this day"
+                    />
+                  )}
                   {assigned.length > 1 && <span className={styles["chip-more"]}> +{assigned.length - 1}</span>}
                 </span>
               ) : (

@@ -1,6 +1,7 @@
 """API views for Hoops Planner."""
 
 from django.conf import settings
+from django.db.models import Count
 from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
@@ -303,8 +304,22 @@ class GameViewSet(viewsets.ModelViewSet):
         multiplier_map = stats_logic.effective_multiplier_map(
             players, {game.date}
         )
+        # Players who already hold more than one task on this date (any game),
+        # so the UI can flag double-duty. One query.
+        same_day_multi = set(
+            TaskAssignment.objects.filter(task__game__date=game.date)
+            .values("player_id")
+            .annotate(n=Count("id"))
+            .filter(n__gte=2)
+            .values_list("player_id", flat=True)
+        )
         serializer = TaskWithAssignmentsSerializer(
-            tasks, many=True, context={"effective_multiplier_map": multiplier_map}
+            tasks,
+            many=True,
+            context={
+                "effective_multiplier_map": multiplier_map,
+                "same_day_multi_players": same_day_multi,
+            },
         )
         return Response(serializer.data)
 

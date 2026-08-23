@@ -132,6 +132,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
     )
     is_parent = serializers.SerializerMethodField()
     effective_value = serializers.SerializerMethodField()
+    has_other_task_same_day = serializers.SerializerMethodField()
 
     class Meta:
         model = TaskAssignment
@@ -144,6 +145,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             "assigned_at",
             "is_parent",
             "effective_value",
+            "has_other_task_same_day",
         ]
 
     def get_is_parent(self, obj: TaskAssignment) -> bool:
@@ -170,6 +172,20 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         from hoops_planner.core.statistics import effective_multiplier_for
 
         return effective_multiplier_for(obj.player, obj.task.game.date)
+
+    def get_has_other_task_same_day(self, obj: TaskAssignment) -> bool:
+        """True when the player holds another task on the game's date."""
+        multi = self.context.get("same_day_multi_players")
+        if multi is None:
+            return (
+                TaskAssignment.objects.filter(
+                    player=obj.player,
+                    task__game__date=obj.task.game.date,
+                )
+                .exclude(task=obj.task)
+                .exists()
+            )
+        return obj.player_id in multi
 
     def create(self, validated_data):
         task = validated_data["task"]
