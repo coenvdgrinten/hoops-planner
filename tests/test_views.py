@@ -230,6 +230,35 @@ class TestSeasonViewSet:
         # Public endpoint must NOT expose player names (PII)
         assert "John Doe" not in body
 
+    def test_game_ics_with_task_id(self, season, team_x14, player):
+        """With task_id, the event summary includes the task label."""
+        from datetime import date, time
+
+        from rest_framework.test import APIClient
+
+        from hoops_planner.core.models import Game, Task, TaskAssignment
+
+        game = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=date(2025, 10, 1),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(game=game, task_type="SCORER", slot_number=1)
+        TaskAssignment.objects.create(task=task, player=player)
+
+        anon_client = APIClient()
+        url = f"/api/game_ics/?game_id={game.id}&task_id={task.id}"
+        response = anon_client.get(url)
+        assert response.status_code == 200
+        body = response.content.decode("utf-8")
+        assert "Tafelen (Scorer) Vido X14-1 vs Opponent" in body
+        # Filename should include the label
+        assert "Tafelen (Scorer)" in response["Content-Disposition"]
+
     def test_game_ics_missing_game_id(self):
         """The game_ics endpoint should return 400 when game_id is missing."""
         from rest_framework.test import APIClient

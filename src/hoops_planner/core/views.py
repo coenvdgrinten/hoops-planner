@@ -534,8 +534,22 @@ def game_ics(request):
             status=404,
             content_type="text/plain",
         )
-    ics_bytes = _generate_single_game_ics(game)
-    filename = f"{game.own_team} vs {game.opponent} {game.date.isoformat()}.ics"
+
+    # Optional task_id makes the event task-specific (e.g. "Fluiten Vido X12 vs ...")
+    task = None
+    task_id = request.GET.get("task_id")
+    if task_id:
+        from hoops_planner.core.models import Task
+
+        task = Task.objects.filter(id=task_id, game=game).first()
+
+    ics_bytes = _generate_single_game_ics(game, task)
+    label = ""
+    if task:
+        from hoops_planner.core.calendar_export import TASK_LABELS
+
+        label = f"{TASK_LABELS.get(task.task_type, task.task_type)} "
+    filename = f"{label}{game.own_team} vs {game.opponent} {game.date.isoformat()}.ics"
     return HttpResponse(
         ics_bytes,
         content_type="text/calendar; charset=utf-8",
@@ -545,13 +559,19 @@ def game_ics(request):
     )
 
 
-def _generate_single_game_ics(game: Game) -> bytes:
+def _generate_single_game_ics(game: Game, task=None) -> bytes:
     """Generate a .ics file for a single game (public endpoint — no PII)."""
     from datetime import datetime, timedelta
 
+    from hoops_planner.core.calendar_export import TASK_LABELS
+
     dtstart = datetime.combine(game.date, game.time)
     dtend = dtstart + timedelta(hours=2)
-    summary = f"{game.own_team} vs {game.opponent}"
+    if task:
+        label = TASK_LABELS.get(task.task_type, task.task_type)
+        summary = f"{label} {game.own_team} vs {game.opponent}"
+    else:
+        summary = f"{game.own_team} vs {game.opponent}"
     location = f"{game.location or 'Den Ekkerman'} - Court {game.court}"
 
     ics_content = (

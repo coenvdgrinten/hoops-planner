@@ -317,7 +317,7 @@ def _build_html(season: Season) -> str:
     )
 
     # Build lookup: (game_id, task_type) -> [(name, team, is_away_day)]
-    assigned: dict[tuple[int, str], list[tuple[str, str, bool]]] = {}
+    assigned: dict[tuple[int, str], list[tuple[str, str, bool, int]]] = {}
     for t in tasks:
         for a in assignments:
             if a.task.id == t.id:
@@ -345,7 +345,7 @@ def _build_html(season: Season) -> str:
                     .exists()
                 )
                 assigned.setdefault(key, []).append(
-                    (name, a.player.team.name, is_away_day)
+                    (name, a.player.team.name, is_away_day, t.id)
                 )
 
     # Determine max referees needed
@@ -451,7 +451,7 @@ def _build_html(season: Season) -> str:
 
 def _build_game_row_html(
     game: Game,
-    assigned: dict[tuple[int, str], list[tuple[str, str, bool]]],
+    assigned: dict[tuple[int, str], list[tuple[str, str, bool, int]]],
     max_referees: int,
     has_24sec: bool,
 ) -> str:
@@ -474,14 +474,18 @@ def _build_game_row_html(
         f'<td class="center">{game.location or "Den Ekkerman"}</td>',
     ]
 
-    # Calendar event link for this game
-    ics_url = f"{getattr(settings, 'SITE_URL', 'http://localhost:5173')}/api/game_ics/?game_id={game.id}"
+    base_url = getattr(settings, "SITE_URL", "http://localhost:5173")
 
-    def _cell(name: str, team: str, is_away: bool) -> tuple[str, str]:
+    def _cell(
+        name: str, team: str, is_away: bool, task_id: int | None = None
+    ) -> tuple[str, str]:
         away_cls = " away-day" if is_away else ""
         name_cls = "center" + away_cls
         if name.startswith("Ouder van"):
             name_cls += " parent"
+        ics_url = f"{base_url}/api/game_ics/?game_id={game.id}"
+        if task_id:
+            ics_url += f"&task_id={task_id}"
         return (
             f'<td class="{name_cls}">{name} '
             f'<a href="{ics_url}" class="calendar-link">Calendar</a></td>',
@@ -493,8 +497,8 @@ def _build_game_row_html(
         key = (game.id, TaskType.REFEREE)
         players = assigned.get(key, [])
         if i <= len(players):
-            name, team, is_away = players[i - 1]
-            cells.extend(_cell(name, team, is_away))
+            name, team, is_away, task_id = players[i - 1]
+            cells.extend(_cell(name, team, is_away, task_id))
         else:
             cells.append('<td class="unassigned">—</td>')
             cells.append("<td></td>")
@@ -503,8 +507,8 @@ def _build_game_row_html(
     scorer_key = (game.id, TaskType.SCORER)
     scorers = assigned.get(scorer_key, [])
     if scorers:
-        name, team, is_away = scorers[0]
-        cells.extend(_cell(name, team, is_away))
+        name, team, is_away, task_id = scorers[0]
+        cells.extend(_cell(name, team, is_away, task_id))
     else:
         cells.append('<td class="unassigned">—</td>')
         cells.append("<td></td>")
@@ -513,8 +517,8 @@ def _build_game_row_html(
     timer_key = (game.id, TaskType.TIMER)
     timers = assigned.get(timer_key, [])
     if timers:
-        name, team, is_away = timers[0]
-        cells.extend(_cell(name, team, is_away))
+        name, team, is_away, task_id = timers[0]
+        cells.extend(_cell(name, team, is_away, task_id))
     else:
         cells.append('<td class="unassigned">—</td>')
         cells.append("<td></td>")
@@ -524,8 +528,8 @@ def _build_game_row_html(
         op_key = (game.id, TaskType.SECOND_24_OPERATOR)
         ops = assigned.get(op_key, [])
         if ops:
-            name, team, is_away = ops[0]
-            cells.extend(_cell(name, team, is_away))
+            name, team, is_away, task_id = ops[0]
+            cells.extend(_cell(name, team, is_away, task_id))
         else:
             cells.append('<td class="unassigned">—</td>')
             cells.append("<td></td>")
