@@ -1,6 +1,6 @@
-import { useMemo, useState, useRef, useEffect } from "react";
+import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { TaskWithAssignments, Player, CandidateDetail } from "../types";
+import type { TaskWithAssignments, Player, CandidateDetail, TaskAssignment } from "../types";
 import {
   createAssignment,
   deleteAssignment,
@@ -33,8 +33,25 @@ export function AssignmentPanel({
   const [search, setSearch] = useState("");
   const [lastError, setLastError] = useState<string | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
+  const [toast, setToast] = useState<{ msg: string; assignment: TaskAssignment } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const queryClient = useQueryClient();
   const prevTaskId = useRef<number | undefined>(undefined);
+
+  const showToast = useCallback((msg: string, assignment: TaskAssignment) => {
+    clearTimeout(toastTimer.current);
+    setToast({ msg, assignment });
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+
+  const handleUndo = useCallback(async () => {
+    if (!toast) return;
+    await deleteAssignment(toast.assignment.id);
+    queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
+    queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
+    queryClient.invalidateQueries({ queryKey: ["season-stats"] });
+    setToast(null);
+  }, [toast, queryClient, gameId, task?.id]);
 
   // Reset search and error when switching to a different task
   useEffect(() => {
@@ -71,10 +88,12 @@ export function AssignmentPanel({
   // Assign mutation
   const { mutate: assign, isPending: assigning } = useMutation({
     mutationFn: (player: Player) => createAssignment(task!.id, player.id),
-    onSuccess: () => {
+    onSuccess: (assignment, player) => {
       queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
       queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
       queryClient.invalidateQueries({ queryKey: ["season-stats"] });
+      const label = TASK_LABELS[fetchedTask?.task_type ?? ""] ?? fetchedTask?.task_type ?? "";
+      showToast(`${player.full_name} assigned as ${label}`, assignment);
     },
     onError: (err) => {
       console.error("Failed to assign player:", err);
@@ -358,6 +377,13 @@ export function AssignmentPanel({
       <button className="close-panel-btn" onClick={onClose}>
         Close Panel
       </button>
+
+      {toast && (
+        <div className={styles["toast"]} data-testid="assignment-toast">
+          <span>{toast.msg}</span>
+          <button onClick={() => void handleUndo()}>Undo</button>
+        </div>
+      )}
     </aside>
   );
 }

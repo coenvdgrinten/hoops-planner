@@ -65,6 +65,34 @@
   color: var(--color-text-muted);
 }
 
+.fill-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fill-bar-track {
+  width: 140px;
+  height: 5px;
+  background: var(--color-surface-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fill-bar-inner {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.fill-bar-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .games-by-date {
   display: flex;
   flex-direction: column;

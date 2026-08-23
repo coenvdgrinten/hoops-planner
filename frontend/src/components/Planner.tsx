@@ -130,6 +130,19 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           <p className={styles["planner-subtitle"]}>
             Assign members to standard tasks like refereeing, scoring, and timing.
           </p>
+          {stats && (
+            <div className={styles["fill-bar"]} data-testid="fill-rate-bar">
+              <div className={styles["fill-bar-track"]}>
+                <div
+                  className={styles["fill-bar-inner"]}
+                  style={{ width: `${Math.min(100, stats.fill_rate)}%` }}
+                />
+              </div>
+              <span className={styles["fill-bar-label"]}>
+                {Math.round(stats.fill_rate)}% filled
+              </span>
+            </div>
+          )}
         </div>
         <div className={styles["planner-actions"]}>
           <button

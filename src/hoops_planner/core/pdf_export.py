@@ -84,6 +84,12 @@ body {
     height: auto;
 }
 
+.club-name {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #f97316;
+}
+
 .title {
     font-size: 14pt;
     font-weight: 600;
@@ -167,8 +173,9 @@ tr.date-row td {
 
 td.unassigned {
     font-style: italic;
-    color: #aaaaaa;
+    color: #e57373;
     text-align: center;
+    background: #fff5f5 !important;
 }
 
 .summary-title {
@@ -236,13 +243,26 @@ td.unassigned {
     text-decoration: none;
 }
 
-.legend {
-    text-align: right;
-    font-size: 7pt;
-    color: #999;
-    margin-top: 2pt;
-    margin-bottom: 4pt;
+.legend-box {
+    border: 0.75pt solid #e0e0e0;
+    border-radius: 4pt;
+    padding: 6pt 10pt;
+    margin: 8pt 0;
+    font-size: 7.5pt;
+    color: #555;
+    display: flex;
+    gap: 16pt;
 }
+.legend-box .item { display: flex; align-items: center; gap: 4pt; }
+.legend-box .swatch {
+    display: inline-block;
+    width: 8pt;
+    height: 8pt;
+    border-radius: 2pt;
+}
+.legend-box .swatch-red { background: #d32f2f; }
+.legend-box .swatch-pink { background: #fff5f5; border: 0.5pt solid #e57373; }
+.legend-box .swatch-parent { background: #e8f5e9; border: 0.5pt solid #66bb6a; }
 """
 
 
@@ -356,8 +376,21 @@ def _build_html(season: Season) -> str:
         "</head>",
         "<body>",
         f'<div class="header">{logo_html}'
+        f'<span class="club-name">Vido Basketball</span>'
         f'<span class="title">Task Schedule — {season.name}</span></div>',
     ]
+
+    # Legend box
+    legend_items = (
+        ('swatch-red', 'Away day (team has no game, counts 2\u00d7)'),
+        ('swatch-pink', 'Unfilled slot'),
+        ('swatch-parent', '"Ouder van" = parent covers scorer/timer'),
+    )
+    items_html = "".join(
+        f'<span class="item"><span class="swatch {cls}"></span> {txt}</span>'
+        for cls, txt in legend_items
+    )
+    html_parts.append(f'<div class="legend-box">{items_html}</div>')
 
     # Shared column header row, reused in every per-day table so the labels
     # repeat on each page and survive a page break inside a long day.
@@ -382,11 +415,6 @@ def _build_html(season: Season) -> str:
 
         html_parts.extend(["</tbody>", "</table>"])
 
-    # Legend
-    html_parts.append(
-        '<div class="legend">Red = task on a day the member\'s team has no game '
-        "(counts 2× toward fair distribution)</div>"
-    )
 
     # Force page break before summaries
     html_parts.append('<div style="page-break-before: always"></div>')
