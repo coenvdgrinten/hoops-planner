@@ -6,9 +6,9 @@ from hoops_planner.core.models import Season, Task, TaskType
 
 TASK_LABELS: dict[str, str] = {
     TaskType.REFEREE: "Fluiten",
-    TaskType.SCORER: "Tafelen",
-    TaskType.TIMER: "Tafelen",
-    TaskType.SECOND_24_OPERATOR: "24-seconde",
+    TaskType.SCORER: "Tafelen (Scorer)",
+    TaskType.TIMER: "Tafelen (Timer)",
+    TaskType.SECOND_24_OPERATOR: "Tafelen (24 sec.)",
 }
 
 # Default game duration: 2 hours

@@ -41,7 +41,7 @@ class TestExportScheduleIcs:
         assert ics_text.count("END:VEVENT") == 2
 
         # Task type in summary
-        assert "Tafelen Vido X14-1 vs Achilles '71" in ics_text
+        assert "Tafelen (Scorer) Vido X14-1 vs Achilles '71" in ics_text
         assert "Fluiten Vido X14-1 vs Achilles '71" in ics_text
 
         # Date/time in ICS format (YYYYMMDDTHHMMSS)
