@@ -447,6 +447,18 @@ def _build_html(season: Season) -> str:
 
         html_parts.extend(["</tbody>", "</table>"])
 
+    # Legend box (under the schedule, above the statistics)
+    legend_items = (
+        ("swatch-red", "Away day (counts 2\u00d7)"),
+        ("swatch-pink", "Unfilled slot"),
+        ("swatch-parent", '"Ouder van" = parent'),
+    )
+    items_html = "".join(
+        f'<span class="item"><span class="swatch {cls}"></span> {txt}</span>'
+        for cls, txt in legend_items
+    )
+    html_parts.append(f'<div class="legend-box">{items_html}</div>')
+
     # Force page break before summaries
     html_parts.append('<div style="page-break-before: always"></div>')
 
@@ -458,18 +470,6 @@ def _build_html(season: Season) -> str:
     # Player summary
     summary_html = _build_player_summary_html(season)
     html_parts.append(summary_html)
-
-    # Legend box (placed at the end so it doesn't push content to page 2)
-    legend_items = (
-        ("swatch-red", "Away day (counts 2\u00d7)"),
-        ("swatch-pink", "Unfilled slot"),
-        ("swatch-parent", '"Ouder van" = parent'),
-    )
-    items_html = "".join(
-        f'<span class="item"><span class="swatch {cls}"></span> {txt}</span>'
-        for cls, txt in legend_items
-    )
-    html_parts.append(f'<div class="legend-box">{items_html}</div>')
 
     # Footer
     from datetime import date as _date
