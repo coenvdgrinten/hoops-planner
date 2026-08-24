@@ -400,18 +400,6 @@ def _build_html(season: Season) -> str:
         f'<span class="title">Task Schedule — {season.name}</span></div>',
     ]
 
-    # Legend box
-    legend_items = (
-        ("swatch-red", "Away day (counts 2\u00d7)"),
-        ("swatch-pink", "Unfilled slot"),
-        ("swatch-parent", '"Ouder van" = parent'),
-    )
-    items_html = "".join(
-        f'<span class="item"><span class="swatch {cls}"></span> {txt}</span>'
-        for cls, txt in legend_items
-    )
-    html_parts.append(f'<div class="legend-box">{items_html}</div>')
-
     # Shared column header row, reused in every per-day table so the labels
     # repeat on each page and survive a page break inside a long day.
     header_cells = "".join(f"<th>{h}</th>" for h in headers)
@@ -470,6 +458,18 @@ def _build_html(season: Season) -> str:
     # Player summary
     summary_html = _build_player_summary_html(season)
     html_parts.append(summary_html)
+
+    # Legend box (placed at the end so it doesn't push content to page 2)
+    legend_items = (
+        ("swatch-red", "Away day (counts 2\u00d7)"),
+        ("swatch-pink", "Unfilled slot"),
+        ("swatch-parent", '"Ouder van" = parent'),
+    )
+    items_html = "".join(
+        f'<span class="item"><span class="swatch {cls}"></span> {txt}</span>'
+        for cls, txt in legend_items
+    )
+    html_parts.append(f'<div class="legend-box">{items_html}</div>')
 
     # Footer
     from datetime import date as _date
