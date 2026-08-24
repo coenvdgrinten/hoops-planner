@@ -2,6 +2,7 @@
 
 import os
 from datetime import date as date_type
+from datetime import time as time_type
 from pathlib import Path
 
 from django.conf import settings
@@ -170,6 +171,17 @@ tr:nth-child(even) td {
 
 tr.date-row td {
     background: #e8e8e8 !important;
+}
+
+tr.setup-row td {
+    background: #f0f4f8 !important;
+}
+
+.setup-label {
+    text-align: center;
+    font-style: italic;
+    font-weight: 600;
+    color: #475569;
 }
 
 td.unassigned {
@@ -417,9 +429,33 @@ def _build_html(season: Season) -> str:
             html_parts.append("<td></td>")
         html_parts.append("</tr>")
 
-        for game in by_date[game_date]:
+        day_games = by_date[game_date]
+        # Gym setup: 30-minute window before the first game of the day.
+        first_time = day_games[0].time
+        if first_time.minute >= 30:
+            setup_time = first_time.replace(minute=first_time.minute - 30)
+        else:
+            setup_time = first_time.replace(
+                hour=(first_time.hour - 1) % 24,
+                minute=first_time.minute + 30,
+            )
+        html_parts.append(
+            f'<tr class="setup-row">'
+            f"{_build_setup_row_html(setup_time, 'Opbouwen zaal', len(headers) - 2)}"
+            f"</tr>"
+        )
+
+        for game in day_games:
             row = _build_game_row_html(game, assigned, max_referees, has_24sec)
             html_parts.append(f"<tr>{row}</tr>")
+
+        # Gym cleanup: after the last game of the day.
+        cleanup_time = day_games[-1].time
+        html_parts.append(
+            f'<tr class="setup-row">'
+            f"{_build_setup_row_html(cleanup_time, 'Afbouwen zaal', len(headers) - 2)}"
+            f"</tr>"
+        )
 
         html_parts.extend(["</tbody>", "</table>"])
 
@@ -534,6 +570,20 @@ def _build_game_row_html(
             cells.append('<td class="unassigned">—</td>')
             cells.append("<td></td>")
 
+    return "".join(cells)
+
+
+def _build_setup_row_html(time: time_type, label: str, col_count: int) -> str:
+    """Build a gym setup/teardown row (not tied to a specific game).
+
+    ``col_count`` is the number of columns the label spans after the Datum
+    and Tijd cells (i.e. ``len(headers) - 2``).
+    """
+    cells = [
+        '<td class="center"></td>',  # Datum (filled by date header)
+        f'<td class="time">{time.strftime("%H:%M")}</td>',
+        f'<td class="setup-label" colspan="{col_count}">{label}</td>',
+    ]
     return "".join(cells)
 
 
