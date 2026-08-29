@@ -51,4 +51,27 @@ test.describe("Layout", () => {
     await page.getByRole("navigation").getByRole("button", { name: "Schedule Planner" }).click();
     await expect(page.getByRole("navigation").getByRole("button", { name: "Schedule Planner" })).toHaveClass(/active/);
   });
+
+  test("collapses and expands the sidebar", async ({ page }: { page: Page }) => {
+    await page.goto("/");
+
+    const sidebar = page.getByTestId("sidebar");
+    const expandedWidth = (await sidebar.boundingBox())!.width;
+
+    // Collapse via the toggle button in the top bar
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+
+    // Sidebar narrows (wait for the CSS transition to settle) and nav labels are hidden
+    await expect(sidebar).toHaveCSS("width", "56px");
+    expect(56).toBeLessThan(expandedWidth);
+    await expect(page.getByText("Schedule Planner")).toBeHidden();
+
+    // Nav buttons remain reachable via their accessible names
+    await expect(page.getByRole("navigation").getByRole("button", { name: "Statistics" })).toBeVisible();
+
+    // Expand again
+    await page.getByRole("button", { name: "Expand sidebar" }).click();
+    await expect(page.getByText("Schedule Planner")).toBeVisible();
+    await expect(sidebar).toHaveCSS("width", `${expandedWidth}px`);
+  });
 });

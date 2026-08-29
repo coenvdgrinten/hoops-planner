@@ -59,6 +59,25 @@
   border-right: 1px solid var(--color-border-subtle);
   padding: 16px 12px;
   flex-shrink: 0;
+  transition: width 0.2s ease, padding 0.2s ease;
+}
+
+.sidebar-collapsed {
+  width: 56px;
+  padding: 16px 8px;
+}
+
+.sidebar-collapsed nav button {
+  justify-content: center;
+  padding: 10px 8px;
+}
+
+.nav-label {
+  white-space: nowrap;
+}
+
+.sidebar-collapsed .nav-label {
+  display: none;
 }
 
 .sidebar nav {
