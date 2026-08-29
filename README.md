@@ -92,8 +92,27 @@ cd hoops-planner
 docker compose up --build
 ```
 
+Or use the convenience scripts (Linux/macOS):
+
+```bash
+./run     # build + start, wait for backend, run migrations
+./stop    # stop and remove containers (data volume is kept)
+```
+
+On **Windows**, develop inside [WSL 2](https://learn.microsoft.com/windows/wsl/) —
+it gives you native Linux file access for the containers and lets you use the
+same scripts:
+
+1. Install WSL 2 with a distro: `wsl --install -d Ubuntu`
+2. Inside WSL, clone the repo into your home directory (not `/mnt/c/...`):
+   `git clone https://github.com/coenvdgrinten/hoops-planner.git`
+3. Run the same scripts: `./run`, `./stop`, `./seed`
+
+> Requires Docker Desktop with WSL 2 integration enabled. For the best
+> experience, open the WSL folder with VS Code's *Remote – WSL* extension.
+
 - Frontend: <http://localhost:5173>
-- Backend API: <http://localhost:8000/api/>
+- Backend API: <http://localhost:8001/api/>
 
 ---
 
