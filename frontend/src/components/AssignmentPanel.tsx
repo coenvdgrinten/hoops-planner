@@ -175,6 +175,7 @@ export function AssignmentPanel({
       <div className={styles["panel-search"]}>
         <input
           type="text"
+          aria-label="Search member or team"
           placeholder="Search member or team..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}

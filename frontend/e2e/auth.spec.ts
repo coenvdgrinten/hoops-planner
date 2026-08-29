@@ -48,9 +48,8 @@ test.describe("Auth", () => {
 
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Sign In" })).toBeVisible();
-    // Login labels are not associated with their inputs — target by placeholder
-    await page.getByPlaceholder("Enter your username or email").fill(username);
-    await page.getByPlaceholder("Enter your password").fill("testpass123");
+    await page.getByLabel("Username or Email").fill(username);
+    await page.getByLabel("Password").fill("testpass123");
     await page.getByRole("button", { name: "Sign In", exact: true }).click();
 
     // Logged in — the app shell replaces the login form
@@ -61,8 +60,8 @@ test.describe("Auth", () => {
 
   test("shows an error for a wrong password", async ({ page }: { page: Page }) => {
     await page.goto("/");
-    await page.getByPlaceholder("Enter your username or email").fill("nobody-here");
-    await page.getByPlaceholder("Enter your password").fill("wrongpass");
+    await page.getByLabel("Username or Email").fill("nobody-here");
+    await page.getByLabel("Password").fill("wrongpass");
     await page.getByRole("button", { name: "Sign In", exact: true }).click();
 
     await expect(page.getByText("Invalid credentials.")).toBeVisible();
@@ -76,9 +75,9 @@ test.describe("Auth", () => {
     await page.getByRole("button", { name: "Register" }).click();
     await expect(page.getByRole("heading", { name: "Create Account" })).toBeVisible();
 
-    await page.getByPlaceholder("Choose a username").fill(username);
-    await page.getByPlaceholder("Enter your email").fill(`${username}@example.com`);
-    await page.getByPlaceholder("Enter your password").fill("testpass123");
+    await page.getByLabel("Username").fill(username);
+    await page.getByLabel("Email").fill(`${username}@example.com`);
+    await page.getByLabel("Password").fill("testpass123");
     await page.getByRole("button", { name: "Create Account" }).click();
 
     await expect(page.getByText(/Account created/)).toBeVisible();
@@ -100,8 +99,8 @@ test.describe("Auth", () => {
     expect(verifyRes.status()).toBe(200);
 
     await page.goto("/");
-    await page.getByPlaceholder("Enter your username or email").fill(username);
-    await page.getByPlaceholder("Enter your password").fill("testpass123");
+    await page.getByLabel("Username or Email").fill(username);
+    await page.getByLabel("Password").fill("testpass123");
     await page.getByRole("button", { name: "Sign In", exact: true }).click();
 
     await expect(page.getByText(/pending approval/i)).toBeVisible();

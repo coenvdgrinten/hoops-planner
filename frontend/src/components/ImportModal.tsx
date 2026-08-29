@@ -56,8 +56,9 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
           {type === "schedule" && (
             <>
               <div className="form-group">
-                <label>Season name:</label>
+                <label htmlFor="import-season-name">Season name:</label>
                 <input
+                  id="import-season-name"
                   type="text"
                   value={seasonName}
                   onChange={(e) => setSeasonName(e.target.value)}

@@ -288,7 +288,7 @@ test.describe("Planner", () => {
     await page.goto("/");
     await page.getByTestId("season-dropdown-toggle").click();
     await page.getByText("＋ New season").click();
-    await page.getByPlaceholder("e.g. 2025-2026").fill(seasonName);
+    await page.getByLabel("New season name").fill(seasonName);
     await page.getByRole("button", { name: "Create" }).click();
     await expect(page.getByTestId("season-dropdown-value")).toHaveText(seasonName);
 
@@ -299,7 +299,7 @@ test.describe("Planner", () => {
     await page.getByRole("button", { name: "Import Schedule" }).click();
     const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
-    await modal.getByPlaceholder("e.g. 2025-2026").fill(seasonName);
+    await modal.getByLabel("Season name:").fill(seasonName);
     await modal.locator("textarea").fill(
       [
         "date,time,court,home_team,away_team",
@@ -357,7 +357,7 @@ test.describe("Planner", () => {
     // staleTime and the panel would keep showing the cached (empty) list;
     // the UI mutation invalidates the task cache instead. Searching by name
     // puts her at the top of the Suggested list.
-    const searchBox = panel.getByPlaceholder("Search member or team...");
+    const searchBox = panel.getByLabel("Search member or team");
     await searchBox.fill(`${kimFirst} Keeper`);
     const addBtn = panel.getByTestId(`add-candidate-${kimId}`);
     await expect(addBtn).toBeVisible({ timeout: 10_000 });
