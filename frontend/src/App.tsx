@@ -109,14 +109,6 @@ function AppInner() {
       {/* Top Bar */}
       <header className={styles["top-bar"]}>
         <div className={styles["top-bar-left"]}>
-          <button
-            className="icon-btn"
-            onClick={handleToggleSidebar}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {sidebarCollapsed ? "»" : "«"}
-          </button>
           <img src="/favicon.svg" alt="Logo" className={styles["logo-img"]} />
           <span className={styles.brand}>
             Hoops Planner
@@ -230,6 +222,16 @@ function AppInner() {
               <span className={styles["nav-label"]}>Availability</span>
             </button>
           </nav>
+          <div className={styles["sidebar-footer"]}>
+            <button
+              className="icon-btn"
+              onClick={handleToggleSidebar}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? "»" : "«"}
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}

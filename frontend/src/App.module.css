@@ -54,12 +54,22 @@
 
 /* ===== Sidebar ===== */
 .sidebar {
+  display: flex;
+  flex-direction: column;
   width: 220px;
   background: var(--color-surface);
   border-right: 1px solid var(--color-border-subtle);
   padding: 16px 12px;
   flex-shrink: 0;
   transition: width 0.2s ease, padding 0.2s ease;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+  display: flex;
+  justify-content: center;
 }
 
 .sidebar-collapsed {
