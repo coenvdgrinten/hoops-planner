@@ -148,8 +148,9 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
 
           {(mode === "login" || mode === "register") && (
             <div className="form-group">
-              <label>{mode === "login" ? "Username or Email" : "Username"}</label>
+              <label htmlFor="auth-username">{mode === "login" ? "Username or Email" : "Username"}</label>
               <input
+                id="auth-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -162,8 +163,9 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
 
           {mode === "register" && (
             <div className="form-group">
-              <label>Email</label>
+              <label htmlFor="auth-email">Email</label>
               <input
+                id="auth-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -175,8 +177,9 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
 
           {(mode === "login" || mode === "register") && (
             <div className="form-group">
-              <label>Password</label>
+              <label htmlFor="auth-password">Password</label>
               <input
+                id="auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -189,8 +192,9 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
 
           {mode === "password_reset" && (
             <div className="form-group">
-              <label>Email</label>
+              <label htmlFor="auth-email-reset">Email</label>
               <input
+                id="auth-email-reset"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -203,8 +207,9 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
 
           {mode === "password_reset_confirm" && (
             <div className="form-group">
-              <label>New Password</label>
+              <label htmlFor="auth-new-password">New Password</label>
               <input
+                id="auth-new-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

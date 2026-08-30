@@ -185,9 +185,9 @@ test.describe("Member View", () => {
     await openMembers(page);
 
     await page.getByRole("button", { name: "+ Add Team" }).click();
-    await page.getByPlaceholder("Team name (e.g. Vido X14-1)").fill("Vido X99-New");
+    await page.getByLabel("Team name").fill("Vido X99-New");
     // The add-team form is the only visible team-edit-form at this point
-    await page.locator("form, div").filter({ has: page.getByPlaceholder("Team name (e.g. Vido X14-1)") }).getByRole("button", { name: "Save" }).click();
+    await page.locator("form, div").filter({ has: page.getByLabel("Team name") }).getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByTestId(/^team-header-\d+$/).filter({ hasText: "Vido X99-New" })).toBeVisible();
   });
@@ -213,8 +213,8 @@ test.describe("Member View", () => {
 
     // Create a throwaway team, then delete it (don't touch the shared seed).
     await page.getByRole("button", { name: "+ Add Team" }).click();
-    await page.getByPlaceholder("Team name (e.g. Vido X14-1)").fill("Doomed Team");
-    await page.locator("form, div").filter({ has: page.getByPlaceholder("Team name (e.g. Vido X14-1)") }).getByRole("button", { name: "Save" }).click();
+    await page.getByLabel("Team name").fill("Doomed Team");
+    await page.locator("form, div").filter({ has: page.getByLabel("Team name") }).getByRole("button", { name: "Save" }).click();
     const teamId = await teamIdFor(page, "Doomed Team");
 
     const group = page.getByTestId(`team-group-${teamId}`);
@@ -234,9 +234,9 @@ test.describe("Member View", () => {
     await group.getByTestId(`team-header-${teamId}`).click();
     await group.getByTestId(`add-player-${teamId}`).click();
 
-    const form = group.locator("div").filter({ has: page.getByPlaceholder("First name") }).last();
-    await form.getByPlaceholder("First name").fill("Eve");
-    await form.getByPlaceholder("Last name").fill("Newbie");
+    const form = group.locator("div").filter({ has: page.getByLabel("First name") }).last();
+    await form.getByLabel("First name").fill("Eve");
+    await form.getByLabel("Last name").fill("Newbie");
     await form.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByText("Eve Newbie")).toBeVisible();
@@ -258,8 +258,8 @@ test.describe("Member View", () => {
       .getAttribute("data-testid"))!.replace("player-edit-", "");
 
     await page.getByTestId(`player-edit-${playerId}`).click();
-    const form = group.filter({ has: page.getByPlaceholder("Last name") }).last();
-    await form.getByPlaceholder("Last name").fill("Renamed");
+    const form = group.filter({ has: page.getByLabel("Last name") }).last();
+    await form.getByLabel("Last name").fill("Renamed");
     await form.getByRole("button", { name: "Save" }).click();
 
     await expect(page.getByText("Alice Renamed")).toBeVisible();
@@ -294,10 +294,10 @@ test.describe("Member View", () => {
     // Create a second team to move into
     const destTeam = `Dest ${Date.now()}`;
     await page.getByRole("button", { name: "+ Add Team" }).click();
-    await page.getByPlaceholder("Team name (e.g. Vido X14-1)").fill(destTeam);
+    await page.getByLabel("Team name").fill(destTeam);
     await page
       .locator("form, div")
-      .filter({ has: page.getByPlaceholder("Team name (e.g. Vido X14-1)") })
+      .filter({ has: page.getByLabel("Team name") })
       .getByRole("button", { name: "Save" })
       .click();
     const destId = await teamIdFor(page, destTeam);
@@ -318,7 +318,7 @@ test.describe("Member View", () => {
     await page.getByTestId(`player-team-${playerId}`).selectOption({ label: destTeam });
     await page
       .locator("div")
-      .filter({ has: page.getByPlaceholder("Last name") })
+      .filter({ has: page.getByLabel("Last name") })
       .last()
       .getByRole("button", { name: "Save" })
       .click();

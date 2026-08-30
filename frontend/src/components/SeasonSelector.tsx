@@ -83,6 +83,7 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
           <form className={styles["season-create-form"]} onSubmit={handleCreate}>
             <input
               type="text"
+              aria-label="New season name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. 2025-2026"
@@ -157,6 +158,7 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
         <form className={styles["season-create-form"]} onSubmit={handleCreate}>
           <input
             type="text"
+            aria-label="New season name"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="e.g. 2025-2026"

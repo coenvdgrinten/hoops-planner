@@ -5,8 +5,8 @@ const API = "/api";
 
 async function loginAdmin(page: Page): Promise<void> {
   await page.goto("/");
-  await page.getByPlaceholder("Enter your username or email").fill("admin");
-  await page.getByPlaceholder("Enter your password").fill("admin");
+  await page.getByLabel("Username or Email").fill("admin");
+  await page.getByLabel("Password").fill("admin");
   await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await expect(page.getByAltText("Logo")).toBeVisible();
 }

@@ -284,6 +284,7 @@ export function MemberView() {
         <div className={styles["team-edit-form"]}>
           <input
             type="text"
+            aria-label="Team name"
             placeholder="Team name (e.g. Vido X14-1)"
             value={newTeam.name}
             onChange={(e) => setNewTeam((t) => ({ ...t, name: e.target.value }))}
@@ -420,6 +421,7 @@ export function MemberView() {
                     <div className={styles["player-edit-form"]}>
                       <input
                         type="text"
+                        aria-label="First name"
                         placeholder="First name"
                         value={newPlayer.first_name}
                         onChange={(e) =>
@@ -428,6 +430,7 @@ export function MemberView() {
                       />
                       <input
                         type="text"
+                        aria-label="Last name"
                         placeholder="Last name"
                         value={newPlayer.last_name}
                         onChange={(e) =>
@@ -500,6 +503,7 @@ export function MemberView() {
                             <div className={styles["player-edit-form"]}>
                               <input
                                 type="text"
+                                aria-label="First name"
                                 placeholder="First name"
                                 value={editPlayer.first_name}
                                 onChange={(e) =>
@@ -508,6 +512,7 @@ export function MemberView() {
                               />
                               <input
                                 type="text"
+                                aria-label="Last name"
                                 placeholder="Last name"
                                 value={editPlayer.last_name}
                                 onChange={(e) =>

@@ -30,6 +30,16 @@ function AppInner() {
   const [selectedTask, setSelectedTask] = useState<
     { task: TaskWithAssignments; gameId: number } | null
   >(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem("sidebar-collapsed") === "1"
+  );
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarCollapsed((collapsed) => {
+      localStorage.setItem("sidebar-collapsed", collapsed ? "0" : "1");
+      return !collapsed;
+    });
+  }, []);
 
   // Listen for forced logout (401 from API)
   useEffect(() => {
@@ -161,44 +171,67 @@ function AppInner() {
 
       <div className={styles["app-body"]}>
         {/* Sidebar */}
-        <aside className={styles.sidebar}>
+        <aside
+          data-testid="sidebar"
+          className={`${styles.sidebar} ${sidebarCollapsed ? styles["sidebar-collapsed"] : ""}`}
+        >
           <nav>
             <button
               className={currentView === "planner" ? styles.active : ""}
               onClick={() => handleViewChange("planner")}
+              aria-label="Schedule Planner"
+              title="Schedule Planner"
             >
               <span className={styles["nav-icon"]}>📅</span>
-              Schedule Planner
+              <span className={styles["nav-label"]}>Schedule Planner</span>
             </button>
             <button
               className={currentView === "members" ? styles.active : ""}
               onClick={() => handleViewChange("members")}
+              aria-label="Member Roster"
+              title="Member Roster"
             >
               <span className={styles["nav-icon"]}>👥</span>
-              Member Roster
+              <span className={styles["nav-label"]}>Member Roster</span>
             </button>
             <button
               className={currentView === "statistics" ? styles.active : ""}
               onClick={() => handleViewChange("statistics")}
+              aria-label="Statistics"
+              title="Statistics"
             >
               <span className={styles["nav-icon"]}>📊</span>
-              Statistics
+              <span className={styles["nav-label"]}>Statistics</span>
             </button>
             <button
               className={currentView === "settings" ? styles.active : ""}
               onClick={() => handleViewChange("settings")}
+              aria-label="Settings"
+              title="Settings"
             >
               <span className={styles["nav-icon"]}>⚙️</span>
-              Settings
+              <span className={styles["nav-label"]}>Settings</span>
             </button>
             <button
               className={currentView === "availability" ? styles.active : ""}
               onClick={() => handleViewChange("availability")}
+              aria-label="Availability"
+              title="Availability"
             >
               <span className={styles["nav-icon"]}>🚫</span>
-              Availability
+              <span className={styles["nav-label"]}>Availability</span>
             </button>
           </nav>
+          <div className={styles["sidebar-footer"]}>
+            <button
+              className="icon-btn"
+              onClick={handleToggleSidebar}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? "»" : "«"}
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}
