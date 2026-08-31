@@ -171,8 +171,10 @@ export function GameCard({
           const isAwayDay = first?.effective_value === 2;
           const hasOtherSameDay = !!first?.has_other_task_same_day;
 
-          // Assignment invalidated by a roster/schedule change.
-          const conflictReason = first?.conflict_reason ?? null;
+          // Any assignment invalidated by a roster/schedule change flags the
+          // chip (a task can hold more than one player in legacy data).
+          const conflicting = assigned.find((a) => a.conflict_reason);
+          const conflictReason = conflicting?.conflict_reason ?? null;
 
           return (
             <div

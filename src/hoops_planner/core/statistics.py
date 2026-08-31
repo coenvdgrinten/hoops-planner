@@ -6,6 +6,7 @@ from typing import Any
 
 from django.db.models import Count
 
+from hoops_planner.core.eligibility import find_conflicting_assignments
 from hoops_planner.core.models import (
     Game,
     Player,
@@ -220,11 +221,7 @@ def get_season_stats(
 
     # Assignments invalidated by roster/schedule changes, scoped to the same
     # games as the rest of the stats (half filter included).
-    from hoops_planner.core.eligibility import find_conflicting_assignments
-
-    conflict_count = len(
-        find_conflicting_assignments(game_ids=list(game_ids))
-    )
+    conflict_count = len(find_conflicting_assignments(game_ids=list(game_ids)))
 
     return {
         "total_games": total_games,

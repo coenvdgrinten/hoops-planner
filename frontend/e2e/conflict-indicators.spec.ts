@@ -143,6 +143,10 @@ test.describe("Conflict indicators", () => {
     const badge = page.getByTestId("conflict-count");
     await expect(badge).toBeVisible();
     await expect(badge).toContainText("1 conflict");
+
+    // No behavior change: clicking still opens the normal assignment panel.
+    await scorerChip.click();
+    await expect(page.getByTestId("assignment-panel")).toBeVisible();
   });
 
   test("chip turns red when the player's team changes to the game's team", async ({

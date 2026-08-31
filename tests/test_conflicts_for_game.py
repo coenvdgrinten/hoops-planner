@@ -2,9 +2,8 @@
 
 This is the seam used by the ``tasks_with_assignments`` endpoint to flag
 assignments that became invalid after roster/schedule changes. It must report
-exactly the same reasons (and priority order) as
-``_get_conflict_reasons`` / ``find_conflicting_assignments``, scoped to one
-game.
+the same reasons (and priority order) as ``find_conflicting_assignments``,
+scoped to one game.
 """
 
 import datetime as dt
@@ -284,9 +283,9 @@ class TestFindConflictsForGame:
         expected = "Team has an away game on the same day"
         assert all(v == expected for v in result.values())
 
-    def test_reason_priority_matches_find_conflicting_assignments(self, season):
-        """When several rules fire, the first reason must match the
-        season-wide detector (same checks, same order)."""
+    def test_reason_priority_when_several_rules_fire(self, season):
+        """When several rules fire, the FIRST rule in the disqualification
+        order wins (exemption beats schedule rules beat double-booking)."""
         team_a = make_team("Vido X14-1", Team.AgeCategory.X14)
         team_b = make_team("Vido X10-1", Team.AgeCategory.X10)
         team_c = make_team("Vido X12-1", Team.AgeCategory.X12)
@@ -296,7 +295,7 @@ class TestFindConflictsForGame:
         assignment = TaskAssignment.objects.create(player=player, task=ref_task)
 
         # Fire several rules at once: away game same day + double booking at
-        # the same time + (cert already NONE).
+        # the same time + missing certification.
         make_game(
             season,
             team_a,
@@ -307,6 +306,33 @@ class TestFindConflictsForGame:
         game2 = make_game(season, team_c, court=Game.Court.COURT_2)
         task2 = Task.objects.create(game=game2, task_type=TaskType.TIMER)
         TaskAssignment.objects.create(player=player, task=task2)
+
+        # Away-day rule outranks double-booking and certification.
+        result = find_conflicts_for_game(game)
+        assert result[assignment.id] == "Team has an away game on the same day"
+
+        # Exemption outranks everything.
+        player.is_exempt = True
+        player.save(update_fields=["is_exempt"])
+        result = find_conflicts_for_game(game)
+        assert result[assignment.id] == "Exempt from task assignments"
+
+    def test_per_game_and_season_wide_report_same_reason(self, season):
+        """The per-game helper and the season-wide detector agree."""
+        team_a = make_team("Vido X14-1", Team.AgeCategory.X14)
+        team_b = make_team("Vido X10-1", Team.AgeCategory.X10)
+        player = make_player(team_a)
+        game = make_game(season, team_b)
+        task = Task.objects.create(game=game, task_type=TaskType.SCORER)
+        assignment = TaskAssignment.objects.create(player=player, task=task)
+
+        make_game(
+            season,
+            team_a,
+            opponent="Away Opp",
+            game_type=Game.GameType.AWAY,
+            time=dt.time(10, 0),
+        )
 
         global_conflicts = find_conflicting_assignments(season=season)
         global_reason = next(
