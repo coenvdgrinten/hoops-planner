@@ -1,9 +1,9 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, uniqueName } from "./helpers";
 
 test.describe("Layout", () => {
   test.beforeEach(async ({ request, page }) => {
-    await authenticate(request, page, `lo-${Date.now()}`);
+    await authenticate(request, page, uniqueName("lo-"));
   });
 
   test("loads the application", async ({ page }: { page: Page }) => {

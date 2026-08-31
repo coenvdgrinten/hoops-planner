@@ -1,5 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, uniqueName } from "./helpers";
 
 const API = "/api";
 
@@ -16,9 +16,8 @@ async function seedSeason(
   token: string,
   prefix: string,
 ): Promise<{ seasonName: string; teamName: string }> {
-  const ts = Date.now();
-  const seasonName = `${prefix}${ts}`;
-  const teamName = `G${ts}`;
+  const seasonName = uniqueName(prefix);
+  const teamName = uniqueName("G");
   const scheduleCsv = [
     "date,time,court,home_team,away_team",
     `2025-10-01,14:00,1,${teamName},Seed Opp`,
@@ -48,7 +47,7 @@ test.describe("Game CRUD", () => {
     request: any;
     page: Page;
   }) => {
-    const token = await authenticate(request, page, `gc-${Date.now()}`);
+    const token = await authenticate(request, page, uniqueName("gc-"));
     const { seasonName, teamName } = await seedSeason(request, token, "GC");
 
     await page.goto("/");
@@ -84,7 +83,7 @@ test.describe("Game CRUD", () => {
     request: any;
     page: Page;
   }) => {
-    const token = await authenticate(request, page, `ge-${Date.now()}`);
+    const token = await authenticate(request, page, uniqueName("ge-"));
     const { seasonName } = await seedSeason(request, token, "GE");
 
     await page.goto("/");
@@ -116,7 +115,7 @@ test.describe("Game CRUD", () => {
     request: any;
     page: Page;
   }) => {
-    const token = await authenticate(request, page, `gd-${Date.now()}`);
+    const token = await authenticate(request, page, uniqueName("gd-"));
     const { seasonName, teamName } = await seedSeason(request, token, "GD");
 
     await page.goto("/");
@@ -146,7 +145,7 @@ test.describe("Game CRUD", () => {
     request: any;
     page: Page;
   }) => {
-    const token = await authenticate(request, page, `gx-${Date.now()}`);
+    const token = await authenticate(request, page, uniqueName("gx-"));
     const { seasonName } = await seedSeason(request, token, "GX");
 
     await page.goto("/");

@@ -1,5 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, uniqueName } from "./helpers";
 
 const API = "/api";
 
@@ -43,7 +43,7 @@ async function seedApprovedUser(
 
 test.describe("Auth", () => {
   test("logs in with valid credentials", async ({ request, page }: { request: any; page: Page }) => {
-    const username = `au-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const username = uniqueName("au-");
     await seedApprovedUser(request, username);
 
     await page.goto("/");
@@ -70,7 +70,7 @@ test.describe("Auth", () => {
   });
 
   test("registers a new account via the form", async ({ page }: { page: Page }) => {
-    const username = `reg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const username = uniqueName("reg-");
     await page.goto("/");
     await page.getByRole("button", { name: "Register" }).click();
     await expect(page.getByRole("heading", { name: "Create Account" })).toBeVisible();
@@ -86,7 +86,7 @@ test.describe("Auth", () => {
   });
 
   test("blocks login until an admin approves the account", async ({ request, page }: { request: any; page: Page }) => {
-    const username = `pend-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const username = uniqueName("pend-");
     // Register + verify, but do NOT approve
     const res = await request.post(`${API}/auth/register/`, {
       data: { username, password: "testpass123", email: `${username}@example.com` },
@@ -108,7 +108,7 @@ test.describe("Auth", () => {
   });
 
   test("logs out and returns to the login screen", async ({ request, page }: { request: any; page: Page }) => {
-    await authenticate(request, page, `lo-${Date.now()}`);
+    await authenticate(request, page, uniqueName("lo-"));
     await page.goto("/");
     await expect(page.getByAltText("Logo")).toBeVisible();
 
@@ -117,7 +117,7 @@ test.describe("Auth", () => {
   });
 
   test("stays logged in across a page reload", async ({ request, page }: { request: any; page: Page }) => {
-    await authenticate(request, page, `pr-${Date.now()}`);
+    await authenticate(request, page, uniqueName("pr-"));
     await page.goto("/");
     await expect(page.getByAltText("Logo")).toBeVisible();
 

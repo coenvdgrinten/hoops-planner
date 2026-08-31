@@ -1,5 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, uniqueName } from "./helpers";
 
 const API = "/api";
 
@@ -7,12 +7,13 @@ test.describe("Season Selector", () => {
   let seasonName: string;
 
   test.beforeEach(async ({ request, page }) => {
-    const token = await authenticate(request, page, `ss-${Date.now()}`);
-    seasonName = `Season-${Date.now()}`;
+    const token = await authenticate(request, page, uniqueName("ss-"));
+    seasonName = uniqueName("Season-");
 
-    // Seed a season so the dropdown has options
+    // Seed a season so the dropdown has options (unique team names — teams
+    // are global rows keyed by name in the backend)
     const scheduleCsv =
-      "date,time,court,home_team,away_team\n2025-10-01,14:00,1,Team A,Team B";
+      `date,time,court,home_team,away_team\n2025-10-01,14:00,1,${uniqueName("Team A")},${uniqueName("Team B")}`;
 
     const res = await request.post(`${API}/seasons/import_schedule/`, {
       headers: { Authorization: `Token ${token}` },

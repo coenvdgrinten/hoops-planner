@@ -1,5 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, uniqueName } from "./helpers";
 
 const API = "/api";
 
@@ -19,41 +19,76 @@ async function openSettings(page: Page): Promise<void> {
 }
 
 test.describe("Settings", () => {
+  // The brand-name tests mutate a SINGLE global SiteConfig row, so they must
+  // not run concurrently with each other (or with anything asserting the
+  // header text). Each test restores the brand itself (see below), which also
+  // keeps them safe against the rest of the suite.
+  test.describe.configure({ mode: "serial" });
+
+  /** Clear the global brand again — used as cleanup for the brand tests. */
+  async function clearBrand(page: Page): Promise<void> {
+    await page.goto("/");
+    await openSettings(page);
+    const input = page.locator("#brand-input");
+    await input.fill("");
+    await input.press("Enter");
+  }
+
   test("saves a new brand name to the top bar", async ({ request, page }: { request: any; page: Page }) => {
-    const brand = `Brand ${Date.now()}`;
-    await authenticate(request, page, `st-${Date.now()}`);
+    const brand = uniqueName("Brand ");
+    await authenticate(request, page, uniqueName("st-"));
     await openSettings(page);
 
-    const input = page.locator("#brand-input");
-    await input.fill(brand);
-    await input.press("Enter");
+    try {
+      const input = page.locator("#brand-input");
+      await input.fill(brand);
+      await input.press("Enter");
 
-    // Top bar now shows the brand next to "Hoops Planner" (unique timestamp suffix)
-    await expect(page.getByText(brand)).toBeVisible();
+      // Top bar now shows the brand next to "Hoops Planner" (unique timestamp suffix)
+      await expect(page.getByText(brand)).toBeVisible();
 
-    // Persists across navigation
-    await page.getByRole("button", { name: "Schedule Planner" }).click();
-    await expect(page.getByText(brand)).toBeVisible();
+      // Persists across navigation
+      await page.getByRole("button", { name: "Schedule Planner" }).click();
+      await expect(page.getByText(brand)).toBeVisible();
+    } finally {
+      // Brand is global state — restore it so we don't leak into other tests.
+      // Best-effort: never mask the real failure.
+      try {
+        await clearBrand(page);
+      } catch {
+        // global-setup resets the brand for the next run anyway
+      }
+    }
   });
 
   test("clearing the brand restores the default title", async ({ request, page }: { request: any; page: Page }) => {
-    const brand = `Temp ${Date.now()}`;
-    await authenticate(request, page, `sc-${Date.now()}`);
+    const brand = uniqueName("Temp ");
+    await authenticate(request, page, uniqueName("sc-"));
     await openSettings(page);
 
-    const input = page.locator("#brand-input");
-    await input.fill(brand);
-    await input.press("Enter");
-    await expect(page.getByText(brand)).toBeVisible();
+    try {
+      const input = page.locator("#brand-input");
+      await input.fill(brand);
+      await input.press("Enter");
+      await expect(page.getByText(brand)).toBeVisible();
 
-    await input.fill("");
-    await input.press("Enter");
-    await expect(page.getByText(brand)).toHaveCount(0);
+      await input.fill("");
+      await input.press("Enter");
+      await expect(page.getByText(brand)).toHaveCount(0);
+    } finally {
+      // Same global-state hygiene as above (usually a no-op here, since the
+      // test already cleared the brand).
+      try {
+        await clearBrand(page);
+      } catch {
+        // ignore
+      }
+    }
   });
 
   test("updates team task requirements and persists them", async ({ request, page }: { request: any; page: Page }) => {
-    const token = await authenticate(request, page, `ts-${Date.now()}`);
-    const teamName = `T${Date.now()}`;
+    const token = await authenticate(request, page, uniqueName("ts-"));
+    const teamName = uniqueName("T");
     const res = await request.post(`${API}/players/import_members/`, {
       headers: { Authorization: `Token ${token}` },
       data: {
@@ -82,7 +117,7 @@ test.describe("Settings", () => {
   });
 
   test("approves a pending user from the pending users panel", async ({ request, page }: { request: any; page: Page }) => {
-    const username = `pu-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const username = uniqueName("pu-");
     // Register + verify via API, leave unapproved
     const res = await request.post(`${API}/auth/register/`, {
       data: { username, password: "testpass123", email: `${username}@example.com` },
@@ -112,7 +147,7 @@ test.describe("Settings", () => {
   });
 
   test("rejects a pending user from the pending users panel", async ({ request, page }: { request: any; page: Page }) => {
-    const username = `rj-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const username = uniqueName("rj-");
     const res = await request.post(`${API}/auth/register/`, {
       data: { username, password: "testpass123", email: `${username}@example.com` },
     });
@@ -143,7 +178,7 @@ test.describe("Settings", () => {
   });
 
   test("hides the pending users panel from non-staff users", async ({ request, page }: { request: any; page: Page }) => {
-    await authenticate(request, page, `ns-${Date.now()}`);
+    await authenticate(request, page, uniqueName("ns-"));
     await openSettings(page);
     await expect(page.getByRole("heading", { name: "Pending Users" })).toHaveCount(0);
   });

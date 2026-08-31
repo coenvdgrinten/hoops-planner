@@ -1,22 +1,33 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, fetchAllPages, uniqueName } from "./helpers";
 
 const API = "/api";
 
 test.describe("Planner", () => {
   let seasonName: string;
   let token: string;
+  let teamA: string;
+  let teamB: string;
+  let teamC: string;
+  let teamD: string;
 
   test.beforeEach(async ({ request, page }) => {
-    token = await authenticate(request, page, `pl-${Date.now()}`);
-    seasonName = `Planner-${Date.now()}`;
+    // Every test gets its OWN season, teams AND players (see uniqueName):
+    // the backend keys teams by name and players by first+last name globally,
+    // so fixed names would be shared rows across parallel tests.
+    token = await authenticate(request, page, uniqueName("pl-"));
+    seasonName = uniqueName("Planner-");
+    teamA = uniqueName("Team A");
+    teamB = uniqueName("Team B");
+    teamC = uniqueName("Team C");
+    teamD = uniqueName("Team D");
 
     // Seed data via API before each test
     const scheduleCsv =
-      "date,time,court,home_team,away_team\n2025-10-01,14:00,1,Team A,Team B\n2025-10-01,14:00,2,Team C,Team D";
+      `date,time,court,home_team,away_team\n2025-10-01,14:00,1,${teamA},${teamB}\n2025-10-01,14:00,2,${teamC},${teamD}`;
 
     const membersCsv =
-      "first_name,last_name,team,is_coach,referee_certification\nAlice,Refsen,Team A,True,SENIOR\nBob,Player,Team A,False,\nCharlie,Coachsen,Team C,True,F\nDiana,Referee,Team A,False,F\nEve,Player,Team C,False,NONE";
+      `first_name,last_name,team,is_coach,referee_certification\n${uniqueName("Alice")},Refsen,${teamA},True,SENIOR\n${uniqueName("Bob")},Player,${teamA},False,\n${uniqueName("Charlie")},Coachsen,${teamC},True,F\n${uniqueName("Diana")},Referee,${teamA},False,F\n${uniqueName("Eve")},Player,${teamC},False,NONE`;
 
     // Import schedule (creates season automatically)
     const schedRes = await request.post(`${API}/seasons/import_schedule/`, {
@@ -43,8 +54,8 @@ test.describe("Planner", () => {
     await selectSeason(page);
 
     // Games should appear
-    await expect(page.getByText("Team A")).toBeVisible();
-    await expect(page.getByText("Team B")).toBeVisible();
+    await expect(page.getByText(teamA)).toBeVisible();
+    await expect(page.getByText(teamB)).toBeVisible();
   });
 
   test("groups games by date", async ({ page }: { page: Page }) => {
@@ -167,23 +178,22 @@ test.describe("Planner", () => {
     throw new Error(`season ${name} not found`);
   }
 
-  /** Find a player id by exact name. */
+  /** Find a player id by exact name (walks all pages — new players land at the end). */
   async function findPlayerId(
     request: any,
     first: string,
     last: string,
   ): Promise<number> {
-    const data = await (
-      await request.get(`${API}/players/`, {
-        headers: { Authorization: `Token ${token}` },
-      })
-    ).json();
-    const found = (data.results ?? []).find(
-      (p: { first_name: string; last_name: string }) =>
-        p.first_name === first && p.last_name === last,
+    const players = await fetchAllPages<{
+      id: number;
+      first_name: string;
+      last_name: string;
+    }>(request, `${API}/players/`, token);
+    const found = players.find(
+      (p) => p.first_name === first && p.last_name === last,
     );
     expect(found, `player ${first} ${last} should exist`).toBeTruthy();
-    return found.id;
+    return found!.id;
   }
 
   /** Deepest div containing both texts/chips = the game card. */
@@ -203,20 +213,17 @@ test.describe("Planner", () => {
     page: Page;
   }) => {
     // Add a member of a third team (no games of its own on the date).
-    // Unique name per run: fixed names collide with other runs' players
-    // who share the seeded 14:00 slot ("already assigned at this time").
-    const ts = Date.now();
-    const samFirst = `Sam${ts}`;
+    const samFirst = uniqueName("Sam");
     const memRes = await request.post(`${API}/players/import_members/`, {
       headers: { Authorization: `Token ${token}` },
       data: {
-        csv_text: `first_name,last_name,team,is_coach,referee_certification\n${samFirst},Solo,ZS${ts},False,F`,
+        csv_text: `first_name,last_name,team,is_coach,referee_certification\n${samFirst},Solo,${uniqueName("ZS")},False,F`,
         upsert: true,
       },
     });
     expect(memRes.status()).toBe(201);
 
-    // Assign Sam to Team A's scorer task via the API
+    // Assign Sam to our home team's scorer task via the API
     const seasonId = await findSeasonId(request, seasonName);
     const gamesData = await (
       await request.get(`${API}/games/?season=${seasonId}`, {
@@ -224,7 +231,7 @@ test.describe("Planner", () => {
       })
     ).json();
     const teamAGame = (gamesData.results ?? []).find(
-      (g: { own_team: { name: string } }) => g.own_team.name === "Team A",
+      (g: { own_team: { name: string } }) => g.own_team.name === teamA,
     );
     const tasksData = await (
       await request.get(`${API}/tasks/?game=${teamAGame.id}`, {
@@ -255,7 +262,7 @@ test.describe("Planner", () => {
     // The panel shows the highlighted +2× badge next to his name
     await page.goto("/");
     await selectSeason(page);
-    const chip = gameCard(page, "Team A")
+    const chip = gameCard(page, teamA)
       .getByTestId(/^task-chip-\d+$/)
       .filter({ hasText: "SCORER" })
       .first();
@@ -283,8 +290,7 @@ test.describe("Planner", () => {
   }) => {
     // Create a fresh season through the UI (auto-selected afterwards, so no
     // pagination issues), then seed two home games at different times.
-    const ts = Date.now();
-    const seasonName = `EffOwn-${ts}`;
+    const seasonName = uniqueName("EffOwn-");
     await page.goto("/");
     await page.getByTestId("season-dropdown-toggle").click();
     await page.getByText("＋ New season").click();
@@ -300,21 +306,23 @@ test.describe("Planner", () => {
     const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
     await modal.getByLabel("Season name:").fill(seasonName);
+    const teamZA = uniqueName("ZA");
+    const teamZB = uniqueName("ZB");
     await modal.locator("textarea").fill(
       [
         "date,time,court,home_team,away_team",
-        `2025-11-10,18:00,1,ZA${ts},Rival Club`,
-        `2025-11-10,19:30,1,ZB${ts},Rival Two`,
+        `2025-11-10,18:00,1,${teamZA},Rival Club`,
+        `2025-11-10,19:30,1,${teamZB},Rival Two`,
       ].join("\n"),
     );
     await modal.getByRole("button", { name: "Import Schedule" }).click();
     await expect(modal).not.toBeVisible();
 
-    const kimFirst = `Kim${ts}`;
+    const kimFirst = uniqueName("Kim");
     const memRes = await request.post(`${API}/players/import_members/`, {
       headers: { Authorization: `Token ${token}` },
       data: {
-        csv_text: `first_name,last_name,team,is_coach,referee_certification\n${kimFirst},Keeper,ZA${ts},False,F`,
+        csv_text: `first_name,last_name,team,is_coach,referee_certification\n${kimFirst},Keeper,${teamZA},False,F`,
         upsert: true,
       },
     });
@@ -329,7 +337,7 @@ test.describe("Planner", () => {
       })
     ).json();
     const zbGame = (gamesData.results ?? []).find(
-      (g: { own_team: { name: string } }) => g.own_team.name === `ZB${ts}`,
+      (g: { own_team: { name: string } }) => g.own_team.name === teamZB,
     );
     const tasksData = await (
       await request.get(`${API}/tasks/?game=${zbGame.id}`, {
@@ -343,7 +351,7 @@ test.describe("Planner", () => {
 
     // The UI import invalidated the game list, so the imported games are
     // visible in the Planner.
-    const chip = gameCard(page, `ZB${ts}`)
+    const chip = gameCard(page, teamZB)
       .getByTestId(/^task-chip-\d+$/)
       .filter({ hasText: "SCORER" })
       .first();
@@ -400,12 +408,18 @@ test.describe("Planner", () => {
       csv += chunk.toString();
     }
     expect(csv).toContain("date,time,court");
-    expect(csv).toContain("Team A");
+    expect(csv).toContain(teamA);
   });
 
   test("warns about open tasks before exporting PDF", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
+
+    // Wait for the season-stats query to resolve: the export handler reads
+    // the open-task count from that cache, and clicking before it loads would
+    // skip the warning (openTasks still 0) and download straight away.
+    // The fill-rate bar only renders once stats are available.
+    await expect(page.getByTestId("fill-rate-bar")).toBeVisible();
 
     // Seeded games have unassigned tasks, so clicking Export PDF should show
     // the warning modal instead of downloading immediately.
@@ -477,7 +491,7 @@ test.describe("Planner", () => {
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("BEGIN:VEVENT");
     expect(ics).toContain("END:VCALENDAR");
-    expect(ics).toContain("Team A");
-    expect(ics).toContain("Team B");
+    expect(ics).toContain(teamA);
+    expect(ics).toContain(teamB);
   });
 });

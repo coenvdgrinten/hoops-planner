@@ -1,28 +1,41 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, fetchAllPages, uniqueName } from "./helpers";
 
 const API = "/api";
 
 test.describe("Eligibility - same time conflict", () => {
   let seasonName: string;
   let token: string;
+  let teamA: string;
+  let teamB: string;
+  let aliceFirst: string;
+  let bobFirst: string;
 
   test.beforeEach(async ({ request, page }) => {
-    seasonName = `Elig-${Date.now()}`;
+    // Unique names per test (see uniqueName): the backend matches teams by
+    // name and players by first+last name GLOBALLY, so fixed names would be
+    // shared rows across parallel tests — and these tests assert on the
+    // absence of specific players, which a concurrent import moving a shared
+    // row would break.
+    seasonName = uniqueName("Elig-");
+    teamA = uniqueName("Team A");
+    teamB = uniqueName("Team B");
+    aliceFirst = uniqueName("Alice");
+    bobFirst = uniqueName("Bob");
     token = await authenticate(request, page, seasonName);
 
     // Two teams with HOME games at the exact same time
     const scheduleCsv =
       "date,time,court,home_team,away_team\n" +
-      "2025-10-01,14:00,1,Team A,Opponent A\n" +
-      "2025-10-01,14:00,2,Team B,Opponent B";
+      `2025-10-01,14:00,1,${teamA},${uniqueName("Opponent A")}\n` +
+      `2025-10-01,14:00,2,${teamB},${uniqueName("Opponent B")}`;
 
-    // Players on Team A and Team B
+    // Players on our two teams plus a third team (eligible candidate)
     const membersCsv =
       "first_name,last_name,team,is_coach,referee_certification\n" +
-      "Alice,PlayerA,Team A,False,F\n" +
-      "Bob,PlayerB,Team B,False,F\n" +
-      "Charlie,Other,Team C,False,F";
+      `${aliceFirst},PlayerA,${teamA},False,F\n` +
+      `${bobFirst},PlayerB,${teamB},False,F\n` +
+      `${uniqueName("Charlie")},Other,${uniqueName("Team C")},False,F`;
 
     const schedRes = await request.post(`${API}/seasons/import_schedule/`, {
       headers: { Authorization: `Token ${token}` },
@@ -46,11 +59,11 @@ test.describe("Eligibility - same time conflict", () => {
     await page.goto("/");
     await selectSeason(page);
 
-    // Click on a task chip for Team A's game (first game card)
-    const teamACard = page.getByText("Team A").first();
+    // Click on a task chip for our home team's game (first game card)
+    const teamACard = page.getByText(teamA).first();
     await expect(teamACard).toBeVisible({ timeout: 10_000 });
 
-    // Find the task chips in Team A's game card
+    // Find the task chips in the game card
     const taskChips = page.getByTestId(/^task-chip-\d+$/);
     await expect(taskChips.first()).toBeVisible({ timeout: 10_000 });
 
@@ -60,12 +73,12 @@ test.describe("Eligibility - same time conflict", () => {
     const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // Bob (Team B) should NOT appear because Team B has a game at the same time
-    const bobInPanel = panel.getByText("Bob");
+    // Our Team B player should NOT appear because Team B has a game at the same time
+    const bobInPanel = panel.getByText(bobFirst);
     await expect(bobInPanel).not.toBeVisible();
 
-    // Alice (Team A) should also NOT appear because it's their own team's game
-    const aliceInPanel = panel.getByText("Alice");
+    // Our Team A player should also NOT appear because it's their own team's game
+    const aliceInPanel = panel.getByText(aliceFirst);
     await expect(aliceInPanel).not.toBeVisible();
   });
 
@@ -73,11 +86,11 @@ test.describe("Eligibility - same time conflict", () => {
     await page.goto("/");
     await selectSeason(page);
 
-    // Find Team B's game card
-    const teamBCard = page.getByText("Team B").first();
+    // Find our second team's game card
+    const teamBCard = page.getByText(teamB).first();
     await expect(teamBCard).toBeVisible({ timeout: 10_000 });
 
-    // Get all task chips and find ones in Team B's card
+    // Get all task chips and find ones in the card
     const taskChips = page.getByTestId(/^task-chip-\d+$/);
     await expect(taskChips.first()).toBeVisible({ timeout: 10_000 });
 
@@ -87,8 +100,8 @@ test.describe("Eligibility - same time conflict", () => {
     const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // Alice (Team A) should NOT appear because Team A has a game at the same time
-    const aliceInPanel = panel.getByText("Alice");
+    // Our Team A player should NOT appear because Team A has a game at the same time
+    const aliceInPanel = panel.getByText(aliceFirst);
     await expect(aliceInPanel).not.toBeVisible();
   });
 
@@ -114,7 +127,7 @@ test.describe("Eligibility - same time conflict", () => {
     });
     const gamesData = await gamesRes.json();
     const gamesList = Array.isArray(gamesData) ? gamesData : gamesData.results ?? [];
-    const teamAGame = gamesList.find((g: { own_team: { name: string } }) => g.own_team.name === "Team A");
+    const teamAGame = gamesList.find((g: { own_team: { name: string } }) => g.own_team.name === teamA);
 
     const tasksRes = await request.get(`${API}/tasks/?game=${teamAGame.id}`, {
       headers: { Authorization: `Token ${token}` },
@@ -123,16 +136,15 @@ test.describe("Eligibility - same time conflict", () => {
     const tasksList = Array.isArray(tasksData) ? tasksData : tasksData.results ?? [];
     const task = tasksList[0];
 
-    // Find Bob (Team B player)
-    // Match on first + last name: other specs also create players named Bob
-    const playersRes = await request.get(`${API}/players/`, {
-      headers: { Authorization: `Token ${token}` },
-    });
-    const playersData = await playersRes.json();
-    const playersList = Array.isArray(playersData) ? playersData : playersData.results ?? [];
+    // Find our Team B player (unique name — no ambiguity with other tests'
+    // players). Walk all pages: new players land at the END of the list.
+    const playersList = await fetchAllPages<{
+      id: number;
+      first_name: string;
+      last_name: string;
+    }>(request, `${API}/players/`, token);
     const bob = playersList.find(
-      (p: { first_name: string; last_name: string }) =>
-        p.first_name === "Bob" && p.last_name === "PlayerB",
+      (p) => p.first_name === bobFirst && p.last_name === "PlayerB",
     );
 
     // Attempt to assign Bob to Team A's task — should be rejected (endpoint is /assignments/)
