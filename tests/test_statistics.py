@@ -309,6 +309,86 @@ class TestGetSeasonStats:
         assert stats["open_task_slots"] == 0
         assert stats["open_by_task_type"] == {}
 
+    def test_conflict_count_zero_when_valid(self, season):
+        """A fully valid schedule reports no conflicts."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Player",
+            last_name="One",
+            team=team_a,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=team_b,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        stats = get_season_stats(season)
+        assert stats["conflict_count"] == 0
+
+    def test_conflict_count_after_schedule_change(self, season):
+        """Conflicts created by a schedule change are counted."""
+        team_a = Team.objects.create(
+            name="Vido X14-1",
+            age_category=Team.AgeCategory.X14,
+        )
+        team_b = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        player = Player.objects.create(
+            first_name="Player",
+            last_name="One",
+            team=team_a,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=team_b,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+        assert get_season_stats(season)["conflict_count"] == 0
+
+        # Away game for the player's team on the same day invalidates it.
+        Game.objects.create(
+            season=season,
+            own_team=team_a,
+            opponent="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        stats = get_season_stats(season)
+        assert stats["conflict_count"] == 1
+
     def test_by_task_type(self, season):
         team = Team.objects.create(
             name="Vido X14-1",

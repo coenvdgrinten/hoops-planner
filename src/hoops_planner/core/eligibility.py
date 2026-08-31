@@ -1,6 +1,9 @@
 """Eligibility checks for task assignments."""
 
+import datetime as dt
 from typing import Any
+
+from django.db.models import QuerySet
 
 from hoops_planner.core.models import (
     Game,
@@ -326,6 +329,8 @@ def _player_on_parent_responsible_team(player: Player) -> bool:
 
 def find_conflicting_assignments(
     season: Season | None = None,
+    *,
+    game_ids: Any = None,
 ) -> list[dict[str, Any]]:
     """Find existing task assignments that are no longer valid.
 
@@ -335,33 +340,181 @@ def find_conflicting_assignments(
 
     Args:
         season: Optional season to scope the search. If None, checks all seasons.
+        game_ids: Optional iterable of game ids to restrict the scan to
+            (e.g. one half of a season). Takes precedence over ``season``.
 
     Returns:
         List of dicts with keys: assignment, player, task, game, reason.
     """
     qs = TaskAssignment.objects.select_related("player", "task", "task__game")
-    if season is not None:
+    if game_ids is not None:
+        qs = qs.filter(task__game_id__in=game_ids)
+    elif season is not None:
         qs = qs.filter(task__game__season=season)
 
     conflicts: list[dict[str, Any]] = []
-    for assignment in qs:
-        player = assignment.player
-        task = assignment.task
-        # Check all disqualification rules except "already assigned" which
-        # is expected for a valid assignment.
-        reasons = _get_conflict_reasons(player, task, assignment)
-        for reason in reasons:
-            conflicts.append(
-                {
-                    "assignment": assignment,
-                    "player": player,
-                    "task": task,
-                    "game": task.game,
-                    "reason": reason,
-                }
-            )
-            break  # Report the first conflict reason
+    for assignment, reason in _find_conflicts_batch(qs):
+        conflicts.append(
+            {
+                "assignment": assignment,
+                "player": assignment.player,
+                "task": assignment.task,
+                "game": assignment.task.game,
+                "reason": reason,
+            }
+        )
     return conflicts
+
+
+def find_conflicts_for_game(game: Game) -> dict[int, str]:
+    """Find conflicting assignments for a single game, in a few queries.
+
+    Returns ``{assignment_id: reason}`` for every assignment on ``game``
+    whose player no longer satisfies the eligibility rules. Reasons and
+    priority order are identical to :func:`find_conflicting_assignments`
+    (same checks as ``_get_conflict_reasons``, first reason wins), so the
+    per-game and season-wide paths can never drift apart.
+
+    This is the fast path used by the ``tasks_with_assignments`` endpoint:
+    all database access is batched up front instead of firing a query per
+    assignment per rule.
+    """
+    qs = TaskAssignment.objects.filter(task__game=game).select_related(
+        "player", "task", "task__game"
+    )
+    return {a.id: reason for a, reason in _find_conflicts_batch(qs)}
+
+
+def _find_conflicts_batch(
+    assignments: QuerySet[TaskAssignment],
+) -> list[tuple[TaskAssignment, str]]:
+    """Batched conflict detection over an arbitrary set of assignments.
+
+    Shared core of :func:`find_conflicting_assignments` (season-wide) and
+    :func:`find_conflicts_for_game` (single game). All database access is
+    batched up front; the per-assignment rule checks and their priority
+    order mirror ``_get_conflict_reasons`` exactly (first reason wins).
+
+    Returns ``(assignment, reason)`` pairs for the conflicting ones.
+    """
+    assignments = list(assignments)
+    if not assignments:
+        return []
+
+    players = list({a.player for a in assignments})
+    player_ids = [p.id for p in players]
+
+    # --- Each player's responsible teams (own + coached) ---
+    team_ids_by_player: dict[int, set[int]] = {p.id: {p.team_id} for p in players}
+    for player_id, coached_id in (
+        Player.objects.filter(id__in=player_ids).values_list(
+            "id", "coached_teams__id"
+        )
+    ):
+        if coached_id is not None:
+            team_ids_by_player[player_id].add(coached_id)
+
+    # --- Games that disqualify by schedule, keyed per time slot / day ---
+    # Home games: (date, time) -> [(game_pk, own_team_id)]. Kept per game
+    # (not collapsed to team ids) so a game never disqualifies its own team
+    # while a SIMULTANEOUS second game of the same team still does —
+    # mirroring ``_team_has_home_game_at_same_time`` (excludes by game pk).
+    home_games_by_slot: dict[tuple[dt.date, dt.time], list[tuple[int, int]]] = {}
+    for row in Game.objects.filter(
+        game_type=Game.GameType.HOME
+    ).values_list("id", "date", "time", "own_team_id"):
+        game_pk, date_, time_, team_id = row
+        home_games_by_slot.setdefault((date_, time_), []).append((game_pk, team_id))
+
+    # Other-home-team sets per scanned game (its own game excluded).
+    other_home_by_game: dict[int, set[int]] = {}
+    for a in assignments:
+        g = a.task.game
+        if g.id not in other_home_by_game:
+            other_home_by_game[g.id] = {
+                team_id
+                for game_pk, team_id in home_games_by_slot.get(
+                    (g.date, g.time), []
+                )
+                if game_pk != g.id
+            }
+
+    away_same_day_by_date: dict[dt.date, set[int]] = {}
+    for date_, team_id in Game.objects.filter(
+        game_type=Game.GameType.AWAY
+    ).values_list("date", "own_team_id"):
+        away_same_day_by_date.setdefault(date_, set()).add(team_id)
+
+    # --- Other assignments that disqualify by double-booking ---
+    # Map (player_id, date, time) -> assignment ids at that exact slot
+    # (INCLUDING the scanned assignments themselves, so a same-game
+    # duplicate is caught too; each assignment excludes itself below,
+    # mirroring ``_get_conflict_reasons``). Same-DAY assignments at a
+    # different time are NOT conflicts — they are the 2x-multiplier case.
+    same_slot_ids: dict[tuple[int, dt.date, dt.time], set[int]] = {}
+    for row in TaskAssignment.objects.filter(
+        task__game__date__in={a.task.game.date for a in assignments}
+    ).values_list("id", "player_id", "task__game__date", "task__game__time"):
+        assignment_id, player_id, date_, time_ = row
+        same_slot_ids.setdefault((player_id, date_, time_), set()).add(
+            assignment_id
+        )
+
+    # --- Age categories for the referee age check ---
+    age_by_team: dict[int, str] = dict(
+        Team.objects.values_list("id", "age_category")
+    )
+
+    results: list[tuple[TaskAssignment, str]] = []
+    for assignment in assignments:
+        player = assignment.player
+        game = assignment.task.game
+        team_ids = team_ids_by_player[player.id]
+        away_same_day_ids = away_same_day_by_date.get(game.date, set())
+
+        reason: str | None = None
+        if player.is_exempt:
+            reason = "Exempt from task assignments"
+        elif team_ids & other_home_by_game[game.id]:
+            reason = "Team has a home game at the same time"
+        elif team_ids & away_same_day_ids:
+            reason = "Team has an away game on the same day"
+        elif game.own_team_id in team_ids and not (
+            assignment.task.task_type in (TaskType.SCORER, TaskType.TIMER)
+            and game.own_team.parent_responsible
+        ):
+            reason = "Cannot be assigned to own team's game"
+        elif assignment.task.task_type == TaskType.REFEREE:
+            cats = {age_by_team[tid] for tid in team_ids if tid in age_by_team}
+            if not (cats & {"VSE", "MSE"}):
+                highest = max(
+                    (
+                        _age_category_index(age_by_team[tid])
+                        for tid in team_ids
+                        if tid in age_by_team
+                    ),
+                    default=0,
+                )
+                if highest < _age_category_index(game.own_team.age_category):
+                    reason = "Player's team is younger than game team"
+            if reason is None and (
+                player.referee_certification
+                == Player.RefereeCertification.NONE
+            ):
+                reason = "Missing required referee certification"
+        # Double-booking is checked last (for every task type), matching the
+        # order in ``_get_conflict_reasons``.
+        if reason is None:
+            other_at_time = same_slot_ids.get(
+                (player.id, game.date, game.time), set()
+            ) - {assignment.id}
+            if other_at_time:
+                reason = "Already assigned to another task at this time"
+
+        if reason is not None:
+            results.append((assignment, reason))
+
+    return results
 
 
 def _get_conflict_reasons(

@@ -133,6 +133,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
     is_parent = serializers.SerializerMethodField()
     effective_value = serializers.SerializerMethodField()
     has_other_task_same_day = serializers.SerializerMethodField()
+    conflict_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = TaskAssignment
@@ -146,6 +147,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             "is_parent",
             "effective_value",
             "has_other_task_same_day",
+            "conflict_reason",
         ]
 
     def get_is_parent(self, obj: TaskAssignment) -> bool:
@@ -197,6 +199,18 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
                 .exists()
             )
         return obj.player_id in multi
+
+    def get_conflict_reason(self, obj: TaskAssignment) -> str | None:
+        """Why this assignment is no longer valid, or None when valid.
+
+        The bulk endpoints precompute ``conflict_reason_map`` (assignment id
+        → reason, via ``find_conflicts_for_game``) and pass it through
+        context; without it the field is simply absent from the map lookup.
+        """
+        conflict_map = self.context.get("conflict_reason_map")
+        if conflict_map is None:
+            return None
+        return conflict_map.get(obj.id)
 
     def create(self, validated_data):
         task = validated_data["task"]
