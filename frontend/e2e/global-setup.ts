@@ -21,7 +21,10 @@ const ADMIN = { username: "admin", password: "admin" };
 export default async function globalSetup(fullConfig: FullConfig) {
   const baseURL = fullConfig.projects[0]?.use?.baseURL ?? "http://localhost:5173";
 
-  const context = await request.newContext({ baseURL });
+  // Generous timeout: wiping a bloated DB and seeding can take a while.
+  const context = await request.newContext({ baseURL, timeout: 120_000 });
+  const auth = { headers: {} as Record<string, string> };
+
   try {
     // Obtain an admin token.
     const loginRes = await context.post(`${API}/auth/login/`, { data: ADMIN });
@@ -34,10 +37,46 @@ export default async function globalSetup(fullConfig: FullConfig) {
       return;
     }
     const { token } = (await loginRes.json()) as { token: string };
+    auth.headers.Authorization = `Token ${token}`;
+
+    // Wipe test leftovers from previous runs. Tests create seasons/teams
+    // freely and never clean up, so without this the DB grows unbounded and
+    // every list endpoint (and the seed below) gets slower over time.
+    // Deleting a season cascades to its games/tasks/assignments; deleting a
+    // team cascades to its players. Re-delete page 1 until it's empty
+    // (deleting shifts the pagination window).
+    for (const kind of ["seasons", "teams"] as const) {
+      let guard = 0;
+      while (guard++ < 500) {
+        const res = await context.get(`${API}/${kind}/?page=1`, {
+          headers: auth.headers,
+        });
+        if (res.status() !== 200) break;
+        const body = (await res.json()) as
+          | { id: number }[]
+          | { results?: { id: number }[] };
+        const items = Array.isArray(body) ? body : (body.results ?? []);
+        if (items.length === 0) break;
+        for (const item of items) {
+          await context.delete(`${API}/${kind}/${item.id}/`, {
+            headers: auth.headers,
+          });
+        }
+      }
+    }
+
+    // Reset the global club name: a crashed previous run may have left a test
+    // brand behind, which breaks exact-match assertions on the header text.
+    // Done here (not in an auto-fixture) because resetting per-test would race
+    // with the settings tests that intentionally change the brand mid-test.
+    await context.put(`${API}/site-config/`, {
+      headers: auth.headers,
+      data: { club_name: "" },
+    });
 
     // Seed demo data (idempotent).
     const seedRes = await context.post(`${API}/seed/`, {
-      headers: { Authorization: `Token ${token}` },
+      headers: auth.headers,
     });
     if (seedRes.status() !== 201) {
       const body = await seedRes.text().catch(() => "");

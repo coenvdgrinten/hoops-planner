@@ -1,82 +1,9 @@
-import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
+import type { APIRequestContext } from "@playwright/test";
+import { authenticate, uniqueName } from "./helpers";
 
 const API = "/api";
 
-// The dev entrypoint bootstraps this admin account (registration requires
-// admin approval, so the e2e suite needs an approver).
-const ADMIN = { username: "admin", password: "admin" };
-
-let adminToken: string | null = null;
-
-async function getAdminToken(request: APIRequestContext): Promise<string> {
-  if (adminToken) return adminToken;
-  const res = await request.post(`${API}/auth/login/`, { data: ADMIN });
-  expect(res.status(), "admin login should succeed").toBe(200);
-  adminToken = (await res.json()).token;
-  return adminToken;
-}
-
-/**
- * Register a fresh user, verify their email, and have the admin approve
- * them (the registration flow requires approval). Then log in and store the
- * real auth token + user in localStorage so the app boots authenticated.
- * Returns the token so API-request seeding can authenticate too.
- */
-async function authenticate(
-  request: APIRequestContext,
-  page: Page,
-  username: string,
-): Promise<string> {
-  // Random suffix avoids username collisions between parallel workers
-  const name = `${username}-${Math.random().toString(36).slice(2, 8)}`;
-  const email = `${name}@example.com`;
-
-  const res = await request.post(`${API}/auth/register/`, {
-    data: { username: name, password: "testpass123", email },
-  });
-  expect(res.status(), "register should succeed").toBe(201);
-  const body = await res.json();
-
-  const admin = await getAdminToken(request);
-
-  // Verify the email address (dev mode returns the token in the response)
-  const verifyRes = await request.post(`${API}/auth/verify_email_confirm/`, {
-    data: { token: body.token },
-  });
-  expect(verifyRes.status(), "email verification should succeed").toBe(200);
-
-  // Find the pending user and approve them
-  const pendingRes = await request.get(`${API}/auth/pending_users/`, {
-    headers: { Authorization: `Token ${admin}` },
-  });
-  expect(pendingRes.status(), "pending_users should succeed").toBe(200);
-  const pending = await pendingRes.json();
-  const pendingUser = (Array.isArray(pending) ? pending : []).find(
-    (u: { username: string }) => u.username === name,
-  );
-  expect(pendingUser, "registered user should be in pending users").toBeTruthy();
-  const approveRes = await request.post(`${API}/auth/approve_user/`, {
-    headers: { Authorization: `Token ${admin}` },
-    data: { user_id: pendingUser.id },
-  });
-  expect(approveRes.status(), "approve should succeed").toBe(200);
-
-  // Log in as the approved user to obtain a real auth token
-  const loginRes = await request.post(`${API}/auth/login/`, {
-    data: { username: name, password: "testpass123" },
-  });
-  expect(loginRes.status(), "login should succeed").toBe(200);
-  const loginBody = await loginRes.json();
-
-  await page.addInitScript(
-    ({ token, user }) => {
-      localStorage.setItem("auth_token", token);
-      localStorage.setItem("auth_user", JSON.stringify(user));
-    },
-    { token: loginBody.token, user: loginBody.user },
-  );
-  return loginBody.token;
-}
 
 async function seedMembers(
   request: APIRequestContext,
@@ -119,8 +46,8 @@ test.describe("Member View", () => {
   let teamName: string;
 
   test.beforeEach(async ({ request, page }) => {
-    teamName = `Team ${Date.now()}`;
-    const token = await authenticate(request, page, `mv-${Date.now()}`);
+    teamName = uniqueName("Team ");
+    const token = await authenticate(request, page, uniqueName("mv-"));
     await seedMembers(request, token, teamName);
   });
 
@@ -292,7 +219,7 @@ test.describe("Member View", () => {
     await openMembers(page);
 
     // Create a second team to move into
-    const destTeam = `Dest ${Date.now()}`;
+    const destTeam = uniqueName("Dest ");
     await page.getByRole("button", { name: "+ Add Team" }).click();
     await page.getByLabel("Team name").fill(destTeam);
     await page

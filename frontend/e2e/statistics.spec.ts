@@ -1,5 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, fetchAllPages, uniqueName } from "./helpers";
 
 const API = "/api";
 
@@ -23,8 +23,8 @@ test.describe("Statistics", () => {
   let seasonName: string;
 
   test.beforeEach(async ({ request, page }) => {
-    const token = await authenticate(request, page, `st-${Date.now()}`);
-    seasonName = `Stats-${Date.now()}`;
+    const token = await authenticate(request, page, uniqueName("st-"));
+    seasonName = uniqueName("Stats-");
 
     // Seed a season. The away-day player (Vido X14-Away) gets assigned to a
     // neutral HOME game on 2025-10-08 — a date where their own team has no home
@@ -41,10 +41,11 @@ test.describe("Statistics", () => {
     });
     expect(schedRes.status(), "import_schedule should succeed").toBe(201);
 
-    const playerSuffix = Date.now();
+    // Unique last name so the lookup below finds exactly this player.
+    const playerLast = uniqueName("Player");
     const membersCsv =
       "first_name,last_name,team,is_coach,referee_certification\n" +
-      `Away,Player${playerSuffix},Vido X14-Away,False,NONE`;
+      `Away,${playerLast},Vido X14-Away,False,NONE`;
     const memRes = await request.post(`${API}/players/import_members/`, {
       headers: { Authorization: `Token ${token}` },
       data: { csv_text: membersCsv, upsert: true },
@@ -53,13 +54,11 @@ test.describe("Statistics", () => {
 
     // Assign the away-day player to a task on the away game so the leaderboard
     // has an entry with an away-day bonus.
-    const seasonsRes = await request.get(`${API}/seasons/`, {
-      headers: { Authorization: `Token ${token}` },
-    });
-    const seasonsBody = await seasonsRes.json();
-    const seasons = (
-      Array.isArray(seasonsBody) ? seasonsBody : seasonsBody.results
-    ) as { id: number; name: string }[];
+    const seasons = await fetchAllPages<{ id: number; name: string }>(
+      request,
+      `${API}/seasons/`,
+      token,
+    );
     // Select the season we just created (the DB may contain other seasons)
     const seasonId = (seasons.find((s) => s.name === seasonName) ?? seasons[0]).id;
     const gamesRes = await request.get(`${API}/games/?season=${seasonId}`, {
@@ -75,15 +74,15 @@ test.describe("Statistics", () => {
       { headers: { Authorization: `Token ${token}` } },
     );
     const tasks = await tasksRes.json();
-    const playersRes = await request.get(`${API}/players/`, {
-      headers: { Authorization: `Token ${token}` },
-    });
-    const playersBody = await playersRes.json();
-    const players = (
-      Array.isArray(playersBody) ? playersBody : playersBody.results
-    ) as PlayerRecord[];
+    // Walk all pages — newly created players land at the END of the list and
+    // fall off page 1 once the DB holds more than 100 players.
+    const players = await fetchAllPages<PlayerRecord>(
+      request,
+      `${API}/players/`,
+      token,
+    );
     const player = players.find(
-      (p) => p.team.name === "Vido X14-Away" && p.full_name.includes(String(playerSuffix)),
+      (p) => p.team.name === "Vido X14-Away" && p.last_name === playerLast,
     )!;
     // Use a SCORER task — the seeded player has no referee certification
     const scorerTask = (tasks as { id: number; task_type: string }[]).find(

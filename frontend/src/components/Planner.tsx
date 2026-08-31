@@ -143,6 +143,12 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
               </span>
             </div>
           )}
+          {stats && (stats.conflict_count ?? 0) > 0 && (
+            <div className={styles["conflict-badge"]} data-testid="conflict-count">
+              ⚠ {stats.conflict_count}{" "}
+              {stats.conflict_count === 1 ? "conflict" : "conflicts"} — assignments no longer valid
+            </div>
+          )}
         </div>
         <div className={styles["planner-actions"]}>
           <button

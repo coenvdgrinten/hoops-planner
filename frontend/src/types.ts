@@ -79,6 +79,8 @@ export interface TaskAssignment {
   effective_value?: number;
   /** True when the player holds another task on the same date. */
   has_other_task_same_day?: boolean;
+  /** Why this assignment is no longer valid, or null when valid. */
+  conflict_reason?: string | null;
 }
 
 export interface EligiblePlayer {
@@ -139,6 +141,8 @@ export interface SeasonStats {
   open_by_task_type: Record<string, number>;
   by_task_type: Record<string, { slots: number; filled: number }>;
   per_team: Record<string, { games: number; assignments: number }>;
+  /** Assignments invalidated by roster/schedule changes. */
+  conflict_count?: number;
 }
 
 export interface LeaderboardEntry {

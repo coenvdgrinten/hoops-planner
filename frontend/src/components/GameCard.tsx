@@ -171,10 +171,16 @@ export function GameCard({
           const isAwayDay = first?.effective_value === 2;
           const hasOtherSameDay = !!first?.has_other_task_same_day;
 
+          // Any assignment invalidated by a roster/schedule change flags the
+          // chip (a task can hold more than one player in legacy data).
+          const conflicting = assigned.find((a) => a.conflict_reason);
+          const conflictReason = conflicting?.conflict_reason ?? null;
+
           return (
             <div
               data-testid={`task-chip-${task.id}`}
               key={task.id}
+              title={conflictReason ? `Conflict: ${conflictReason}` : undefined}
               className={`${styles["task-chip"]} ${
                 assigned.length === 0
                   ? isOptionalRef
@@ -183,10 +189,17 @@ export function GameCard({
                   : isAwayDay
                     ? `${styles.filled} ${styles.away}`
                     : styles.filled
-              } ${task.id === isSelectedTaskId ? styles.selected : ""}`}
+              } ${conflictReason ? styles.conflict : ""} ${
+                task.id === isSelectedTaskId ? styles.selected : ""
+              }`}
               onClick={() => handleSelectTask(task)}
             >
-              <span className={styles["chip-label"]}>{displayLabel}</span>
+              <span className={styles["chip-label"]}>
+                {conflictReason && (
+                  <span className={styles["chip-conflict-icon"]}>⚠ </span>
+                )}
+                {displayLabel}
+              </span>
               {assigned.length > 0 ? (
                 <span className={styles["chip-player"]}>
                   {displayName}

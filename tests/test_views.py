@@ -441,6 +441,79 @@ class TestGameViewSet:
         data = response.json()
         assert data[0]["assignments"][0]["effective_value"] == 2
 
+    def test_tasks_with_assignments_conflict_reason_null_when_valid(
+        self, api_client, player, season
+    ):
+        """A valid assignment carries conflict_reason=None."""
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        response = api_client.get(f"/api/games/{game.id}/tasks_with_assignments/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data[0]["assignments"][0]["conflict_reason"] is None
+
+    def test_tasks_with_assignments_conflict_reason_when_invalid(
+        self, api_client, player, season
+    ):
+        """An assignment invalidated by a roster/schedule change carries the
+        human-readable reason."""
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        # Away game for the player's team on the same day invalidates it.
+        Game.objects.create(
+            season=season,
+            own_team=player.team,
+            opponent="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        response = api_client.get(f"/api/games/{game.id}/tasks_with_assignments/")
+        assert response.status_code == 200
+        data = response.json()
+        assert (
+            data[0]["assignments"][0]["conflict_reason"]
+            == "Team has an away game on the same day"
+        )
+
 
 @pytest.mark.django_db
 class TestTaskViewSet:
@@ -613,6 +686,45 @@ class TestSeasonStatsEndpoint:
         data = response.json()
         assert data["open_task_slots"] == 0
         assert data["open_by_task_type"] == {}
+
+    def test_stats_conflict_count(self, api_client, season, team_x14):
+        """The season stats expose how many assignments are in conflict."""
+        other_team = Team.objects.create(
+            name="Vido X10-1",
+            age_category=Team.AgeCategory.X10,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+        player = Player.objects.create(first_name="P1", last_name="L1", team=team_x14)
+        scorer = Task.objects.create(
+            game=game, task_type=TaskType.SCORER, slot_number=1
+        )
+        TaskAssignment.objects.create(player=player, task=scorer)
+
+        response = api_client.get(f"/api/seasons/{season.id}/stats/")
+        assert response.status_code == 200
+        assert response.json()["conflict_count"] == 0
+
+        # Away game for the player's team on the same day → conflict.
+        Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Away Opponent",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(10, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        response = api_client.get(f"/api/seasons/{season.id}/stats/")
+        assert response.json()["conflict_count"] == 1
 
 
 @pytest.mark.django_db

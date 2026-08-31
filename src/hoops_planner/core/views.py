@@ -15,6 +15,7 @@ from hoops_planner.core.csv_export import export_members_csv, export_schedule_cs
 from hoops_planner.core.demo_seed import seed_demo_data
 from hoops_planner.core.eligibility import (
     find_conflicting_assignments,
+    find_conflicts_for_game,
     get_eligible_players_with_indicator,
 )
 from hoops_planner.core.importers import import_members, import_schedule
@@ -310,12 +311,16 @@ class GameViewSet(viewsets.ModelViewSet):
             .filter(n__gte=2)
             .values_list("player_id", flat=True)
         )
+        # Assignments that became invalid after roster/schedule changes, so
+        # the UI can flag them. Batched in a few queries (see the helper).
+        conflict_reason_map = find_conflicts_for_game(game)
         serializer = TaskWithAssignmentsSerializer(
             tasks,
             many=True,
             context={
                 "effective_multiplier_map": multiplier_map,
                 "same_day_multi_players": same_day_multi,
+                "conflict_reason_map": conflict_reason_map,
             },
         )
         return Response(serializer.data)

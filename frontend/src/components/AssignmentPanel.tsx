@@ -243,6 +243,7 @@ export function AssignmentPanel({
             return (
               <div
                 key={player.id}
+                data-testid={`candidate-row-${player.id}`}
                 className={`${styles["suggested-row"]} ${isAssigned ? styles.assigned : ""}`}
               >
                 <div className={styles["suggested-info"]}>
@@ -327,6 +328,7 @@ export function AssignmentPanel({
                       return (
                         <div
                           key={player.id}
+                          data-testid={`member-row-${player.id}`}
                           className={`${styles["member-row"]} ${pData.eligible ? styles.eligible : styles.ineligible} ${isAssigned ? styles.assigned : ""}`}
                           title={reason}
                         >
@@ -355,6 +357,7 @@ export function AssignmentPanel({
                             </span>
                             {!isAssigned && (
                               <button
+                                data-testid={`add-member-${player.id}`}
                                 className={`${styles["add-btn"]} ${pData.eligible ? "" : styles.ineligible}`}
                                 onClick={() => assign(player)}
                                 disabled={assigning || !pData.eligible}

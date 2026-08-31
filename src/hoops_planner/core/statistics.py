@@ -6,6 +6,7 @@ from typing import Any
 
 from django.db.models import Count
 
+from hoops_planner.core.eligibility import find_conflicting_assignments
 from hoops_planner.core.models import (
     Game,
     Player,
@@ -160,6 +161,7 @@ def get_season_stats(
             "open_by_task_type": {TASK_TYPE: int, ...},
             "by_task_type": {TASK_TYPE: {"slots": int, "filled": int}, ...},
             "per_team": {team_name: {"games": int, "assignments": int}, ...},
+            "conflict_count": int,  # assignments invalidated by roster/schedule changes
         }
     """
     games = season.games.all()
@@ -217,6 +219,10 @@ def get_season_stats(
         team_name = assignment.player.team.name
         per_team[team_name]["assignments"] += 1
 
+    # Assignments invalidated by roster/schedule changes, scoped to the same
+    # games as the rest of the stats (half filter included).
+    conflict_count = len(find_conflicting_assignments(game_ids=list(game_ids)))
+
     return {
         "total_games": total_games,
         "total_task_slots": total_task_slots,
@@ -226,6 +232,7 @@ def get_season_stats(
         "open_by_task_type": dict(open_by_task_type),
         "by_task_type": by_task_type,
         "per_team": dict(per_team),
+        "conflict_count": conflict_count,
     }
 
 

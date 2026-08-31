@@ -35,6 +35,11 @@ export function ImportModal({ type, onClose, onSuccess }: Props) {
       queryClient.invalidateQueries({ queryKey: ["players"] });
       queryClient.invalidateQueries({ queryKey: ["games"] });
       queryClient.invalidateQueries({ queryKey: ["season-stats"] });
+      // Prefix match: refresh every game's task chips + the assignment panel
+      // data, so conflict indicators appear right after an import.
+      queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["team-eligibility"] });
+      queryClient.invalidateQueries({ queryKey: ["candidate-details"] });
       onSuccess();
     },
     onError: (err) => {

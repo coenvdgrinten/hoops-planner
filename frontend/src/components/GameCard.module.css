@@ -208,11 +208,37 @@
   color: var(--color-info);
 }
 
+/* Assignment no longer valid after a roster/schedule change. Red outline +
+   icon — deliberately not a solid red fill, so several conflicts stay
+   readable at a glance (see issue #1). */
+.task-chip.conflict {
+  border-color: var(--color-danger-border-hover);
+  background: var(--color-danger-bg);
+}
+
+.task-chip.conflict .chip-label {
+  color: var(--color-danger-dark);
+}
+
+.task-chip.conflict .chip-player {
+  color: var(--color-danger-dark);
+}
+
+.chip-conflict-icon {
+  font-size: 11px;
+}
+
 .task-chip.selected {
   border-color: var(--color-primary);
   box-shadow:
     0 0 0 2px var(--color-primary-tint),
     0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Selection must not erase the conflict signal — the user is inspecting it.
+   Red border wins; the primary ring stays as the shadow. */
+.task-chip.conflict.selected {
+  border-color: var(--color-danger-border-hover);
 }
 
 .chip-label {

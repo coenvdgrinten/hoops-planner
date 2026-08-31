@@ -1,9 +1,9 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, uniqueName } from "./helpers";
 
 test.describe("Import Modal", () => {
   test.beforeEach(async ({ request, page }) => {
-    await authenticate(request, page, `im-${Date.now()}`);
+    await authenticate(request, page, uniqueName("im-"));
   });
 
   test("opens schedule import modal", async ({ page }: { page: Page }) => {

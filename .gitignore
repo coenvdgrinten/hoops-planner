@@ -73,3 +73,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local MCP config (contains site token)
+.vscode/mcp.json

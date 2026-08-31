@@ -1,5 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import { authenticate } from "./helpers";
+import { test, expect, type Page } from "./fixtures";
+import { authenticate, uniqueName } from "./helpers";
 
 const API = "/api";
 
@@ -18,13 +18,19 @@ test.describe("Availability", () => {
     request: any;
     page: Page;
   }) => {
-    const token = await authenticate(request, page, `av-${Date.now()}`);
-    const seasonName = `Avail-${Date.now()}`;
-    const teamName = `A${Date.now()}`;
+    // Unique names per test (see uniqueName): players are matched globally
+    // by first+last name, so fixed names like "Ann Away" would be shared rows
+    // across parallel tests and a concurrent import could move them.
+    const annFirst = uniqueName("Ann");
+    const benFirst = uniqueName("Ben");
+    const token = await authenticate(request, page, uniqueName("av-"));
+    const seasonName = uniqueName("Avail-");
+    const teamName = uniqueName("A");
+    const homeTeam = uniqueName("Team A");
 
     const scheduleCsv = [
       "date,time,court,home_team,away_team,game_type",
-      "2025-11-03,18:00,1,Team A,Team B",
+      `2025-11-03,18:00,1,${homeTeam},${uniqueName("Team B")}`,
       `2025-11-04,19:30,1,${teamName},Rival Club,AWAY`,
     ].join("\n");
     const impRes = await request.post(`${API}/seasons/import_schedule/`, {
@@ -35,8 +41,8 @@ test.describe("Availability", () => {
 
     const membersCsv = [
       "first_name,last_name,team,is_coach,referee_certification",
-      `Ann,Away,${teamName},False,F`,
-      `Ben,Bench,${teamName},True,SENIOR`,
+      `${annFirst},Away,${teamName},False,F`,
+      `${benFirst},Bench,${teamName},True,SENIOR`,
     ].join("\n");
     const memRes = await request.post(`${API}/players/import_members/`, {
       headers: { Authorization: `Token ${token}` },
@@ -56,7 +62,7 @@ test.describe("Availability", () => {
     const awayGame = page
       .locator("div")
       .filter({ has: page.getByText("vs Rival Club", { exact: true }) })
-      .filter({ has: page.getByText("Ben Bench (C)") })
+      .filter({ has: page.getByText(`${benFirst} Bench (C)`) })
       .last();
     await expect(awayGame.getByText(teamName)).toBeVisible();
     // exact: "AWAY" would otherwise also match inside "… unavailable"
@@ -66,11 +72,11 @@ test.describe("Availability", () => {
     await expect(awayGame.getByText("2 unavailable", { exact: true })).toBeVisible();
 
     // Both members are listed; the coach gets a (C) suffix
-    await expect(awayGame.getByText("Ann Away")).toBeVisible();
-    await expect(awayGame.getByText("Ben Bench (C)")).toBeVisible();
+    await expect(awayGame.getByText(`${annFirst} Away`)).toBeVisible();
+    await expect(awayGame.getByText(`${benFirst} Bench (C)`)).toBeVisible();
 
     // The home game must NOT appear in availability
-    await expect(page.getByText("Team A")).toHaveCount(0);
+    await expect(page.getByText(homeTeam)).toHaveCount(0);
   });
 
   test("shows the empty state for a season without away games", async ({
@@ -80,12 +86,12 @@ test.describe("Availability", () => {
     request: any;
     page: Page;
   }) => {
-    const token = await authenticate(request, page, `ae-${Date.now()}`);
-    const seasonName = `AvailEmpty-${Date.now()}`;
+    const token = await authenticate(request, page, uniqueName("ae-"));
+    const seasonName = uniqueName("AvailEmpty-");
 
     const scheduleCsv = [
       "date,time,court,home_team,away_team",
-      "2025-11-03,18:00,1,Team A,Team B",
+      `2025-11-03,18:00,1,${uniqueName("Team A")},${uniqueName("Team B")}`,
     ].join("\n");
     const impRes = await request.post(`${API}/seasons/import_schedule/`, {
       headers: { Authorization: `Token ${token}` },
@@ -108,13 +114,14 @@ test.describe("Availability", () => {
     request: any;
     page: Page;
   }) => {
-    const token = await authenticate(request, page, `ap-${Date.now()}`);
-    const seasonName = `AvailPlan-${Date.now()}`;
-    const teamName = `P${Date.now()}`;
+    const token = await authenticate(request, page, uniqueName("ap-"));
+    const seasonName = uniqueName("AvailPlan-");
+    const teamName = uniqueName("P");
+    const homeTeam = uniqueName("Team A");
 
     const scheduleCsv = [
       "date,time,court,home_team,away_team,game_type",
-      "2025-11-03,18:00,1,Team A,Team B",
+      `2025-11-03,18:00,1,${homeTeam},${uniqueName("Team B")}`,
       `2025-11-04,19:30,1,${teamName},Rival Club,AWAY`,
     ].join("\n");
     const impRes = await request.post(`${API}/seasons/import_schedule/`, {
@@ -127,7 +134,7 @@ test.describe("Availability", () => {
     await selectSeason(page, seasonName);
 
     // Home game visible, away game hidden
-    await expect(page.getByText("Team A")).toBeVisible();
+    await expect(page.getByText(homeTeam)).toBeVisible();
     await expect(page.getByText(`vs Rival Club`)).toHaveCount(0);
   });
 });
