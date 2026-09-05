@@ -137,20 +137,21 @@ included where they clarify intent.
   configurable per age category in settings. Rationale: youth teams reaching a
   higher level may also require a 24-second operator; staffing needs vary by
   category.
-- **Bulk member/team management tools.**
-  Add UI to create/edit/delete teams and players directly (today they are only
-  created via CSV import). Useful for one-off corrections without re-importing.
-- **Set `game_type` in the UI.**
-  The importer reads an optional `game_type` (HOME/AWAY) column, but
-  `GameEditModal` has no field for it and `examples/schedule.csv` omits it.
-  Add a HOME/AWAY selector to the modal and document the column.
+- **Bulk member/team management tools.** Mostly done — players can be
+  created/edited/deleted in the Member Roster view and teams can be
+  created/deleted (API + UI). Remaining (to confirm): true *bulk* operations
+  (multi-select edits) if single-item management turns out insufficient.
+- ~~**Set `game_type` in the UI.**~~ Closed (2026-09-05) — importer reads
+  the optional `game_type` column and `GameEditModal` offers a Home/Away
+  select in create mode; user judged edit-mode support not worth a feature.
+  No further work.
 
 ### Statistics
 
-- **Fix `per_team` to account for away games.**
-  `get_season_stats` keys the per-team breakdown only by `game.home_team.name`,
-  so a team's away fixtures are invisible. Attribute by both `home_team` and
-  `away_team`.
+- ~~**Fix `per_team` to account for away games.**~~ ✅ Resolved by the data
+  model — `Game.own_team` is always the club team the fixture is for, so
+  `per_team` attributes every game (home *and* away) to the right club team.
+  (Written when games still had separate `home_team`/`away_team` fields.)
 - **Surface the away-day multiplier.**
   The 2× effective-task multiplier is computed but not shown in the
   leaderboard/player-stats UI. Display it so the fairness logic is transparent.
@@ -162,26 +163,70 @@ included where they clarify intent.
   They are only useful to show member availability (a team with an away game
   means its members/coaches are unavailable that day). Add a dedicated
   availability view rather than mixing away games into the schedule.
-- **Settings view.**
-  Implement the `settings` view already referenced in `App.tsx` (currently an
-  unused `View` value). Host the per-age-category staffing settings here.
-- **Season creation UI.**
-  Seasons are only created implicitly by schedule import. Add an explicit
-  "create season" flow so the app is usable without CSVs.
+- ~~**Settings view.**~~ ✅ Done — club name, per-team staffing settings
+  (referees req/opt, scorer, timer, 24-sec, parents responsible), and pending
+  user approval all live in the Settings view.
+- ~~**Season creation UI.**~~ ✅ Done — the season selector offers a
+  "＋ New season" entry that creates a season by name.
 - **CSV export.**
   Export assignments/schedule as CSV to complement the existing PDF export.
+- **Interactive guided tour.**
+  Not a documentation page: a spotlight tour over the live UI that walks new
+  users through the core planning loop (season → game card → task slot →
+  eligibility/suggestions → assignment → export), auto-starts on first login,
+  replayable via a Help entry. Steps are data ({target, instruction}) so new
+  features can extend the tour. Built on driver.js, anchored to existing
+  `data-testid` attributes; dev data via `seed_demo`. Spec'd 2026-09-05.
 
 ### Backend / API
 
-- **Tests for view actions.**
-  No HTTP-layer tests for `SeasonViewSet.import_schedule`, `export_pdf`, or
-  `PlayerViewSet.eligible`. Add them (only the underlying functions are
-  unit-tested today).
-- **Pagination.**
-  Add pagination to `players`/`games`/`tasks` list endpoints for larger clubs.
+- ~~**Tests for view actions.**~~ ✅ Done — `tests/test_views.py` covers
+  `import_schedule`, `export_pdf`, and `players/eligible` at the HTTP layer.
+- ~~**Pagination.**~~ ✅ Done — global DRF `PageNumberPagination` (page size 100);
+  the frontend `request()` helper transparently follows `next` links, so
+  callers still receive complete arrays.
 - **Model-level assignment conflict prevention.**
   Enforce the "no double-booking" rule via a `clean()`/DB constraint, not only
   in the serializer, so it holds for any write path.
+
+### Schedule Versions
+
+Immutable snapshots of a season's task schedule, captured when the planner
+distributes a schedule (PDF/CSV export), so later exports can be compared
+against them. The term **Schedule Version** is defined in `CONTEXT.md`.
+The snapshot feature itself is GitHub issue #3.
+
+Settled design decisions (2026-09-04):
+- A version always captures the **entire season** (all halves) — never just
+  the subset rendered into an export — so every version stays comparable.
+- Trigger: optional checkbox in the export dialog (PDF and CSV), plus an
+  optional free-text note recording why the version was sent.
+- Numbering: auto-increment per season (v1, v2, …).
+- Dedupe: content hash over the normalized payload; if identical to the
+  latest version, skip saving and tell the user.
+- Payload: canonical data only — games (date/time/court/opponent/location/
+  half/type/team), tasks (type/slot/optional), assignments (player + team,
+  each as id *and* name) so later diffs survive renames/moves. No
+  pre-rendered display labels.
+- Storage: Django model (`ScheduleVersion`: season FK, number, created_at,
+  note, content_hash, JSON payload). Survives DB rebuilds; covered by
+  migrations and tests.
+- API: query params on the existing export endpoints
+  (`?save_version=1&note=…`); one atomic request, so the saved version
+  matches the bytes that were downloaded.
+- Retention: keep all versions; no deletion UI.
+
+Follow-ups (separate tickets):
+- **Version browser** — tab in the Planner listing a season's versions
+  (v#, date, note) with a detail view; render/download old versions as
+  PDF/CSV.
+- **Compare two versions** — diff into a per-member change list (added /
+  removed / moved tasks), grouped per half where useful.
+- **Export scope selection** — let the user choose which games/halves appear
+  in the exported PDF/CSV (realistic use case: schedules are often planned
+  and distributed half-season at a time). Filtering affects rendering only,
+  never what a version records. Spec'd 2026-09-05 (draft ticket handed over;
+  depends on #3 for the full-season version guarantee).
 
 ### Auth
 

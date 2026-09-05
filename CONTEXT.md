@@ -26,3 +26,7 @@ _Avoid_: round, session
 
 **Half**:
 First or second half of a season; games are ordered by half, then date, then time.
+
+**Schedule Version**:
+An immutable record of a season's task schedule (games, tasks, assignments) captured at the moment the planner distributes it to members. Serves as the reference point when comparing later exports.
+_Avoid_: DB snapshot, backup, draft
