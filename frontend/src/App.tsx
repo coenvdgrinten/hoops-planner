@@ -11,6 +11,7 @@ import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
 import { ToastContextProvider, useToastContext } from "./components/ToastContext";
 import { useToast } from "./components/Toast";
+import { useTour } from "./tour/useTour";
 import { clearAuth, getSiteConfig, getUser, getToken, logout } from "./api";
 import type { Season } from "./types";
 import type { TaskWithAssignments } from "./types";
@@ -32,6 +33,17 @@ function AppInner() {
   >(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("sidebar-collapsed") === "1"
+  );
+
+  // Interactive guided tour (issue #8): auto-starts on first login, replayable
+  // via the Help entry below. Runs only while authenticated (the hook itself
+  // stays inert on the login screen). The panel steps are included only when
+  // a task is selected — the panel itself is always mounted (hidden when
+  // closed), so its React state is the source of truth for "is it open".
+  const { replay } = useTour(
+    selectedSeason?.id ?? null,
+    authenticated,
+    !!selectedTask,
   );
 
   const handleToggleSidebar = useCallback(() => {
@@ -138,6 +150,14 @@ function AppInner() {
             onSelect={setSelectedSeason}
             selectedId={selectedSeason?.id}
           />
+          <button
+            className="icon-btn"
+            onClick={replay}
+            title="Replay the guided tour"
+            aria-label="Help"
+          >
+            ? Help
+          </button>
           <span className="user-badge" title={user?.username}>
             {user?.username}
           </span>

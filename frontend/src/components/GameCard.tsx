@@ -97,6 +97,7 @@ export function GameCard({
 
   return (
     <div
+      data-testid={`game-card-${id}`}
       className={`${styles["game-card"]} ${isSelected ? styles.selected : ""}`}
     >
       <div className={styles["game-card-header"]}>

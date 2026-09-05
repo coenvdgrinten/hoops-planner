@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.1",
+    "driver.js": "^1.8.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
