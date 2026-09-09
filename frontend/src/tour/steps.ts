@@ -74,7 +74,7 @@ export function buildTourSteps(seasonId: number | null, panelOpen: boolean): Dri
     step(
       TASK_CHIP,
       "Task slots",
-      "Every chip is one job — referee, scorer, timer, or 24-second operator. Red means unfilled, green means filled, and a warning sign marks a conflict. Click a chip to assign someone.",
+      "Every chip is one job — referee, scorer, timer, or 24-second operator. Amber means unfilled, green means filled, and red with a warning sign means the current assignment is no longer valid. Click a chip to assign someone.",
       { waitForElement: 3000 },
     ),
   ];
