@@ -86,6 +86,9 @@ export async function authenticate(
     ({ token, user }) => {
       localStorage.setItem("auth_token", token);
       localStorage.setItem("auth_user", JSON.stringify(user));
+      // Mark the guided tour as completed so it never auto-starts over the
+      // app under test (the tour has its own spec that manages this flag).
+      localStorage.setItem("tour-completed", "1");
     },
     { token: loginBody.token, user: loginBody.user },
   );

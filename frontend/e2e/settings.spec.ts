@@ -4,6 +4,9 @@ import { authenticate, uniqueName } from "./helpers";
 const API = "/api";
 
 async function loginAdmin(page: Page): Promise<void> {
+  // Suppress the guided tour (it auto-starts on a user's first login) so it
+  // never overlays the settings panel under test. The tour has its own spec.
+  await page.addInitScript(() => localStorage.setItem("tour-completed", "1"));
   await page.goto("/");
   await page.getByLabel("Username or Email").fill("admin");
   await page.getByLabel("Password").fill("admin");
