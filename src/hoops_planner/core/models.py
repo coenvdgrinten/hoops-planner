@@ -343,6 +343,45 @@ class TaskAssignment(models.Model):
         return f"{self.player} -> {self.task}"
 
 
+class ScheduleVersion(models.Model):
+    """An immutable snapshot of a season's task schedule.
+
+    Captured when the planner distributes a schedule (PDF/CSV export) so later
+    exports can be compared against it. See ``CONTEXT.md`` ("Schedule Version")
+    and ``core/schedule_versions.py`` for the payload shape and capture rules
+    (per-season vN numbering, content-hash dedupe against the latest version,
+    keep-all retention).
+    """
+
+    season = models.ForeignKey(
+        Season,
+        on_delete=models.CASCADE,
+        related_name="versions",
+    )
+    number = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    note = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Optional free-text note recording why this version was sent.",
+    )
+    content_hash = models.CharField(
+        max_length=64,
+        help_text="SHA-256 over the normalized payload, used for dedupe.",
+    )
+    payload = models.JSONField(
+        help_text="Canonical games/tasks/assignments for the whole season.",
+    )
+
+    class Meta:
+        ordering = ["season", "number"]
+        unique_together = ["season", "number"]
+
+    def __str__(self) -> str:
+        return f"{self.season} v{self.number}"
+
+
 class EmailVerificationToken(models.Model):
     """One-time token for email verification, with expiry."""
 

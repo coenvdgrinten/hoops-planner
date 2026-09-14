@@ -7,6 +7,7 @@ import {
   exportSeasonPdf,
   exportSeasonIcs,
 } from "../api";
+import { useToastContext } from "./ToastContext";
 import type { Season, Game } from "../types";
 import type { TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
@@ -28,10 +29,15 @@ const OPEN_TASK_LABELS: Record<string, string> = {
 };
 
 export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }: Props) {
+  const { addToast } = useToastContext();
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showPdfWarning, setShowPdfWarning] = useState(false);
-  const [pdfExporting, setPdfExporting] = useState(false);
+  // Which export dialog is open (issue #3: both formats share one dialog so
+  // the "save a schedule version" option lives in exactly one place).
+  const [exportFormat, setExportFormat] = useState<"pdf" | "csv" | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [saveVersion, setSaveVersion] = useState(false);
+  const [versionNote, setVersionNote] = useState("");
 
   const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
@@ -44,23 +50,41 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   });
   const openTasks = stats?.open_task_slots ?? 0;
 
-  const doExportPdf = useCallback(async () => {
-    setPdfExporting(true);
-    try {
-      await exportSeasonPdf(season.id, season.name);
-    } finally {
-      setPdfExporting(false);
-    }
-  }, [season]);
+  const doExport = useCallback(
+    async (format: "pdf" | "csv") => {
+      setExporting(true);
+      try {
+        const options = { saveVersion, note: versionNote.trim() };
+        const result =
+          format === "pdf"
+            ? await exportSeasonPdf(season.id, season.name, options)
+            : await exportSeasonCsv(season.id, season.name, options);
+        // Surface the snapshot outcome (saved vN / dedupe-skipped) as a toast.
+        if (options.saveVersion && result.versionMessage) {
+          addToast(
+            result.versionMessage,
+            result.versionNumber ? "success" : "info",
+          );
+        }
+        setExportFormat(null);
+      } catch (err) {
+        addToast(err instanceof Error ? err.message : "Export failed", "error");
+      } finally {
+        setExporting(false);
+      }
+    },
+    [addToast, saveVersion, versionNote, season],
+  );
 
-  const handleExportPdfClick = useCallback(() => {
-    if (pdfExporting) return;
-    if (openTasks > 0) {
-      setShowPdfWarning(true);
-    } else {
-      void doExportPdf();
-    }
-  }, [openTasks, pdfExporting, doExportPdf]);
+  const openExportDialog = useCallback(
+    (format: "pdf" | "csv") => {
+      if (exporting) return;
+      setSaveVersion(false);
+      setVersionNote("");
+      setExportFormat(format);
+    },
+    [exporting],
+  );
 
   // Away games have no tasks; they live in the Availability view instead.
   const games = allGames.filter((g) => g.game_type !== "AWAY");
@@ -154,17 +178,18 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           <button
             data-testid="export-csv-btn"
             className={styles["btn-export"]}
-            onClick={() => exportSeasonCsv(season.id, season.name)}
+            onClick={() => openExportDialog("csv")}
+            disabled={exporting}
           >
             Export CSV
           </button>
           <button
             data-testid="export-pdf-btn"
             className={styles["btn-export"]}
-            onClick={handleExportPdfClick}
-            disabled={pdfExporting}
+            onClick={() => openExportDialog("pdf")}
+            disabled={exporting}
           >
-            {pdfExporting ? "Generating…" : "Export PDF"}
+            {exporting ? "Generating…" : "Export PDF"}
           </button>
           <button
             data-testid="export-ics-btn"
@@ -267,41 +292,74 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           onSuccess={handleCreateClose}
         />
       )}
-      {showPdfWarning && (
-        <div className="modal-overlay" onClick={() => setShowPdfWarning(false)}>
+      {exportFormat && (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            if (!exporting) setExportFormat(null);
+          }}
+        >
           <div role="dialog" className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Export PDF</h2>
-            <p style={{ marginBottom: 8 }}>
-              There are still {openTasks} unplanned task{openTasks === 1 ? "" : "s"} in this
-              schedule:
-            </p>
-            <ul
-              data-testid="pdf-warning-list"
-              style={{
-                margin: "0 0 16px 20px",
-                fontSize: 13,
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              {Object.entries(stats?.open_by_task_type ?? {}).map(([type, count]) => (
-                <li key={type}>
-                  {count} × {OPEN_TASK_LABELS[type] ?? type}
-                </li>
-              ))}
-            </ul>
-            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
-              These will appear as empty slots in the exported PDF.
-            </p>
+            <h2>{exportFormat === "pdf" ? "Export PDF" : "Export CSV"}</h2>
+            {exportFormat === "pdf" && openTasks > 0 && (
+              <>
+                <p style={{ marginBottom: 8 }}>
+                  There are still {openTasks} unplanned task
+                  {openTasks === 1 ? "" : "s"} in this schedule:
+                </p>
+                <ul
+                  data-testid="pdf-warning-list"
+                  style={{
+                    margin: "0 0 16px 20px",
+                    fontSize: 13,
+                    color: "var(--color-text-secondary)",
+                  }}
+                >
+                  {Object.entries(stats?.open_by_task_type ?? {}).map(([type, count]) => (
+                    <li key={type}>
+                      {count} × {OPEN_TASK_LABELS[type] ?? type}
+                    </li>
+                  ))}
+                </ul>
+                <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
+                  These will appear as empty slots in the exported PDF.
+                </p>
+              </>
+            )}
+            <div className="form-group form-checkbox">
+              <label>
+                <input
+                  type="checkbox"
+                  data-testid="save-version-checkbox"
+                  checked={saveVersion}
+                  onChange={(e) => setSaveVersion(e.target.checked)}
+                />
+                Save a schedule version (snapshot of the whole season)
+              </label>
+            </div>
+            {saveVersion && (
+              <div className="form-group">
+                <label htmlFor="version-note">Note (optional)</label>
+                <input
+                  id="version-note"
+                  data-testid="version-note-input"
+                  value={versionNote}
+                  onChange={(e) => setVersionNote(e.target.value)}
+                  placeholder="e.g. sent to team managers"
+                  maxLength={500}
+                />
+              </div>
+            )}
             <div className="modal-actions">
-              <button onClick={() => setShowPdfWarning(false)}>Cancel</button>
+              <button onClick={() => setExportFormat(null)} disabled={exporting}>
+                Cancel
+              </button>
               <button
                 data-testid="pdf-warning-export-btn"
-                onClick={() => {
-                  setShowPdfWarning(false);
-                  void doExportPdf();
-                }}
+                onClick={() => void doExport(exportFormat)}
+                disabled={exporting}
               >
-                Export anyway
+                {exporting ? "Generating…" : openTasks > 0 ? "Export anyway" : "Export"}
               </button>
             </div>
           </div>
