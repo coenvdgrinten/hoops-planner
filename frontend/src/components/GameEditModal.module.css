@@ -26,7 +26,7 @@
 .form-row input:focus,
 .form-row select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .form-actions {

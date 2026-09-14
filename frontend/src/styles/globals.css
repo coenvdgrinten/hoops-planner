@@ -5,12 +5,33 @@
   padding: 0;
 }
 
+html {
+  /* Let native widgets (scrollbars, <select> popups, spin buttons) follow
+     the active palette instead of always rendering light. */
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* Form controls: some component styles set borders/padding but rely on the
+   UA default for background (white). Pin every control to the theme tokens
+   so none flash native-white in dark mode. Components that declare their own
+   background still win by specificity. */
+input,
+select,
+textarea {
+  background-color: var(--color-surface);
+  color: var(--color-text);
 }
 
 /* ===== Shared utilities (used across multiple components) ===== */
@@ -44,7 +65,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4); /* overlay scrim — not a theme color */
+  background: var(--scrim);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -60,7 +81,7 @@ body {
   max-width: 520px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-modal);
 }
 
 .modal h2 {
@@ -98,7 +119,7 @@ body {
 .form-group input:focus,
 .form-group textarea:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .form-group textarea {
@@ -257,4 +278,42 @@ body {
 .season-create-error {
   margin: 0;
   font-size: 12px;
+}
+
+/* ===== Guided tour (driver.js) — dark mode =====
+   driver.js ships no color custom properties, so its hardcoded light colors
+   (white popover, #ccc buttons) are overridden here when the app is in dark
+   mode. Light mode keeps driver.js' own defaults. */
+[data-theme="dark"] .driver-popover {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-modal);
+}
+
+[data-theme="dark"] .driver-popover-close-btn {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .driver-popover-close-btn:hover,
+[data-theme="dark"] .driver-popover-close-btn:focus {
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .driver-popover-progress-text {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .driver-popover-footer-btn {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .driver-popover-footer-btn:hover,
+[data-theme="dark"] .driver-popover-footer-btn:focus {
+  background-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .driver-popover-arrow {
+  border-color: var(--color-surface);
 }

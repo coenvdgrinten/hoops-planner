@@ -286,7 +286,7 @@
 
 .cert-select:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .cert-select option[value="NONE"] {
@@ -534,7 +534,7 @@
 .team-edit-form input:focus,
 .player-edit-form input[type="text"]:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .team-edit-form select,

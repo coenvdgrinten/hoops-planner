@@ -16,7 +16,7 @@
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-card-hover);
   cursor: pointer;
   animation: slideIn 0.2s ease-out;
   color: white;

@@ -70,6 +70,7 @@
 
   /* ===== Status: info ===== */
   --color-info: #2563eb;
+  --color-info-strong: #1d4ed8;
   --color-info-bg: #eff6ff;
   --color-info-border: #dbeafe;
 
@@ -94,4 +95,104 @@
   /* Coach chip highlight */
   --color-highlight-bg: #ffedd5;
   --color-highlight-border: #fdba74;
+
+  /* ===== Shadows & scrims (light values; dark overrides below) ===== */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --scrim: rgba(0, 0, 0, 0.4);
+  --focus-ring: rgba(249, 115, 22, 0.1);
+}
+
+/*
+ * Dark mode palette.
+ *
+ * Same token names as :root above — components never reference a color
+ * directly, so switching the `data-theme` attribute on <html> re-skins the
+ * whole app without touching any component CSS. Values are tuned for dark
+ * surfaces (not naive inversions): status colors keep their hue but get
+ * darker backgrounds and lighter text variants; the brand orange stays
+ * recognizable; shadows/scrims move to dedicated tokens below so they can be
+ * stronger where light-mode black shadows would disappear.
+ *
+ * Applied by an inline script in index.html (before first paint) and kept in
+ * sync by useTheme.ts at runtime.
+ */
+[data-theme="dark"] {
+  /* ===== Brand (unchanged — orange reads well on dark) ===== */
+  --color-primary: #f97316;
+  --color-primary-hover: #fb923c;
+  --color-primary-tint: #431a04;
+
+  /* ===== Text ===== */
+  --color-text: #e8eaf0;
+  --color-text-secondary: #b6bac8;
+  --color-text-muted: #8d93a5;
+
+  /* ===== Surfaces ===== */
+  --color-bg: #14161c;
+  --color-surface: #1d2027;
+  --color-surface-subtle: #22252e;
+  --color-surface-hover: #2a2e39;
+  --color-disabled: #3a3f4d;
+
+  /* ===== Borders ===== */
+  --color-border: #363b48;
+  --color-border-subtle: #2a2e39;
+  --color-border-hover: #454b5c;
+
+  /* ===== Status: success ===== */
+  --color-success: #22c55e;
+  --color-success-strong: #4ade80;
+  --color-success-bg: #0f2a1c;
+  --color-success-border: #1d4a30;
+
+  /* ===== Status: warning ===== */
+  --color-warning: #d97706;
+  --color-warning-dark: #fbbf24;
+  --color-warning-bg: #2e2209;
+  --color-warning-border: #57430f;
+
+  /* ===== Status: danger ===== */
+  --color-danger: #dc2626;
+  --color-danger-bright: #f87171;
+  --color-danger-dark: #fca5a5;
+  --color-danger-bg: #331518;
+  --color-danger-border: #57262b;
+  --color-danger-border-hover: #7f3a41;
+
+  /* ===== Status: info ===== */
+  --color-info: #60a5fa;
+  --color-info-strong: #93c5fd;
+  --color-info-bg: #14213a;
+  --color-info-border: #24406e;
+
+  /* ===== Accent (inverted: near-black → near-white) ===== */
+  --color-accent: #e8eaf0;
+  --color-accent-dark: #f5f6fa;
+  --color-accent-bg: #2a2e39;
+
+  /* ===== Domain ===== */
+  --color-away: #e05252;
+
+  /* Age / team badges (warm orange, dark-tuned) */
+  --color-brown: #fdba74;
+  --color-brown-bg: #3a1d0d;
+
+  /* Suggested / expanded state (warm, dark-tuned) */
+  --color-cream: #2b1a0c;
+  --color-cream-border: #5c3a17;
+  --color-cream-hover: #3a2410;
+  --color-cream-deep: #7c4a1d;
+
+  /* Coach chip highlight */
+  --color-highlight-bg: #3a1d0d;
+  --color-highlight-border: #7c4a1d;
+
+  /* ===== Shadows & scrims (stronger on dark surfaces) ===== */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.6);
+  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.6);
+  --focus-ring: rgba(249, 115, 22, 0.25);
 }

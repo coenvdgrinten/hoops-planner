@@ -27,7 +27,7 @@
 
 .season-dropdown-toggle.open {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .season-dropdown-value {
@@ -57,7 +57,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-modal);
   z-index: 100;
   overflow: hidden;
   animation: dropdownFadeIn 0.15s ease;
@@ -122,7 +122,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border-subtle);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-modal);
   padding: 12px;
   width: 240px;
   display: flex;

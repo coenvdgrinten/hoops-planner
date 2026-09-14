@@ -11,6 +11,7 @@ import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
 import { ToastContextProvider, useToastContext } from "./components/ToastContext";
 import { useToast } from "./components/Toast";
+import { useTheme } from "./theme/useTheme";
 import { useTour } from "./tour/useTour";
 import { clearAuth, getSiteConfig, getUser, getToken, logout } from "./api";
 import type { Season } from "./types";
@@ -34,6 +35,11 @@ function AppInner() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem("sidebar-collapsed") === "1"
   );
+
+  // Light/dark appearance. The initial theme is applied by an inline script
+  // in index.html before first paint; this hook keeps state + the attribute
+  // in sync and exposes the top-bar toggle.
+  const { theme, toggle: toggleTheme } = useTheme();
 
   // Interactive guided tour (issue #8): auto-starts on first login, replayable
   // via the Help entry below. Runs only while authenticated (the hook itself
@@ -152,6 +158,15 @@ function AppInner() {
           />
           <button
             className="icon-btn"
+            onClick={toggleTheme}
+            title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
+            data-testid="theme-toggle"
+          >
+            {theme === "light" ? "🌙 Dark" : "☀️ Light"}
+          </button>
+          <button
+            className="icon-btn"
             onClick={replay}
             title="Replay the guided tour"
             aria-label="Help"
@@ -163,7 +178,7 @@ function AppInner() {
           </span>
           {user?.email && (
             <button
-              className="icon-btn"
+              className={`icon-btn ${styles["verify-email-btn"]}`}
               onClick={async () => {
                 try {
                   const { verifyEmailRequest, verifyEmailConfirm } = await import("./api");
