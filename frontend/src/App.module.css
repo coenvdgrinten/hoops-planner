@@ -46,6 +46,20 @@
   gap: 10px;
 }
 
+/* Solid-info variant of the shared .icon-btn (Verify Email button).
+   Text uses --color-surface so it stays white on light and dark on the
+   lightened dark-mode info blue. */
+.verify-email-btn {
+  background: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-surface);
+}
+
+.verify-email-btn:hover {
+  background: var(--color-info-strong);
+  border-color: var(--color-info-strong);
+}
+
 .app-body {
   display: flex;
   flex: 1;
