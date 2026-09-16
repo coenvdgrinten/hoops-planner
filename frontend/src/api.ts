@@ -7,6 +7,7 @@ import type {
   Player,
   Season,
   SeasonStats,
+  SeasonVersionsResponse,
   Task,
   TaskAssignment,
   TaskWithAssignments,
@@ -240,6 +241,41 @@ async function downloadSeasonExport(
   a.remove();
   URL.revokeObjectURL(url);
   return { filename, versionNumber, versionMessage };
+}
+
+/** List a season's saved schedule versions, newest first (issue #6). */
+export function getSeasonVersions(seasonId: number) {
+  return request<SeasonVersionsResponse>(`/seasons/${seasonId}/versions/`);
+}
+
+/** Download the exact stored artifact of a schedule version (triggers a
+ * browser download). The bytes were captured at save time — never re-rendered. */
+export async function downloadVersionArtifact(
+  seasonId: number,
+  seasonName: string,
+  versionNumber: number,
+  format: "pdf" | "csv",
+): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${API}/seasons/${seasonId}/versions/${versionNumber}/download/`, {
+    headers: token ? { Authorization: `Token ${token}` } : {},
+  });
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearAuth();
+      window.dispatchEvent(new CustomEvent("auth:logout"));
+    }
+    throw new Error(`Download failed: ${res.status}`);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `schedule_${seasonName}_v${versionNumber}.${format}`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export function importSchedule(seasonName: string, csvText: string, replace?: boolean) {

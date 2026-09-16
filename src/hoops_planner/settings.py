@@ -102,6 +102,10 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": os.getenv("DB_PATH", str(BASE_DIR / "db.sqlite3")),
+            # The dev DB is shared by the API server AND parallel e2e workers,
+            # so give SQLite a generous busy-timeout instead of failing with
+            # "database is locked" under concurrent writes.
+            "OPTIONS": {"timeout": 30},
         }
     }
 

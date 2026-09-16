@@ -1,11 +1,13 @@
 import { Fragment, useCallback, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGames,
   getSeasonStats,
   exportSeasonCsv,
   exportSeasonPdf,
   exportSeasonIcs,
+  getSeasonVersions,
+  downloadVersionArtifact,
 } from "../api";
 import { useToastContext } from "./ToastContext";
 import type { Season, Game } from "../types";
@@ -30,6 +32,7 @@ const OPEN_TASK_LABELS: Record<string, string> = {
 
 export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }: Props) {
   const { addToast } = useToastContext();
+  const queryClient = useQueryClient();
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   // Which export dialog is open (issue #3: both formats share one dialog so
@@ -38,6 +41,10 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   const [exporting, setExporting] = useState(false);
   const [saveVersion, setSaveVersion] = useState(false);
   const [versionNote, setVersionNote] = useState("");
+  // Planner tabs (issue #6): the schedule view stays the default; the
+  // Versions tab lists this season's saved snapshots.
+  const [tab, setTab] = useState<"schedule" | "versions">("schedule");
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
 
   const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
@@ -49,6 +56,21 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
     queryFn: () => getSeasonStats(season.id),
   });
   const openTasks = stats?.open_task_slots ?? 0;
+
+  // staleTime: 0 — the list carries a live-schedule freshness line, so it must
+  // refetch every time the tab is (re-)entered; the global 10s staleTime would
+  // let a recent fetch mask schedule changes made while the tab was closed.
+  const {
+    data: versionsData,
+    isLoading: versionsLoading,
+    error: versionsError,
+  } = useQuery({
+    queryKey: ["season-versions", season.id],
+    queryFn: () => getSeasonVersions(season.id),
+    enabled: tab === "versions",
+    staleTime: 0,
+  });
+  const versions = versionsData?.versions ?? [];
 
   const doExport = useCallback(
     async (format: "pdf" | "csv") => {
@@ -65,6 +87,8 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
             result.versionMessage,
             result.versionNumber ? "success" : "info",
           );
+          // A new snapshot changed the Versions tab + freshness line.
+          queryClient.invalidateQueries({ queryKey: ["season-versions", season.id] });
         }
         setExportFormat(null);
       } catch (err) {
@@ -73,7 +97,18 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
         setExporting(false);
       }
     },
-    [addToast, saveVersion, versionNote, season],
+    [addToast, queryClient, saveVersion, versionNote, season],
+  );
+
+  const handleDownloadVersion = useCallback(
+    async (number: number, format: "pdf" | "csv") => {
+      try {
+        await downloadVersionArtifact(season.id, season.name, number, format);
+      } catch (err) {
+        addToast(err instanceof Error ? err.message : "Download failed", "error");
+      }
+    },
+    [addToast, season],
   );
 
   const openExportDialog = useCallback(
@@ -203,7 +238,30 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           </button>
         </div>
       </div>
-      {hasGames ? (
+      <div className={styles["planner-tabs"]} role="tablist">
+        <button
+          role="tab"
+          aria-selected={tab === "schedule"}
+          data-testid="planner-tab-schedule"
+          className={`${styles["planner-tab"]} ${tab === "schedule" ? styles["planner-tab-active"] : ""}`}
+          onClick={() => setTab("schedule")}
+        >
+          Schedule
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === "versions"}
+          data-testid="planner-tab-versions"
+          className={`${styles["planner-tab"]} ${tab === "versions" ? styles["planner-tab-active"] : ""}`}
+          onClick={() => {
+            setTab("versions");
+            setSelectedVersion(null);
+          }}
+        >
+          Versions
+        </button>
+      </div>
+      {tab === "schedule" && (hasGames ? (
         <div className={styles["games-by-date"]}>
         {Object.entries(grouped).map(([halfKey, dates]) => {
           const halfLabel = halfKey === "1" ? "First Half" : "Second Half";
@@ -276,6 +334,96 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
         </div>
       ) : (
         <p>No games in this season yet. Click "+ Add Game" to create one.</p>
+      ))}
+      {tab === "versions" && (
+        <div className={styles["versions-panel"]} data-testid="versions-panel">
+          {versionsLoading ? (
+            <p>Loading versions…</p>
+          ) : versionsError ? (
+            <p className="error" data-testid="versions-error">
+              Couldn’t load schedule versions — please try again.
+            </p>
+          ) : versions.length === 0 ? (
+            <div className={styles["versions-empty"]} data-testid="versions-empty">
+              No schedule versions saved for this season yet.
+              <br />
+              Use the “save a schedule version” checkbox in the export dialog
+              when you distribute a PDF or CSV.
+            </div>
+          ) : (
+            <>
+              {versions[0] && (
+                <p
+                  className={styles["versions-freshness"]}
+                  data-testid="versions-freshness"
+                >
+                  {versionsData?.live_matches === true
+                    ? `Live schedule matches v${versions[0].number}.`
+                    : `Live schedule has changed since v${versions[0].number}.`}
+                </p>
+              )}
+              <ul className={styles["versions-list"]}>
+                {versions.map((v) => (
+                  <li key={v.number}>
+                    <button
+                      data-testid={`version-row-${v.number}`}
+                      className={`${styles["version-row"]} ${selectedVersion === v.number ? styles["version-row-selected"] : ""}`}
+                      onClick={() => setSelectedVersion(v.number)}
+                    >
+                      <span className={styles["version-number"]}>v{v.number}</span>
+                      <span className={styles["version-meta"]}>
+                        {new Date(v.created_at).toLocaleString("nl-BE", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                        {v.note ? ` — ${v.note}` : ""}
+                      </span>
+                      <span className={styles["version-format"]}>{v.artifact_format.toUpperCase()}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {selectedVersion !== null &&
+                (() => {
+                  const v = versions.find((x) => x.number === selectedVersion);
+                  if (!v) return null;
+                  return (
+                    <div className={styles["version-detail"]} data-testid="version-detail">
+                      <h3>
+                        Version v{v.number}
+                      </h3>
+                      <dl className={styles["version-detail-grid"]}>
+                        <dt>Saved</dt>
+                        <dd>
+                          {new Date(v.created_at).toLocaleString("nl-BE", {
+                            dateStyle: "long",
+                            timeStyle: "short",
+                          })}
+                        </dd>
+                        <dt>Note</dt>
+                        <dd>{v.note || "—"}</dd>
+                        <dt>Format</dt>
+                        <dd>{v.artifact_format.toUpperCase()}</dd>
+                      </dl>
+                      {v.has_artifact ? (
+                        <button
+                          data-testid={`version-download-${v.number}`}
+                          className={styles["btn-export"]}
+                          onClick={() => void handleDownloadVersion(v.number, v.artifact_format)}
+                        >
+                          Download {v.artifact_format.toUpperCase()}
+                        </button>
+                      ) : (
+                        <p className={styles["version-no-artifact"]}>
+                          This version predates document storage and has no file to download.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+            </>
+          )}
+        </div>
       )}
       {editingGameData && (
         <GameEditModal

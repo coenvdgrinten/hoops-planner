@@ -266,3 +266,137 @@ class TestExportEndpoints:
         assert response.status_code == 200
         assert ScheduleVersion.objects.filter(season=season).count() == 2
         assert "_v2.csv" in response["Content-Disposition"]
+
+
+@pytest.mark.django_db
+class TestArtifactStorage:
+    """The exact exported bytes are stored with each version (issue #6)."""
+
+    def test_csv_export_stores_exact_bytes(self, api_client, season):
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_csv/?save_version=1"
+        )
+        version = ScheduleVersion.objects.get(season=season)
+        assert version.artifact_format == "csv"
+        assert version.artifact == response.content
+
+    def test_pdf_export_stores_exact_bytes(self, api_client, season):
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_pdf/?save_version=1"
+        )
+        version = ScheduleVersion.objects.get(season=season)
+        assert version.artifact_format == "pdf"
+        assert version.artifact == response.content
+
+    def test_deduped_export_keeps_original_artifact(self, api_client, season):
+        first = api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1")
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1")
+        version = ScheduleVersion.objects.get(season=season)
+        assert version.number == 1
+        assert version.artifact == first.content
+
+
+@pytest.mark.django_db
+class TestVersionsListEndpoint:
+    """GET /seasons/{id}/versions/ — list + freshness (issue #6)."""
+
+    def test_empty_season_has_no_versions_and_null_freshness(
+        self, api_client, season
+    ):
+        response = api_client.get(f"/api/seasons/{season.id}/versions/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["versions"] == []
+        assert data["live_matches"] is None
+
+    def test_lists_versions_newest_first(self, api_client, season, team_x14):
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1&note=first")
+        game = _make_game(season, team_x14)
+        Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1&note=second")
+
+        data = api_client.get(f"/api/seasons/{season.id}/versions/").json()
+        assert [v["number"] for v in data["versions"]] == [2, 1]
+        assert [v["note"] for v in data["versions"]] == ["second", "first"]
+        assert all(v["artifact_format"] == "csv" for v in data["versions"])
+        assert all(v["has_artifact"] for v in data["versions"])
+        assert all("created_at" in v for v in data["versions"])
+
+    def test_live_matches_true_when_unchanged(self, api_client, season):
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1")
+        data = api_client.get(f"/api/seasons/{season.id}/versions/").json()
+        assert data["live_matches"] is True
+
+    def test_live_matches_false_after_drift(self, api_client, season, team_x14):
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1")
+        game = _make_game(season, team_x14)
+        Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
+
+        data = api_client.get(f"/api/seasons/{season.id}/versions/").json()
+        assert data["live_matches"] is False
+
+    def test_versions_are_scoped_to_their_season(
+        self, api_client, season, team_x14
+    ):
+        from hoops_planner.core.models import Season
+
+        other = Season.objects.create(name="2026-2027")
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1")
+
+        data = api_client.get(f"/api/seasons/{other.id}/versions/").json()
+        assert data["versions"] == []
+        assert data["live_matches"] is None
+
+
+@pytest.mark.django_db
+class TestVersionDownloadEndpoint:
+    """GET /seasons/{id}/versions/{n}/download/ — byte-for-byte fidelity."""
+
+    def test_download_returns_stored_bytes(self, api_client, season):
+        original = api_client.get(
+            f"/api/seasons/{season.id}/export_csv/?save_version=1"
+        )
+        response = api_client.get(
+            f"/api/seasons/{season.id}/versions/1/download/"
+        )
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/csv; charset=utf-8"
+        assert response.content == original.content
+        assert f"schedule_{season.name}_v1.csv" in response["Content-Disposition"]
+
+    def test_download_is_not_re_rendered_after_schedule_changes(
+        self, api_client, season, team_x14
+    ):
+        """The core guarantee: downloads reflect capture time, not now."""
+        original = api_client.get(
+            f"/api/seasons/{season.id}/export_csv/?save_version=1"
+        )
+        # Drift the live schedule well past the snapshot...
+        game = _make_game(season, team_x14)
+        Task.objects.create(game=game, task_type=TaskType.SCORER, slot_number=1)
+        # ...and re-export so a newer version exists.
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1")
+
+        response = api_client.get(
+            f"/api/seasons/{season.id}/versions/1/download/"
+        )
+        assert response.content == original.content
+
+    def test_pdf_download_content_type(self, api_client, season):
+        api_client.get(f"/api/seasons/{season.id}/export_pdf/?save_version=1")
+        response = api_client.get(f"/api/seasons/{season.id}/versions/1/download/")
+        assert response["Content-Type"] == "application/pdf"
+        assert "_v1.pdf" in response["Content-Disposition"]
+
+    def test_unknown_version_404s(self, api_client, season):
+        response = api_client.get(f"/api/seasons/{season.id}/versions/9/download/")
+        assert response.status_code == 404
+        assert "v9" in response.json()["detail"]
+
+    def test_other_seasons_version_404s(self, api_client, season):
+        from hoops_planner.core.models import Season
+
+        other = Season.objects.create(name="2026-2027")
+        api_client.get(f"/api/seasons/{season.id}/export_csv/?save_version=1")
+        response = api_client.get(f"/api/seasons/{other.id}/versions/1/download/")
+        assert response.status_code == 404

@@ -156,6 +156,24 @@ export interface LeaderboardEntry {
   by_type: Record<string, number>;
 }
 
+/** A saved schedule version (snapshot) of a season's task schedule. */
+export interface ScheduleVersionSummary {
+  number: number;
+  created_at: string;
+  note: string;
+  artifact_format: "pdf" | "csv";
+  has_artifact: boolean;
+}
+
+/** Response of GET /seasons/{id}/versions/. The list key is "versions" (not
+ * "results") so the api request() helper doesn't unwrap it as a DRF page. */
+export interface SeasonVersionsResponse {
+  /** True when the live schedule matches the latest version, false when it
+   * has drifted, null when the season has no versions yet. */
+  live_matches: boolean | null;
+  versions: ScheduleVersionSummary[];
+}
+
 export interface AvailabilityMember {
   id: number;
   name: string;

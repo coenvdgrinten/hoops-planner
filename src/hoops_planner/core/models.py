@@ -373,6 +373,21 @@ class ScheduleVersion(models.Model):
     payload = models.JSONField(
         help_text="Canonical games/tasks/assignments for the whole season.",
     )
+    # The exact document that was generated when the version was captured, so
+    # a download is byte-for-byte identical to what was distributed (issue #6).
+    # Never re-rendered from the payload with current layout code.
+    artifact = models.BinaryField(
+        null=True,
+        blank=True,
+        help_text="Exact PDF/CSV bytes generated at capture time.",
+    )
+    artifact_format = models.CharField(
+        max_length=8,
+        blank=True,
+        default="",
+        choices=[("pdf", "PDF"), ("csv", "CSV")],
+        help_text="Format of the stored artifact.",
+    )
 
     class Meta:
         ordering = ["season", "number"]
