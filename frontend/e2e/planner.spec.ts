@@ -396,8 +396,13 @@ test.describe("Planner", () => {
     await page.goto("/");
     await selectSeason(page);
 
-    const downloadPromise = page.waitForEvent("download");
+    // The CSV button opens the export dialog (issue #3 added the optional
+    // "save a schedule version" step); confirm without saving a version.
     await page.getByTestId("export-csv-btn").click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    const downloadPromise = page.waitForEvent("download");
+    await dialog.getByTestId("pdf-warning-export-btn").click();
     const download = await downloadPromise;
 
     expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.csv`);

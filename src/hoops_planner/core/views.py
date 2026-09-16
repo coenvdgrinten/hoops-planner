@@ -29,6 +29,10 @@ from hoops_planner.core.models import (
     Team,
 )
 from hoops_planner.core.pdf_export import export_schedule_pdf
+from hoops_planner.core.schedule_versions import (
+    SaveVersionResult,
+    save_version,
+)
 from hoops_planner.core.serializers import (
     GameSerializer,
     PlayerSerializer,
@@ -38,6 +42,44 @@ from hoops_planner.core.serializers import (
     TaskWithAssignmentsSerializer,
     TeamSerializer,
 )
+
+
+def _maybe_save_version(request, season: Season) -> SaveVersionResult | None:
+    """Capture a schedule snapshot when the export asked for one (issue #3).
+
+    Reads ``save_version`` (truthy flag) and ``note`` from the query string.
+    Returns the save result (saved or dedupe-skipped), or None when no
+    snapshot was requested.
+    """
+    if not request.query_params.get("save_version"):
+        return None
+    note = request.query_params.get("note", "")
+    return save_version(season, note)
+
+
+def _export_filename(
+    season_name: str, version: SaveVersionResult | None, ext: str
+) -> str:
+    """Download filename; gains a ``_vN`` suffix when a new version was saved."""
+    suffix = f"_v{version.version_number}" if version and version.saved else ""
+    return f"schedule_{season_name}{suffix}.{ext}"
+
+
+def _add_version_headers(
+    headers: dict[str, str], version: SaveVersionResult | None
+) -> None:
+    """Report the snapshot outcome so the UI can toast it (issue #3).
+
+    The download itself stays binary, so the feedback travels in headers:
+    ``X-Schedule-Version`` (vN) when a new version was saved, plus status and
+    message whenever a snapshot was requested.
+    """
+    if version is None:
+        return
+    headers["X-Schedule-Version-Status"] = "saved" if version.saved else "skipped"
+    headers["X-Schedule-Version-Message"] = version.message
+    if version.saved:
+        headers["X-Schedule-Version"] = f"v{version.version_number}"
 
 
 class SeasonViewSet(viewsets.ModelViewSet):
@@ -92,18 +134,22 @@ class SeasonViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def export_pdf(self, request, pk=None):
-        """Export the task schedule as a PDF."""
+        """Export the task schedule as a PDF.
+
+        Optional query params (issue #3):
+        - ``save_version=1`` — also capture an immutable snapshot of the whole
+          season (deduped against the latest version).
+        - ``note`` — free-text note stored with the snapshot.
+        When a snapshot is saved, the response filename gains a ``_vN`` suffix
+        so the downloaded file matches the stored version.
+        """
         season = self.get_object()
+        version_result = _maybe_save_version(request, season)
         pdf_bytes = export_schedule_pdf(season)
-        return HttpResponse(
-            pdf_bytes,
-            content_type="application/pdf",
-            headers={
-                "Content-Disposition": (
-                    f'attachment; filename="schedule_{season.name}.pdf"'
-                ),
-            },
-        )
+        filename = _export_filename(season.name, version_result, "pdf")
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        _add_version_headers(headers, version_result)
+        return HttpResponse(pdf_bytes, content_type="application/pdf", headers=headers)
 
     @action(detail=True, methods=["get"])
     def export_ics(self, request, pk=None):
@@ -122,18 +168,18 @@ class SeasonViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def export_csv(self, request, pk=None):
-        """Export the task schedule (assignments) as a CSV."""
+        """Export the task schedule (assignments) as a CSV.
+
+        Accepts the same optional ``save_version``/``note`` params as
+        ``export_pdf`` (see there).
+        """
         season = self.get_object()
+        version_result = _maybe_save_version(request, season)
         csv_text = export_schedule_csv(season)
-        return HttpResponse(
-            csv_text,
-            content_type="text/csv",
-            headers={
-                "Content-Disposition": (
-                    f'attachment; filename="schedule_{season.name}.csv"'
-                ),
-            },
-        )
+        filename = _export_filename(season.name, version_result, "csv")
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        _add_version_headers(headers, version_result)
+        return HttpResponse(csv_text, content_type="text/csv", headers=headers)
 
     @action(detail=True, methods=["get"])
     def conflicts(self, request, pk=None):

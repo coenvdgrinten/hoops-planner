@@ -152,14 +152,41 @@ export function createSeason(name: string) {
   });
 }
 
+/** Options for exporting a schedule (issue #3: optional snapshot on export). */
+export interface ExportOptions {
+  /** Also capture an immutable snapshot of the whole season. */
+  saveVersion?: boolean;
+  /** Free-text note stored with the snapshot. */
+  note?: string;
+}
+
+/** Result of a schedule export download. */
+export interface ExportResult {
+  /** Suggested filename of the downloaded file. */
+  filename: string;
+  /** Version number when a NEW snapshot was saved; null otherwise (not
+   * requested, or deduped against the latest version — see `versionMessage`). */
+  versionNumber: number | null;
+  /** Backend message about the snapshot outcome, when one was requested. */
+  versionMessage: string | null;
+}
+
 /** Download the season's task schedule as a CSV file (triggers a browser download). */
-export async function exportSeasonCsv(seasonId: number, seasonName: string) {
-  return downloadSeasonExport(seasonId, seasonName, "csv");
+export async function exportSeasonCsv(
+  seasonId: number,
+  seasonName: string,
+  options: ExportOptions = {},
+): Promise<ExportResult> {
+  return downloadSeasonExport(seasonId, seasonName, "csv", options);
 }
 
 /** Download the season's task schedule as a PDF file (triggers a browser download). */
-export async function exportSeasonPdf(seasonId: number, seasonName: string) {
-  return downloadSeasonExport(seasonId, seasonName, "pdf");
+export async function exportSeasonPdf(
+  seasonId: number,
+  seasonName: string,
+  options: ExportOptions = {},
+): Promise<ExportResult> {
+  return downloadSeasonExport(seasonId, seasonName, "pdf", options);
 }
 
 /** Download the season's task schedule as an .ics calendar file (triggers a browser download). */
@@ -171,11 +198,19 @@ async function downloadSeasonExport(
   seasonId: number,
   seasonName: string,
   format: "csv" | "pdf" | "ics",
-) {
+  options: ExportOptions = {},
+): Promise<ExportResult> {
+  const params = new URLSearchParams();
+  if (options.saveVersion) {
+    params.set("save_version", "1");
+    if (options.note) params.set("note", options.note);
+  }
+  const query = params.toString();
   const token = getToken();
-  const res = await fetch(`${API}/seasons/${seasonId}/export_${format}/`, {
-    headers: token ? { Authorization: `Token ${token}` } : {},
-  });
+  const res = await fetch(
+    `${API}/seasons/${seasonId}/export_${format}/${query ? `?${query}` : ""}`,
+    { headers: token ? { Authorization: `Token ${token}` } : {} },
+  );
   if (!res.ok) {
     // Mirror the request() helper: a 401 means the session expired.
     if (res.status === 401) {
@@ -184,15 +219,27 @@ async function downloadSeasonExport(
     }
     throw new Error(`Export failed: ${res.status}`);
   }
+  // The backend reports the snapshot outcome via response headers so the
+  // binary download itself stays untouched:
+  //   X-Schedule-Version: vN            → a new version N was saved
+  //   X-Schedule-Version-Status: skipped
+  //   X-Schedule-Version-Message: <msg>
+  const versionHeader = res.headers.get("X-Schedule-Version");
+  const versionNumber = versionHeader ? Number(versionHeader.replace(/^v/, "")) : null;
+  const versionMessage = options.saveVersion
+    ? (res.headers.get("X-Schedule-Version-Message") ?? null)
+    : null;
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `schedule_${seasonName}.${format}`;
+  const filename = `schedule_${seasonName}${versionNumber ? `_v${versionNumber}` : ""}.${format}`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  return { filename, versionNumber, versionMessage };
 }
 
 export function importSchedule(seasonName: string, csvText: string, replace?: boolean) {
