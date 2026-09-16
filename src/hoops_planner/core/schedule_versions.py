@@ -18,7 +18,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from hoops_planner.core.models import Game, ScheduleVersion, Season, Task
 
@@ -129,45 +129,94 @@ def content_hash(payload: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def save_version(season: Season, note: str = "") -> SaveVersionResult:
+def save_version(
+    season: Season,
+    note: str = "",
+    artifact: bytes | None = None,
+    artifact_format: str = "",
+) -> SaveVersionResult:
     """Capture an immutable snapshot of the season's current schedule.
 
     Dedupes against the LATEST version only: if the payload hashes to the same
     value as the newest snapshot, nothing is stored and the result reports the
     existing number. Runs in a transaction so numbering never skips under
     concurrent saves (unique_together on (season, number) backstops it).
+
+    ``artifact``/``artifact_format`` carry the exact document bytes generated
+    at capture time (issue #6), so later downloads are byte-for-byte identical
+    to what was distributed — never re-rendered from the payload.
+
+    The read (latest version + payload) happens OUTSIDE the write transaction:
+    in WAL mode a read transaction cannot be upgraded to a write, so doing the
+    read inside ``transaction.atomic()`` fails instantly with SQLITE_BUSY
+    whenever another worker holds the write lock (busy_timeout cannot rescue
+    it). The write itself is short; a unique_together violation under truly
+    concurrent same-season saves triggers one retry.
     """
-    with transaction.atomic():
-        latest = (
-            ScheduleVersion.objects.filter(season=season)
-            .order_by("-number")
-            .first()
-        )
-        payload = build_payload(season)
-        digest = content_hash(payload)
+    latest = (
+        ScheduleVersion.objects.filter(season=season).order_by("-number").first()
+    )
+    payload = build_payload(season)
+    digest = content_hash(payload)
 
-        if latest is not None and latest.content_hash == digest:
-            return SaveVersionResult(
-                saved=False,
-                version_number=latest.number,
-                # ASCII only: this message travels in a response header
-                # (X-Schedule-Version-Message), where non-ASCII chars get
-                # RFC 2047-encoded and would render as "=?utf-8?q?…".
-                message=(
-                    f"No changes since v{latest.number} - no new version saved."
-                ),
-            )
-
-        number = (latest.number + 1) if latest else 1
-        version = ScheduleVersion.objects.create(
-            season=season,
-            number=number,
-            note=note.strip(),
-            content_hash=digest,
-            payload=payload,
-        )
+    if latest is not None and latest.content_hash == digest:
         return SaveVersionResult(
-            saved=True,
-            version_number=version.number,
-            message=f"Saved schedule version v{version.number}.",
+            saved=False,
+            version_number=latest.number,
+            # ASCII only: this message travels in a response header
+            # (X-Schedule-Version-Message), where non-ASCII chars get
+            # RFC 2047-encoded and would render as "=?utf-8?q?…".
+            message=f"No changes since v{latest.number} - no new version saved.",
         )
+
+    for _attempt in range(2):
+        try:
+            with transaction.atomic():
+                number = (latest.number + 1) if latest else 1
+                version = ScheduleVersion.objects.create(
+                    season=season,
+                    number=number,
+                    note=note.strip(),
+                    content_hash=digest,
+                    payload=payload,
+                    artifact=artifact,
+                    artifact_format=artifact_format,
+                )
+            return SaveVersionResult(
+                saved=True,
+                version_number=version.number,
+                message=f"Saved schedule version v{version.number}.",
+            )
+        except IntegrityError:
+            # A concurrent save took our number first — re-read and retry once.
+            latest = (
+                ScheduleVersion.objects.filter(season=season)
+                .order_by("-number")
+                .first()
+            )
+            if latest is not None and latest.content_hash == digest:
+                return SaveVersionResult(
+                    saved=False,
+                    version_number=latest.number,
+                    message=(
+                        f"No changes since v{latest.number} - no new version "
+                        "saved."
+                    ),
+                )
+    raise RuntimeError("Could not save schedule version after retry.")
+
+
+def is_current(season: Season) -> bool | None:
+    """Whether the live schedule matches the LATEST version of this season.
+
+    Returns ``True`` when identical, ``False`` when drifted, and ``None`` when
+    the season has no versions yet (nothing to compare against).
+    """
+    latest = (
+        ScheduleVersion.objects.filter(season=season)
+        .order_by("-number")
+        .first()
+    )
+    if latest is None:
+        return None
+    return latest.content_hash == content_hash(build_payload(season))
