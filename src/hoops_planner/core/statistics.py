@@ -1,5 +1,6 @@
 """Statistics computation for players and seasons."""
 
+import datetime as dt
 from collections import defaultdict
 from datetime import date
 from typing import Any
@@ -143,6 +144,64 @@ def effective_multiplier_map(
             for d in game_dates
         }
     return result
+
+
+def non_adjacent_own_team_games(
+    players: list[Player],
+    game: Game,
+    window: dt.timedelta,
+) -> set[int]:
+    """Return ids of players whose own/coached team plays on ``game.date`` at a
+    time *outside* ``window`` of ``game.time``.
+
+    A player whose team plays right before/after the task is "already at the
+    gym" and does not get flagged; only a same-day own-team game far enough
+    away that it is a genuine second commitment is returned. Computed in a few
+    queries so it can be called once per request.
+    """
+    if not players:
+        return set()
+
+    player_ids = [p.id for p in players]
+    coached_map: dict[int, list[int]] = {}
+    for row in (
+        Player.objects.filter(id__in=player_ids)
+        .prefetch_related("coached_teams")
+        .values_list("id", "coached_teams__id")
+    ):
+        _, ct_id = row
+        if ct_id is not None:
+            coached_map.setdefault(row[0], []).append(ct_id)
+    all_team_ids_by_player: dict[int, set[int]] = {
+        p.id: {p.team_id} | set(coached_map.get(p.id, [])) for p in players
+    }
+    all_team_ids: set[int] = set().union(*all_team_ids_by_player.values())
+    if not all_team_ids:
+        return set()
+
+    # Every own-team game on the task's date (excluding the task's own game).
+    own_games = list(
+        Game.objects.filter(own_team_id__in=all_team_ids, date=game.date)
+        .exclude(pk=game.pk)
+        .values_list("own_team_id", "time")
+    )
+
+    flagged: set[int] = set()
+    for p in players:
+        for tid in all_team_ids_by_player[p.id]:
+            for gtid, gtime in own_games:
+                if gtid != tid:
+                    continue
+                gap_min = abs(
+                    game.time.hour * 60 + game.time.minute
+                    - gtime.hour * 60 - gtime.minute
+                )
+                if gap_min > window.total_seconds() / 60.0:
+                    flagged.add(p.id)
+                    break
+            if p.id in flagged:
+                break
+    return flagged
 
 
 def get_season_stats(

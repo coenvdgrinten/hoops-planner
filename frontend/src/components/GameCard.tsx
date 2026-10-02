@@ -215,6 +215,14 @@ export function GameCard({
                       title="Already has another task this day"
                     />
                   )}
+                  {!!first?.own_team_game_same_day && (
+                    <span
+                      className={styles["chip-twogames"]}
+                      title={`Two games today: ${first.player.team.name} also plays on this date`}
+                    >
+                      2 games
+                    </span>
+                  )}
                   {assigned.length > 1 && <span className={styles["chip-more"]}> +{assigned.length - 1}</span>}
                 </span>
               ) : (

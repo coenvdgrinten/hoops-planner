@@ -134,6 +134,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
     effective_value = serializers.SerializerMethodField()
     has_other_task_same_day = serializers.SerializerMethodField()
     conflict_reason = serializers.SerializerMethodField()
+    own_team_game_same_day = serializers.SerializerMethodField()
 
     class Meta:
         model = TaskAssignment
@@ -148,6 +149,7 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             "effective_value",
             "has_other_task_same_day",
             "conflict_reason",
+            "own_team_game_same_day",
         ]
 
     def get_is_parent(self, obj: TaskAssignment) -> bool:
@@ -211,6 +213,27 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         if conflict_map is None:
             return None
         return conflict_map.get(obj.id)
+
+    def get_own_team_game_same_day(self, obj: TaskAssignment) -> bool:
+        """True when one of the player's teams plays on the task's date far
+        enough from the task's time to be a genuine second commitment.
+
+        A player whose team plays right before/after the task (within the
+        adjacent window) is "already at the gym" and is not flagged; only a
+        same-day own-team game outside that window is — e.g. their team VSE-2
+        plays at 11:15 and they referee another game at 17:15. Uses the
+        precomputed set from the view when available, else falls back to a
+        per-player check.
+        """
+        two_game_players = self.context.get("two_game_players")
+        if two_game_players is not None:
+            return obj.player_id in two_game_players
+        from hoops_planner.core import statistics as stats_logic
+        from hoops_planner.core.suggestions import ADJACENT_TIME_WINDOW
+
+        return obj.player_id in stats_logic.non_adjacent_own_team_games(
+            [obj.player], obj.task.game, ADJACENT_TIME_WINDOW
+        )
 
     def create(self, validated_data):
         task = validated_data["task"]

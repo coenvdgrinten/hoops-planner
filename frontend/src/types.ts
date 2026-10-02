@@ -75,12 +75,11 @@ export interface TaskAssignment {
   player: Player;
   assigned_at: string;
   is_parent: boolean;
-  /** How much this assignment counts toward the player's effective total (1 or 2). */
   effective_value?: number;
-  /** True when the player holds another task on the same date. */
   has_other_task_same_day?: boolean;
   /** Why this assignment is no longer valid, or null when valid. */
   conflict_reason?: string | null;
+  own_team_game_same_day?: boolean;
 }
 
 export interface EligiblePlayer {

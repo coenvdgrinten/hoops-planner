@@ -514,6 +514,114 @@ class TestGameViewSet:
             == "Team has an away game on the same day"
         )
 
+    def test_tasks_with_assignments_own_team_game_same_day(
+        self, api_client, player, season
+    ):
+        # The player referees another team's game at 17:15 while their own
+        # team also plays at 11:15 on the same date → two games that day.
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        Game.objects.create(
+            season=season,
+            own_team=player.team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(11, 15),
+            court=Game.Court.COURT_1,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(17, 15),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        response = api_client.get(f"/api/games/{game.id}/tasks_with_assignments/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data[0]["assignments"][0]["own_team_game_same_day"] is True
+
+    def test_tasks_with_assignments_no_own_team_game_same_day(
+        self, api_client, player, season
+    ):
+        # The player's own team has no game on the task's date → single game.
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(17, 15),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        response = api_client.get(f"/api/games/{game.id}/tasks_with_assignments/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data[0]["assignments"][0]["own_team_game_same_day"] is False
+
+    def test_tasks_with_assignments_adjacent_own_team_game_not_flagged(
+        self, api_client, player, season
+    ):
+        # The player's team plays at 11:15 and the task is at 13:00 — within
+        # the 2h adjacent window, so they are "already at the gym" and the
+        # two-games indicator must NOT fire.
+        other_team = Team.objects.create(
+            name="Vido X14-2",
+            age_category=Team.AgeCategory.X14,
+        )
+        Game.objects.create(
+            season=season,
+            own_team=player.team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(11, 15),
+            court=Game.Court.COURT_1,
+        )
+        game = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Opponent",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(13, 0),
+            court=Game.Court.COURT_1,
+        )
+        task = Task.objects.create(
+            game=game,
+            task_type=TaskType.SCORER,
+            slot_number=1,
+        )
+        TaskAssignment.objects.create(player=player, task=task)
+
+        response = api_client.get(f"/api/games/{game.id}/tasks_with_assignments/")
+        assert response.status_code == 200
+        data = response.json()
+        assert data[0]["assignments"][0]["own_team_game_same_day"] is False
+
 
 @pytest.mark.django_db
 class TestTaskViewSet:

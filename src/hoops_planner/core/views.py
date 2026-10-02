@@ -360,6 +360,11 @@ class GameViewSet(viewsets.ModelViewSet):
         # Assignments that became invalid after roster/schedule changes, so
         # the UI can flag them. Batched in a few queries (see the helper).
         conflict_reason_map = find_conflicts_for_game(game)
+        # Players whose own team plays on this date far enough from the task's
+        # time to be a genuine second commitment (not just "already at the gym").
+        two_game_players = stats_logic.non_adjacent_own_team_games(
+            players, game, suggestion_logic.ADJACENT_TIME_WINDOW
+        )
         serializer = TaskWithAssignmentsSerializer(
             tasks,
             many=True,
@@ -367,6 +372,7 @@ class GameViewSet(viewsets.ModelViewSet):
                 "effective_multiplier_map": multiplier_map,
                 "same_day_multi_players": same_day_multi,
                 "conflict_reason_map": conflict_reason_map,
+                "two_game_players": two_game_players,
             },
         )
         return Response(serializer.data)

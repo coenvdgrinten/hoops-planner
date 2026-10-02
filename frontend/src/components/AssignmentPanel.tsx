@@ -201,6 +201,15 @@ export function AssignmentPanel({
                     {a.player.team.name}
                   </span>
                 </div>
+                {a.own_team_game_same_day && (
+                  <span
+                    data-testid={`own-team-game-${a.id}`}
+                    className={styles["twogames-badge"]}
+                    title={`Two games today: ${a.player.team.name} also plays on this date`}
+                  >
+                    2 games
+                  </span>
+                )}
                 {a.effective_value != null && (
                   <span
                     data-testid={`effective-value-${a.id}`}
