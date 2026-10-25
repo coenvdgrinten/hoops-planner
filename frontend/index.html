@@ -42,20 +42,52 @@
       visibility: hidden;
       pointer-events: none;
     }
+    .splash-stage {
+      position: relative;
+    }
     .splash-ball {
       width: 150px;
       height: 150px;
-      filter: drop-shadow(0 12px 28px rgba(249, 115, 22, 0.35));
+      display: block;
+      transform-origin: bottom center;
+      filter: drop-shadow(0 8px 18px rgba(234, 88, 12, 0.28));
       animation: splash-bounce 1.6s cubic-bezier(0.36, 0, 0.64, 1) infinite;
     }
+    /* Ground shadow stays fixed on the "floor" while the ball bounces above
+       it. It shrinks and fades as the ball rises, grows and darkens as it
+       lands — synced to the same 1.6s timeline as the bounce. */
+    .splash-shadow {
+      position: absolute;
+      bottom: -16px;
+      left: 50%;
+      width: 132px;
+      height: 24px;
+      margin-left: -66px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 70%);
+      animation: splash-shadow 1.6s cubic-bezier(0.36, 0, 0.64, 1) infinite;
+    }
+    /* Squash-and-stretch: maximum compression happens exactly at the moment of
+       floor contact (0%/100%), then the ball springs back to normal shape and
+       travels through the air. Keyframe spacing keeps the ball fast near the
+       floor and slow near the apex, mimicking gravity. */
     @keyframes splash-bounce {
-      0%, 100% { transform: translateY(0) scale(1, 1); }
-      42% { transform: translateY(-34px) scale(1, 1); }
-      50% { transform: translateY(-38px) scale(1.02, 0.98); }
-      58% { transform: translateY(-34px) scale(1, 1); }
-      74% { transform: translateY(0) scale(1.14, 0.86); }
-      84% { transform: translateY(0) scale(0.96, 1.04); }
-      92% { transform: translateY(0) scale(1, 1); }
+      0%   { transform: translateY(0)     scale(1.22, 0.78); }
+      10%  { transform: translateY(-10px) scale(0.97, 1.03); }
+      22%  { transform: translateY(-26px) scale(1, 1); }
+      50%  { transform: translateY(-42px) scale(1, 1); }
+      78%  { transform: translateY(-26px) scale(1, 1); }
+      90%  { transform: translateY(-10px) scale(1.02, 0.98); }
+      100% { transform: translateY(0)     scale(1.22, 0.78); }
+    }
+    @keyframes splash-shadow {
+      0%   { transform: scaleX(1);    opacity: 0.5; }
+      10%  { transform: scaleX(0.82); opacity: 0.38; }
+      22%  { transform: scaleX(0.68); opacity: 0.28; }
+      50%  { transform: scaleX(0.5);  opacity: 0.16; }
+      78%  { transform: scaleX(0.68); opacity: 0.28; }
+      90%  { transform: scaleX(0.82); opacity: 0.38; }
+      100% { transform: scaleX(1);    opacity: 0.5; }
     }
     .splash-name {
       display: flex;
@@ -95,6 +127,8 @@
   <body>
     <div id="root"></div>
     <div id="splash" aria-hidden="true">
+      <div class="splash-stage">
+      <div class="splash-shadow"></div>
       <svg class="splash-ball" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <radialGradient id="ballGradSplash" cx="38%" cy="32%" r="78%">
@@ -117,6 +151,7 @@
           <circle cx="512" cy="512" r="480" fill="none" stroke="#111111" stroke-width="34"/>
         </g>
       </svg>
+      </div>
       <div class="splash-name">HOOPS <em>PLANNER</em></div>
       <div class="splash-bar"><span></span></div>
     </div>
