@@ -306,17 +306,21 @@ def _player_team_is_lower_age_than_game_team(player: Player, game: Game) -> bool
 
 
 def _player_lacks_required_referee_certification(player: Player, game: Game) -> bool:
-    """Player lacks the required referee certification for the game level.
+    """True when the player holds no referee certification at all.
 
-    Rules:
-    - Must have at least an F-diploma to referee
-    - SENIOR certification qualifies for any game
+    Any certification qualifies (T1–T6, F-diploma, SENIOR); only NONE
+    disqualifies.
     """
     return player.referee_certification == Player.RefereeCertification.NONE
 
 
 def _age_category_index(category: str) -> int:
-    """Return the index of an age category in the ordering."""
+    """Return the index of an age category in the ordering.
+
+    Unknown categories fall back to 0 (youngest) so a mis-categorised team is
+    treated conservatively in the referee-age check (more likely to be ruled
+    out rather than allowed onto an older game).
+    """
     try:
         return AGE_CATEGORY_ORDER.index(category)
     except ValueError:
@@ -452,15 +456,21 @@ def _find_conflicts_batch(
     # (INCLUDING the scanned assignments themselves, so a same-game
     # duplicate is caught too; each assignment excludes itself below).
     # Same-DAY assignments at a different time are NOT conflicts — they
-    # are the 2x-multiplier case.
+    # are the 2x-multiplier case. The game-id map lets the check tell a
+    # same-GAME duplicate from a same-TIME one, matching the two distinct
+    # reasons in ``get_ineligibility_reason``.
     same_slot_ids: dict[tuple[int, dt.date, dt.time], set[int]] = {}
+    slot_assignment_game: dict[int, int] = {}
     for row in TaskAssignment.objects.filter(
         task__game__date__in={a.task.game.date for a in assignments}
-    ).values_list("id", "player_id", "task__game__date", "task__game__time"):
-        assignment_id, player_id, date_, time_ = row
+    ).values_list(
+        "id", "player_id", "task__game__date", "task__game__time", "task__game_id"
+    ):
+        assignment_id, player_id, date_, time_, game_id = row
         same_slot_ids.setdefault((player_id, date_, time_), set()).add(
             assignment_id
         )
+        slot_assignment_game[assignment_id] = game_id
 
     # --- Age categories for the referee age check ---
     age_by_team: dict[int, str] = dict(
@@ -477,41 +487,43 @@ def _find_conflicts_batch(
         reason: str | None = None
         if player.is_exempt:
             reason = "Exempt from task assignments"
-        elif team_ids & other_home_by_game[game.id]:
-            reason = "Team has a home game at the same time"
-        elif team_ids & away_same_day_ids:
-            reason = "Team has an away game on the same day"
-        elif game.own_team_id in team_ids and not (
-            assignment.task.task_type in (TaskType.SCORER, TaskType.TIMER)
-            and game.own_team.parent_responsible
-        ):
-            reason = "Cannot be assigned to own team's game"
-        elif assignment.task.task_type == TaskType.REFEREE:
-            cats = {age_by_team[tid] for tid in team_ids if tid in age_by_team}
-            if not (cats & {"VSE", "MSE"}):
-                highest = max(
-                    (
-                        _age_category_index(age_by_team[tid])
-                        for tid in team_ids
-                        if tid in age_by_team
-                    ),
-                    default=0,
-                )
-                if highest < _age_category_index(game.own_team.age_category):
-                    reason = "Player's team is younger than game team"
-            if reason is None and (
-                player.referee_certification
-                == Player.RefereeCertification.NONE
-            ):
-                reason = "Missing required referee certification"
-        # Double-booking is checked last (for every task type), matching the
-        # order of the single-player disqualification rules.
-        if reason is None:
-            other_at_time = same_slot_ids.get(
+        else:
+            # Double-booking first (for every task type), matching the order
+            # of the single-player disqualification rules.
+            others = same_slot_ids.get(
                 (player.id, game.date, game.time), set()
             ) - {assignment.id}
-            if other_at_time:
+            if any(slot_assignment_game[a] == game.id for a in others):
+                reason = "Already assigned to this game"
+            elif others:
                 reason = "Already assigned to another task at this time"
+            elif team_ids & other_home_by_game[game.id]:
+                reason = "Team has a home game at the same time"
+            elif team_ids & away_same_day_ids:
+                reason = "Team has an away game on the same day"
+            elif game.own_team_id in team_ids and not (
+                assignment.task.task_type in (TaskType.SCORER, TaskType.TIMER)
+                and game.own_team.parent_responsible
+            ):
+                reason = "Cannot be assigned to own team's game"
+            elif assignment.task.task_type == TaskType.REFEREE:
+                cats = {age_by_team[tid] for tid in team_ids if tid in age_by_team}
+                if not (cats & {"VSE", "MSE"}):
+                    highest = max(
+                        (
+                            _age_category_index(age_by_team[tid])
+                            for tid in team_ids
+                            if tid in age_by_team
+                        ),
+                        default=0,
+                    )
+                    if highest < _age_category_index(game.own_team.age_category):
+                        reason = "Player's team is younger than game team"
+                if reason is None and (
+                    player.referee_certification
+                    == Player.RefereeCertification.NONE
+                ):
+                    reason = "Missing required referee certification"
 
         if reason is not None:
             results.append((assignment, reason))

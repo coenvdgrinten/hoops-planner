@@ -1,4 +1,4 @@
-"""Minimal Django settings for testing."""
+"""Django settings for Hoops Planner (dev defaults; hardened when DEBUG=False)."""
 
 import os
 from pathlib import Path

@@ -33,6 +33,7 @@ class TeamSerializer(serializers.ModelSerializer):
         ]
 
     def get_total_tasks(self, obj) -> int:
+        """Season-wide count of tasks assigned to this team's members."""
         return TaskAssignment.objects.filter(player__team=obj).count()
 
 

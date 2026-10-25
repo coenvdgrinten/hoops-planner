@@ -69,10 +69,18 @@ def export_schedule_csv(
 
 
 def _is_parent_assignment(task: Task, assignment: TaskAssignment) -> bool:
-    """True when the player is acting as a parent for this task."""
+    """True when the player is acting as a parent for this task.
+
+    Only applies to SCORER/TIMER tasks on a ``parent_responsible`` team,
+    where the player is a member or coach of that specific team — mirroring
+    ``TaskAssignmentSerializer.get_is_parent`` and the PDF export.
+    """
     if task.task_type not in (TaskType.SCORER, TaskType.TIMER):
         return False
-    return any(t.parent_responsible for t in assignment.player.all_teams)
+    own_team = task.game.own_team
+    if not own_team.parent_responsible:
+        return False
+    return own_team in assignment.player.all_teams
 
 
 def _row(game: Any, task: Any, assignment: TaskAssignment | None) -> list[str]:
@@ -81,7 +89,7 @@ def _row(game: Any, task: Any, assignment: TaskAssignment | None) -> list[str]:
     if assignment is not None and assignment.player is not None:
         player_team = assignment.player.team.name if assignment.player.team else ""
         if _is_parent_assignment(task, assignment):
-            player_name = f"Ouder van {player_name}"
+            player_name = f"Ouder van {assignment.player.full_name}"
         else:
             player_name = assignment.player.full_name
     return [

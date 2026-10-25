@@ -247,7 +247,6 @@ def register(request):
         username=username, password=password, email=email, is_active=False
     )
 
-    # Send verification email
     EmailVerificationToken.objects.filter(user=user).delete()
     token_value = secrets.token_urlsafe(32)
     expires = timezone.now() + timedelta(hours=24)
@@ -387,7 +386,7 @@ def verify_email_request(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # Delete any existing unexpired tokens
+    # Rotate: only the newest verification link may work
     EmailVerificationToken.objects.filter(user=user).delete()
 
     token_value = secrets.token_urlsafe(32)

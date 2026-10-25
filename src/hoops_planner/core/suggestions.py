@@ -1,11 +1,21 @@
 """Task assignment suggestions based on eligibility and fairness.
 
-The suggestion algorithm ranks eligible players by:
+Terms used throughout this module:
+
+- **Effective task count** — the user-facing fairness metric (PDF "Eff."
+  column, Statistics page): each task counts 1× on a day one of the
+  player's teams plays, 2× otherwise. Defined by
+  ``statistics.get_player_stats``.
+- **Base load** — the per-player sum computed here for ranking; uses the
+  same 1×/2× rule as the effective task count, so the two always agree.
+- **Rank score** — base load plus ranking-only adjustments (parent bonus,
+  same-day penalty). Used solely to order candidates; never displayed.
+
+Candidates are ranked by:
 1. Already at the gym (strong priority) — the player's team has a home
    game within the adjacent time window (default 2 hours) before or
    after the task's game.
-2. Lowest effective task counter (tie-breaker) — among eligible players,
-   those with the lowest personal task counter are suggested first.
+2. Lowest rank score (tie-breaker).
 """
 
 import datetime as dt
@@ -24,25 +34,25 @@ from hoops_planner.core.models import (
 )
 
 # Team ordering for display (oldest to youngest), matching the MemberView.
-CATEGORY_ORDER = ["MSE", "VSE", "M16", "X16", "X14", "X12", "X10"]
+CATEGORY_ORDER = ["MSE", "M22", "M18", "M16", "VSE", "X16", "X14", "X12", "X10"]
 
 # Players whose team has a home game within this window are considered
 # "already at the gym".
 ADJACENT_TIME_WINDOW = dt.timedelta(hours=2)
 
-# Credit (in effective-task units) given to a parent filling a scorer/timer
-# slot for their own kid's team. It nudges parents up the ranking at equal
-# load without making them unbeatable: a noticeably lighter non-parent can
-# still outrank a heavily loaded parent.
+# Ranking-only credit (in base-load units) given to a parent filling a
+# scorer/timer slot for their own kid's team. Nudges parents up the rank
+# score at equal load without making them unbeatable: a noticeably lighter
+# non-parent can still outrank a heavily loaded parent. Never displayed.
 PARENT_TASK_BONUS = 1.0
 
 # Ranking-only surcharge for players who already work a task on the target
-# day. Deliberately kept out of the effective task count itself, which must
-# stay consistent with the statistics rule (tasks on a day one of the
-# player's teams plays count single). It makes a same-day task weigh 3x in
-# the ranking (1x counted + 2x penalty); without it, a player whose team
-# plays later that day would outrank a free teammate despite already being
-# double-booked for the evening.
+# day. Kept out of the base load, which must stay identical to the
+# effective task count (statistics rule). It makes a same-day task weigh
+# 3× in the rank score when the player's team also plays that day (1×
+# counted + 2× penalty) and 4× otherwise (2× + 2×); without it, a player
+# whose team plays later that day would outrank a free teammate despite
+# already being double-booked for the evening.
 SAME_DAY_TASK_PENALTY = 2.0
 
 
@@ -72,13 +82,13 @@ def suggest_candidates(
 
     info = _batch_position_and_count(eligible, task.game)
 
-    # Rank key: players with an adjacent game first, then by effective task
-    # count. Players who already work a task on the target day get a small
-    # penalty so a free teammate outranks them at equal load — even when
-    # their own team plays that day (which would otherwise count single).
-    # Parents filling a scorer/timer slot for their own kid's team get a
-    # bonus so they're preferred at equal load, but a lighter non-parent
-    # can still outrank a heavily loaded parent.
+    # Rank key: players with an adjacent game first, then by rank score
+    # (base load + adjustments). Players who already work a task on the
+    # target day get a penalty so a free teammate outranks them at equal
+    # load — even when their own team plays that day (which would
+    # otherwise count single). Parents filling a scorer/timer slot for
+    # their own kid's team get a bonus so they're preferred at equal load,
+    # but a lighter non-parent can still outrank a heavily loaded parent.
     def _rank(p: Player) -> tuple[int, float]:
         position, count, has_same_day_task, boost_allowed = info[p.id]
         eff_position = position if boost_allowed else None
@@ -98,7 +108,7 @@ def get_candidate_details(
 ) -> list[tuple[Player, float, str | None, str, bool]]:
     """Return candidate details with task count, at_gym flag, and suggestion reason.
 
-    Each tuple is (player, effective_task_count, game_position, suggestion_reason,
+    Each tuple is (player, base_load, game_position, suggestion_reason,
     has_other_task_same_day). game_position is "before" | "after" | None.
     suggestion_reason explains why this player is suggested.
     """
@@ -117,7 +127,7 @@ def get_candidate_details(
         reason = _get_suggestion_reason(eff_position, count, is_parent)
         results.append((player, count, eff_position, reason, has_same_day_task))
 
-    # Sort: players with a game (before/after) first, then by count
+    # Sort: players with a game (before/after) first, then by rank score
     # (ascending). Players already working a task on the target day get a
     # small penalty; parents get a bonus so they're preferred at equal load,
     # but a lighter non-parent can still outrank a heavily loaded parent.
@@ -141,15 +151,16 @@ def _batch_position_and_count(
     players: list[Player],
     game: Game,
 ) -> dict[int, tuple[str | None, float, bool, bool]]:
-    """Compute (adjacent-game position, effective task count, same-day flag,
-    at-gym boost allowed).
+    """Compute (adjacent-game position, base load, same-day flag, at-gym
+    boost allowed).
 
     Returns ``{player_id: (position, count, has_same_day_task, boost_allowed)}``
     where position is "before", "after" or None and ``has_same_day_task`` is
     True when the player already works a task on the target day. The count
-    itself matches the statistics rule (tasks on a day one of the player's
-    teams plays count single); the same-day flag is applied as a ranking-only
-    penalty by the callers so the displayed task load stays honest.
+    is the base load — the effective-task-count rule (1× on a day one of
+    the player's teams plays, 2× otherwise); the same-day flag is applied
+    as a ranking-only penalty by the callers so the displayed task load
+    stays honest.
 
     ``boost_allowed`` is False for members of a ``parent_responsible`` team
     when the target game is not one of their own teams' games — such parents
@@ -214,7 +225,7 @@ def _batch_position_and_count(
         # Parenting-rule member: only boost for their own teams' games.
         return game.own_team_id in team_ids
 
-    # --- Effective task counts ---
+    # --- Base loads ---
     assignments_by_player: dict[int, list[TaskAssignment]] = {}
     for a in TaskAssignment.objects.filter(player_id__in=player_ids).select_related(
         "task__game"
@@ -229,7 +240,11 @@ def _batch_position_and_count(
             team_game_dates_map.setdefault(tid, set()).add(d)
 
     def _count(player: Player) -> tuple[float, bool]:
-        """Return (effective task count, has_a_task_on_the_target_day)."""
+        """Return (base load, has_a_task_on_the_target_day).
+
+        Uses the effective-task-count rule (1×/2×); the same-day signal is
+        carried by the flag, applied as a ranking penalty by the callers.
+        """
         assignments = assignments_by_player.get(player.id, [])
         player_team_game_dates: set[dt.date] = set()
         for tid in all_team_ids_by_player[player.id]:
@@ -240,8 +255,6 @@ def _batch_position_and_count(
             task_game_date = assignment.task.game.date
             if task_game_date in player_team_game_dates:
                 multiplier = 1.0
-            elif task_game_date == game.date:
-                multiplier = 3.0
             else:
                 multiplier = 2.0
             total += multiplier
@@ -269,7 +282,6 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
     all_players = list(Player.objects.all().select_related("team"))
     eligibility = evaluate_player_eligibility_batched(task, all_players)
 
-    # --- Teams, ordered oldest-to-youngest then by name ---
     all_teams = Team.objects.all().order_by("name")
     all_teams = sorted(
         all_teams,
@@ -292,7 +304,6 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
         ).values_list("own_team_id", flat=True)
     )
 
-    # --- Group players by team for display ---
     players_by_team: dict[int, list[Player]] = {}
     for p in all_players:
         players_by_team.setdefault(p.team_id, []).append(p)
@@ -328,7 +339,6 @@ def get_team_eligibility(task: Task) -> list[dict[str, Any]]:
                 }
             )
 
-        # Sort players by name
         players.sort(key=lambda p: p["player"].full_name)
 
         eligible_count = sum(1 for p in players if p["eligible"])

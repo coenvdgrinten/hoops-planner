@@ -280,12 +280,15 @@ class TestFindConflictsForGame:
 
         result = find_conflicts_for_game(game)
         assert len(result) == 1
-        expected = "Team has an away game on the same day"
+        # Double-booking (the player also works other_game at the same time)
+        # outranks the away-day rule, matching write-time validation.
+        expected = "Already assigned to another task at this time"
         assert all(v == expected for v in result.values())
 
     def test_reason_priority_when_several_rules_fire(self, season):
         """When several rules fire, the FIRST rule in the disqualification
-        order wins (exemption beats schedule rules beat double-booking)."""
+        order wins (exemption beats double-booking beats schedule rules
+        beats referee rules) — matching get_ineligibility_reason."""
         team_a = make_team("Vido X14-1", Team.AgeCategory.X14)
         team_b = make_team("Vido X10-1", Team.AgeCategory.X10)
         team_c = make_team("Vido X12-1", Team.AgeCategory.X12)
@@ -307,9 +310,11 @@ class TestFindConflictsForGame:
         task2 = Task.objects.create(game=game2, task_type=TaskType.TIMER)
         TaskAssignment.objects.create(player=player, task=task2)
 
-        # Away-day rule outranks double-booking and certification.
+        # Double-booking outranks the away-day rule and certification.
         result = find_conflicts_for_game(game)
-        assert result[assignment.id] == "Team has an away game on the same day"
+        assert (
+            result[assignment.id] == "Already assigned to another task at this time"
+        )
 
         # Exemption outranks everything.
         player.is_exempt = True

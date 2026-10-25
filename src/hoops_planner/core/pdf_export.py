@@ -237,6 +237,7 @@ def _build_html(
         html_parts.append("</tr>")
 
         day_games = by_date[game_date]
+        # Gym setup starts 30 minutes before the day's first game.
         first_time = day_games[0].time
         if first_time.minute >= 30:
             setup_time = first_time.replace(minute=first_time.minute - 30)
@@ -255,6 +256,8 @@ def _build_html(
             row = _build_game_row_html(game, assigned, max_referees, has_24sec)
             html_parts.append(f"<tr>{row}</tr>")
 
+        # Teardown is anchored to the last game's start (not its end) so
+        # clearing begins as the final game is underway.
         cleanup_time = day_games[-1].time
         html_parts.append(
             f'<tr class="setup-row">'
@@ -410,9 +413,10 @@ def _build_team_summary_html(
 ) -> str:
     """Build a per-team total task count section.
 
-    Mirrors the "NT" indicator in the UI: how many tasks each team's members
-    have been assigned this season, giving context for fair distribution
-    across differently-sized teams. Also shows the average tasks per member.
+    Mirrors the team total-tasks badge in the UI: how many tasks each team's
+    members have been assigned this season, giving context for fair
+    distribution across differently-sized teams. Also shows the average tasks
+    per member.
 
     ``games`` scopes which games' assignments are counted (issue #9);
     ``None`` means the whole season. Member counts stay roster-wide, so
@@ -477,12 +481,13 @@ def _build_team_summary_html(
 def _build_player_summary_html(
     season: Season, games: QuerySet[Game] | None = None
 ) -> str:
-    """Build player summary HTML sections, grouped by team."
+    """Build player summary HTML sections, grouped by team.
 
     Instead of one flat alphabetical list, players are split into a section
     per team so each team's member statistics sit together. Includes an
-    "Eff." column showing the multiplier-weighted total (2× when the
-    player's team has no game that day), matching the app's fairness logic.
+    "Eff." column showing the effective task count (2× when the player's
+    team has no game that day), matching the app's fairness logic (see
+    ``statistics.get_player_stats``).
 
     ``games`` scopes which games' assignments are counted (issue #9);
     ``None`` means the whole season. Players with no assignments in scope

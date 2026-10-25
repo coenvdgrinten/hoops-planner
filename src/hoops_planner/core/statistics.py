@@ -25,6 +25,10 @@ def get_player_stats(
 ) -> dict[str, Any]:
     """Compute statistics for a single player, optionally filtered by season and half.
 
+    This is the effective task count — the user-facing fairness metric also
+    shown in the PDF export. The suggestion system's internal rank score is
+    built on top of this rule (see ``suggestions.py``).
+
     Returns:
         {
             "total_tasks": int,
@@ -34,7 +38,6 @@ def get_player_stats(
             "games_without_own_team": int,
         }
     """
-    # Get all assignments for this player
     assignments = player.assignments.select_related("task__game")
     if season:
         assignments = assignments.filter(task__game__season=season)
@@ -61,7 +64,6 @@ def get_player_stats(
         total += 1
         by_type[task.task_type] += 1
 
-        # Check if player's team has a game on this day
         has_own_game = game.date in team_game_dates
 
         if has_own_game:
@@ -228,14 +230,11 @@ def get_season_stats(
         games = games.filter(half=half)
     total_games = games.count()
 
-    # Build game ID set for filtering tasks/assignments
     game_ids = games.values_list("pk", flat=True)
 
-    # All task slots in this season (optionally filtered by half)
     task_slots = Task.objects.filter(game__id__in=game_ids)
     total_task_slots = task_slots.count()
 
-    # All assignments in this season
     assignments = TaskAssignment.objects.filter(
         task__game__id__in=game_ids
     ).select_related("player", "player__team", "task")
@@ -254,7 +253,6 @@ def get_season_stats(
     for task_type in open_tasks:
         open_by_task_type[task_type] += 1
 
-    # By task type
     by_task_type: dict[str, dict[str, Any]] = {}
     for task_type in TaskType.values:
         slots = Task.objects.filter(game__id__in=game_ids, task_type=task_type).count()

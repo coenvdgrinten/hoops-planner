@@ -32,7 +32,8 @@ def import_schedule(
 
     Optional CSV columns:
     half — 1 or 2 (defaults to 1)
-    game_type — "HOME" or "AWAY" (defaults to "HOME").
+    game_type — "HOME" or "AWAY" (defaults to "HOME")
+    location — venue name (defaults to "Den Ekkerman")
 
     Parameters
     ----------
@@ -76,7 +77,6 @@ def import_schedule(
         half_raw = (row.get("half") or "").strip()
         half_value = half_raw if half_raw in ("1", "2") else Game.Half.FIRST
 
-        # Parse optional game_type column (HOME or AWAY)
         game_type_raw = (row.get("game_type") or "").strip().upper()
         game_type_value = (
             game_type_raw
@@ -84,7 +84,6 @@ def import_schedule(
             else Game.GameType.HOME
         )
 
-        # Parse optional location column
         location_raw = row.get("location")
         if location_raw is not None:
             location_value = location_raw.strip() or "Den Ekkerman"
@@ -150,8 +149,8 @@ def import_schedule(
 def _match_or_create_game(game_data: dict[str, Any]) -> tuple[Game, bool]:
     """Try to find an existing game matching the CSV row, or create one.
 
-    Matching is done on (season, date, own_team, opponent) to handle
-    cases where court or time changed but it's the same fixture.
+    Matching is done on (season, date, own_team, opponent, game_type) to
+    handle cases where court or time changed but it's the same fixture.
     Falls back to (season, date, time, court) if no match on teams.
     """
     # Primary match: same date + same teams + same type (handles court/time changes)
@@ -175,7 +174,6 @@ def _match_or_create_game(game_data: dict[str, Any]) -> tuple[Game, bool]:
     if game:
         return game, False
 
-    # No match — create new
     return Game.objects.create(**game_data), True
 
 
@@ -190,23 +188,19 @@ def _ensure_task_slots(game: Game) -> int:
     team = game.own_team
     tasks_to_create: list[Task] = []
 
-    # Scorer — per-team setting
     if team.require_scorer:
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.SCORER, slot_number=1)
         )
 
-    # Timer — per-team setting
     if team.require_timer:
         tasks_to_create.append(Task(game=game, task_type=TaskType.TIMER, slot_number=1))
 
-    # 24 Second Operator — per-team setting
     if team.requires_24_second_operator:
         tasks_to_create.append(
             Task(game=game, task_type=TaskType.SECOND_24_OPERATOR, slot_number=1)
         )
 
-    # Referees — required slots first, then optional slots
     required = int(team.required_referees)
     optional = int(team.optional_referees)
     for slot in range(1, required + optional + 1):
@@ -254,7 +248,8 @@ def _infer_age_category(team_name: str) -> str:
                 re.IGNORECASE,
             ):
                 return category
-    return Team.AgeCategory.X14  # sensible default
+    # X14 is the most common imported age category, so it's the safe default.
+    return Team.AgeCategory.X14
 
 
 def import_members(
@@ -270,7 +265,7 @@ def import_members(
     coached_teams — comma-separated list of team names this player coaches
     is_exempt — whether the player is exempt from tasks (board members)
 
-    referee_certification can be: NONE, T1, T2, T3, T4, T5, T6
+    referee_certification can be: NONE, T1, T2, T3, T4, T5, T6, F, SENIOR
     is_coach / is_exempt can be: True/False, yes/no, 1/0
 
     Returns a summary dict with counts of created/updated objects.
@@ -296,11 +291,9 @@ def import_members(
         is_exempt = _parse_bool(row.get("is_exempt", "False"))
         cert = row.get("referee_certification", "NONE").strip().upper()
 
-        # Validate certification value
         if cert not in Player.RefereeCertification.values:
             cert = Player.RefereeCertification.NONE
 
-        # Parse coached_teams if provided
         coached_teams_raw = row.get("coached_teams", "").strip()
         coached_team_names = [
             t.strip() for t in coached_teams_raw.split(",") if t.strip()

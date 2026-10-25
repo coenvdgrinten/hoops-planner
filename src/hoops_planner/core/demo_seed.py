@@ -308,6 +308,7 @@ def _build_schedule_csv(season_name: str) -> str:
     lines = ["date,time,court,home_team,away_team,game_type,half"]
     idx = 0
     for day in dates:
+        # Club season split: Sep–Dec is the first half, Jan–Aug the second.
         half = "1" if day.month in (9, 10, 11, 12) else "2"
         for time_slot in _TIMES:
             for court in _COURTS:

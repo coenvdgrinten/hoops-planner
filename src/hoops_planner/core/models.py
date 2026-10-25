@@ -137,6 +137,7 @@ class SiteConfig(models.Model):
 
     @classmethod
     def load(cls) -> "SiteConfig":
+        """Return the singleton config row, creating it on first use."""
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
@@ -212,7 +213,6 @@ class Game(models.Model):
 
     @property
     def time_slot_key(self) -> str:
-        """Unique key for the time slot (date + time)."""
         return f"{self.date}T{self.time}"
 
 
@@ -413,7 +413,7 @@ class EmailVerificationToken(models.Model):
         ordering = ["-created_at"]
 
     def is_valid(self) -> bool:
-        """Return True if the token has not expired."""
+        """True if the token is unexpired (single-use; deleted on verification)."""
         from django.utils import timezone
 
         return self.expires_at >= timezone.now()

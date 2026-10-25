@@ -11,7 +11,7 @@ TASK_LABELS: dict[str, str] = {
     TaskType.SECOND_24_OPERATOR: "Tafelen (24 sec.)",
 }
 
-# Default game duration: 2 hours
+# Assumed event length for calendar entries (a typical game plus warm-up).
 DEFAULT_GAME_DURATION = timedelta(hours=2)
 
 
@@ -19,7 +19,6 @@ def export_schedule_ics(season: Season) -> bytes:
     """Generate an .ics calendar file with one event per task slot."""
     games = list(season.games.all().order_by("date", "time", "court"))
 
-    # Pre-fetch all tasks
     game_ids = [g.id for g in games]
     tasks = (
         Task.objects.filter(game__id__in=game_ids)

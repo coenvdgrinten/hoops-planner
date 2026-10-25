@@ -477,7 +477,6 @@ class GameViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         game = serializer.save()
-        # Auto-create task slots for new games
         from hoops_planner.core.importers import _ensure_task_slots
 
         _ensure_task_slots(game)
@@ -678,11 +677,9 @@ class AvailabilityViewSet(viewsets.ViewSet):
             .order_by("date", "time")
         )
 
-        # Group away games by date
         by_date: dict[str, list[dict[str, object]]] = {}
         for game in away_games:
             team = game.own_team
-            # Members made unavailable: players on the team + anyone coaching it
             players = list(
                 Player.objects.filter(team=team).values(
                     "id", "first_name", "last_name", "is_coach"
@@ -693,7 +690,6 @@ class AvailabilityViewSet(viewsets.ViewSet):
                     "id", "first_name", "last_name", "is_coach"
                 )
             )
-            # Merge, de-duplicating by player id
             seen = set()
             members = []
             for p in players + coaches_of_team:
@@ -770,12 +766,15 @@ def game_ics(request):
 
 def _generate_single_game_ics(game: Game, task=None) -> bytes:
     """Generate a .ics file for a single game (public endpoint — no PII)."""
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
-    from hoops_planner.core.calendar_export import TASK_LABELS
+    from hoops_planner.core.calendar_export import (
+        DEFAULT_GAME_DURATION,
+        TASK_LABELS,
+    )
 
     dtstart = datetime.combine(game.date, game.time)
-    dtend = dtstart + timedelta(hours=2)
+    dtend = dtstart + DEFAULT_GAME_DURATION
     if task:
         label = TASK_LABELS.get(task.task_type, task.task_type)
         summary = f"{label} {game.own_team} vs {game.opponent}"
