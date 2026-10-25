@@ -95,10 +95,15 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   // 204 No Content has no body to parse
   if (res.status === 204) return undefined as T;
   const json = await res.json();
-  // DRF pagination wraps list responses in {count, next, previous, results}.
-  // Unwrap to the bare array so callers can keep treating lists as arrays.
-  // Follow `next` links so the UI always receives the complete dataset even
-  // when a list spans multiple pages.
+  return unwrapPaginated<T>(json, headers);
+}
+
+type ApiPayload<T> = T | Paginated<T>;
+
+async function unwrapPaginated<T>(
+  json: ApiPayload<T>,
+  headers: Record<string, string>,
+): Promise<T> {
   if (
     json &&
     typeof json === "object" &&
@@ -153,22 +158,20 @@ export function createSeason(name: string) {
   });
 }
 
-/** Options for exporting a schedule (issue #3: optional snapshot on export). */
 export interface ExportOptions {
-  /** Also capture an immutable snapshot of the whole season. */
   saveVersion?: boolean;
-  /** Free-text note stored with the snapshot. */
   note?: string;
+  half?: "1" | "2";
+  /** Mutually exclusive with `half`. */
+  gameIds?: number[];
+  /** PDF only — ignored for CSV. */
+  fullSeasonStats?: boolean;
 }
 
-/** Result of a schedule export download. */
 export interface ExportResult {
-  /** Suggested filename of the downloaded file. */
   filename: string;
-  /** Version number when a NEW snapshot was saved; null otherwise (not
-   * requested, or deduped against the latest version — see `versionMessage`). */
+  /** Null when no snapshot was requested or it was deduped. */
   versionNumber: number | null;
-  /** Backend message about the snapshot outcome, when one was requested. */
   versionMessage: string | null;
 }
 
@@ -195,6 +198,20 @@ export async function exportSeasonIcs(seasonId: number, seasonName: string) {
   return downloadSeasonExport(seasonId, seasonName, "ics");
 }
 
+interface VersionOutcome {
+  versionNumber: number | null;
+  versionMessage: string | null;
+}
+
+/** Read the snapshot-outcome headers set by the backend on export responses. */
+function parseVersionHeaders(res: Response, saveVersion: boolean): VersionOutcome {
+  const h = res.headers.get("X-Schedule-Version");
+  return {
+    versionNumber: h ? Number(h.replace(/^v/, "")) : null,
+    versionMessage: saveVersion ? (res.headers.get("X-Schedule-Version-Message") ?? null) : null,
+  };
+}
+
 async function downloadSeasonExport(
   seasonId: number,
   seasonName: string,
@@ -205,6 +222,14 @@ async function downloadSeasonExport(
   if (options.saveVersion) {
     params.set("save_version", "1");
     if (options.note) params.set("note", options.note);
+  }
+  if (options.gameIds && options.gameIds.length > 0) {
+    params.set("game_ids", options.gameIds.join(","));
+  } else if (options.half) {
+    params.set("half", options.half);
+  }
+  if (options.fullSeasonStats) {
+    params.set("full_season_stats", "1");
   }
   const query = params.toString();
   const token = getToken();
@@ -220,16 +245,10 @@ async function downloadSeasonExport(
     }
     throw new Error(`Export failed: ${res.status}`);
   }
-  // The backend reports the snapshot outcome via response headers so the
-  // binary download itself stays untouched:
-  //   X-Schedule-Version: vN            → a new version N was saved
-  //   X-Schedule-Version-Status: skipped
-  //   X-Schedule-Version-Message: <msg>
-  const versionHeader = res.headers.get("X-Schedule-Version");
-  const versionNumber = versionHeader ? Number(versionHeader.replace(/^v/, "")) : null;
-  const versionMessage = options.saveVersion
-    ? (res.headers.get("X-Schedule-Version-Message") ?? null)
-    : null;
+  const { versionNumber, versionMessage } = parseVersionHeaders(
+    res,
+    !!options.saveVersion,
+  );
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

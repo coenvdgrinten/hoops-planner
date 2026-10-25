@@ -1,10 +1,13 @@
 """API views for Hoops Planner."""
 
+from typing import Literal
+
 from django.conf import settings
 from django.db.models import Count
 from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
@@ -65,6 +68,48 @@ def _maybe_save_version(
     return save_version(
         season, note, artifact=artifact, artifact_format=artifact_format
     )
+
+
+def _parse_export_scope(
+    request,
+) -> tuple[Literal["1", "2"] | None, list[int] | None]:
+    """Parse and validate the optional ``half`` / ``game_ids`` query params.
+
+    Returns ``(half, game_ids)`` — each ``None`` when absent (whole season).
+    An invalid value is a 400: unlike the stats endpoints (where an unknown
+    half just yields empty numbers), an invalid scope here would render an
+    empty document (issue #9).
+    """
+    half = request.query_params.get("half")
+    raw_ids = request.query_params.get("game_ids")
+    if half is not None and raw_ids is not None:
+        raise ValidationError(
+            {"detail": "Provide either 'half' or 'game_ids', not both."}
+        )
+    if half is not None:
+        if half not in ("1", "2"):
+            raise ValidationError({"half": 'Must be "1" or "2".'})
+        return half, None
+    if raw_ids is not None:
+        try:
+            ids = [int(part) for part in raw_ids.split(",") if part.strip()]
+        except ValueError as err:
+            raise ValidationError(
+                {"game_ids": "Must be a comma-separated list of integers."}
+            ) from err
+        if not ids:
+            raise ValidationError({"game_ids": "Provide at least one game id."})
+        return None, ids
+    return None, None
+
+
+def _validate_game_ids(season: Season, game_ids: list[int]) -> None:
+    """Reject game ids that don't belong to this season (issue #9)."""
+    found = season.games.filter(pk__in=set(game_ids)).count()
+    if found != len(set(game_ids)):
+        raise ValidationError(
+            {"game_ids": "All game ids must belong to this season."}
+        )
 
 
 def _export_filename(
@@ -152,11 +197,26 @@ class SeasonViewSet(viewsets.ModelViewSet):
         - ``note`` — free-text note stored with the snapshot.
         When a snapshot is saved, the response filename gains a ``_vN`` suffix
         so the downloaded file matches the stored version.
+
+        Optional query params (issue #9) — which games to render:
+        - ``half=1|2`` — only that half of the season.
+        - ``game_ids=3,7,12`` — an explicit selection (mutually exclusive
+          with ``half``).
+        - ``full_season_stats=1`` — compute the summary sections over the
+          whole season even when the rendered games are scoped.
+        The snapshot (when requested) always records the entire season,
+        regardless of scope.
         """
         season = self.get_object()
+        half, game_ids = _parse_export_scope(request)
+        if game_ids:
+            _validate_game_ids(season, game_ids)
+        full_season_stats = bool(request.query_params.get("full_season_stats"))
         # Render first: the exact bytes are what get stored as the version's
         # artifact (issue #6), so download == what was distributed.
-        pdf_bytes = export_schedule_pdf(season)
+        pdf_bytes = export_schedule_pdf(
+            season, half=half, game_ids=game_ids, full_season_stats=full_season_stats
+        )
         version_result = _maybe_save_version(
             request, season, artifact=pdf_bytes, artifact_format="pdf"
         )
@@ -185,12 +245,17 @@ class SeasonViewSet(viewsets.ModelViewSet):
         """Export the task schedule (assignments) as a CSV.
 
         Accepts the same optional ``save_version``/``note`` params as
-        ``export_pdf`` (see there).
+        ``export_pdf`` (see there), plus the same ``half``/``game_ids``
+        scope params. ``full_season_stats`` does not apply: the CSV has no
+        summary sections.
         """
         season = self.get_object()
+        half, game_ids = _parse_export_scope(request)
+        if game_ids:
+            _validate_game_ids(season, game_ids)
         # Render first: store the exact bytes as the version's artifact so a
         # later download is byte-for-byte identical to this one (issue #6).
-        csv_text = export_schedule_csv(season)
+        csv_text = export_schedule_csv(season, half=half, game_ids=game_ids)
         csv_bytes = csv_text.encode("utf-8")
         version_result = _maybe_save_version(
             request, season, artifact=csv_bytes, artifact_format="csv"

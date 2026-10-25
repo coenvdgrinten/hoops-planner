@@ -253,25 +253,255 @@ textarea {
   opacity: 1;
 }
 
-/* Checkbox row (ImportModal / GameEditModal) */
+/* Checkbox row (ImportModal / GameEditModal / export dialog). The label is
+   the flex row so the box is centered against the text EXACTLY — inline-flow
+   baseline alignment leaves the box a few px off-center. */
 .form-checkbox {
+  margin-bottom: 16px;
+}
+
+.form-checkbox label {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  /* Override .form-group label's margin-bottom inside the flex row. */
+  margin-bottom: 0;
 }
 
 .form-checkbox input[type="checkbox"] {
   width: 16px;
   height: 16px;
+  margin: 0;
+  flex-shrink: 0;
   cursor: pointer;
   accent-color: var(--color-primary);
 }
 
-.form-checkbox label {
+/* Section caption above a control group (export dialog) */
+.section-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+/* Segmented control (export scope picker) */
+.segmented-control {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-surface-subtle);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 10px;
+}
+
+.segment {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 10px;
+  border-radius: 7px;
   font-size: 13px;
+  font-weight: 500;
   color: var(--color-text-secondary);
   cursor: pointer;
+  user-select: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* The real radio stays present (and Playwright-visible) but is painted under
+   the segment pill, so keyboard + screen-reader semantics are preserved. */
+.segment input[type="radio"] {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segment:hover {
+  color: var(--color-text);
+}
+
+.segment:has(input:checked) {
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.segment:has(input:focus-visible) {
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* Open-tasks warning card (export dialog) */
+.export-warning {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.export-warning-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-warning-dark);
+  margin-bottom: 8px;
+}
+
+.export-warning-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.export-warning-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-warning-border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-warning-dark);
+}
+
+.export-warning-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Muted helper line under a form control. Indented past the checkbox
+   (16px box + 8px gap) so it lines up under the label text, not the box. */
+.field-helper {
+  margin: 6px 0 0 24px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Footer action bar with a hairline separator (export dialog) */
+.export-dialog-actions {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* Custom game picker inside the export dialog */
+.game-picker-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.game-picker-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selection-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.game-picker {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 6px;
+}
+
+/* Date group header in the game picker — a pill badge so each day is easy
+   to spot while scrolling (was plain muted text that got skimmed over). */
+.game-picker-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-primary-hover);
+  background: var(--color-primary-tint);
+  border: 1px solid var(--color-primary-tint);
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.game-picker-date:first-child {
+  margin-top: 0;
+}
+
+/* Scoped under .game-picker so it beats `.form-group label { display: block }`
+   (which would otherwise revert these rows to baseline inline alignment). */
+.game-picker .game-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.game-picker-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--color-primary);
 }
 
 /* Inline error inside the season create form */

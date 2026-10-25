@@ -1,12 +1,14 @@
 """PDF export for the task schedule — HTML/CSS-based layout using WeasyPrint."""
 
 import os
+from collections import namedtuple
 from datetime import date as date_type
 from datetime import time as time_type
 from pathlib import Path
+from typing import Literal
 
 from django.conf import settings
-from django.db.models import Count
+from django.db.models import Count, QuerySet
 from weasyprint import HTML
 from weasyprint.text.fonts import FontConfiguration
 from weasyprint.urls import URLFetcher, URLFetcherResponse
@@ -47,6 +49,13 @@ TASK_LABELS: dict[str, str] = {
 # Logo path (relative to project root)
 LOGO_PATH = Path(settings.BASE_DIR).parent / "media" / "assets" / "club-logo.png"
 
+# PDF stylesheet lives in its own file for readability and independent review.
+CSS_STYLES: str = (Path(__file__).parent / "pdf_styles.css").read_text()
+
+AssignmentEntry = namedtuple(
+    "AssignmentEntry", ["name", "team", "is_away_day", "task_id"]
+)
+
 
 def _is_own_team_game(player_team: Team | None, game: Game) -> bool:
     """True when the game is for a team the player belongs to.
@@ -59,241 +68,63 @@ def _is_own_team_game(player_team: Team | None, game: Game) -> bool:
     return game.own_team_id == player_team.id
 
 
-# CSS for the PDF
-CSS_STYLES = """
-@page {
-    size: A4 landscape;
-    margin: 15mm;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 9pt;
-    color: #1a1a2e;
-    margin: 0;
-    padding: 0;
-}
-
-.header {
-    display: flex;
-    align-items: center;
-    gap: 10mm;
-    margin-bottom: 8pt;
-}
-
-.logo {
-    width: 25mm;
-    height: auto;
-}
-
-.club-name {
-    font-size: 11pt;
-    font-weight: 700;
-    color: #f97316;
-}
-
-.title {
-    font-size: 14pt;
-    font-weight: 600;
-    color: #1a1a2e;
-}
-
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    border-radius: 6pt;
-    overflow: hidden;
-    margin-bottom: 12pt;
-    box-shadow: 0 1pt 3pt rgba(0,0,0,0.08);
-}
-
-.day-table {
-    page-break-inside: avoid;
-}
-
-th {
-    background: #ffedd5;
-    color: #ea580c;
-    font-weight: 600;
-    font-size: 8pt;
-    text-align: center;
-    padding: 4pt 3pt;
-    border: 0.5pt solid #ccc;
-    border-bottom: 1.5pt solid #ea580c;
-}
-
-th:first-child {
-    border-radius: 4pt 0 0 0;
-}
-
-th:last-child {
-    border-radius: 0 4pt 0 0;
-}
-
-.date-row {
-    background: #e8e8e8;
-    font-weight: 600;
-    font-size: 9pt;
-    padding: 3pt 3pt;
-    border: 0.5pt solid #ccc;
-    border-top: 0.75pt solid #ea580c;
-}
-
-td {
-    padding: 2pt 3pt;
-    border: 0.5pt solid #eeeeee;
-    text-align: left;
-    vertical-align: middle;
-    font-size: 8pt;
-}
-
-td.center {
-    text-align: center;
-}
-
-td.bold {
-    font-weight: 600;
-}
-
-td.time {
-    text-align: center;
-    font-variant-numeric: tabular-nums;
-}
-
-td.team {
-    text-align: center;
-}
-
-tr:nth-child(even) td {
-    background: #f8f9fc;
-}
-
-tr.date-row td {
-    background: #e8e8e8 !important;
-}
-
-tr.setup-row td {
-    background: #f0f4f8 !important;
-}
-
-.setup-label {
-    text-align: center;
-    font-style: italic;
-    font-weight: 600;
-    color: #475569;
-}
-
-td.unassigned {
-    font-style: italic;
-    color: #e57373;
-    text-align: center;
-    background: #fff5f5 !important;
-}
-
-.summary-title {
-    font-size: 12pt;
-    font-weight: 600;
-    margin: 12pt 0 6pt 0;
-    color: #1a1a2e;
-}
-
-.team-row {
-    page-break-after: avoid;
-}
-
-.team-row td {
-    background: #fff7ed;
-    color: #ea580c;
-    font-weight: 600;
-    text-align: left;
-    border-top: 0.75pt solid #ea580c;
-}
-
-.summary-table th {
-    background: #ffedd5;
-    color: #ea580c;
-}
-
-.summary-table td {
-    text-align: center;
-}
-
-.summary-table td:first-child {
-    text-align: left;
-}
-
-.summary-table td:last-child {
-    font-weight: 600;
-}
-
-.calendar-link {
-    color: #ea580c;
-    text-decoration: none;
-    font-size: 7pt;
-    vertical-align: middle;
-}
-
-.calendar-link:hover {
-    text-decoration: underline;
-}
-
-.away-day {
-    color: #d32f2f;
-    font-weight: 600;
-}
-
-.parent {
-    color: #2e7d32;
-}
-
-.footer {
-    text-align: center;
-    font-size: 8pt;
-    color: #666;
-    margin-top: 12pt;
-    padding-top: 6pt;
-    border-top: 0.5pt solid #ddd;
-}
-.footer a {
-    color: #f97316;
-    text-decoration: none;
-}
-
-.legend-box {
-    border: 0.75pt solid #e0e0e0;
-    border-radius: 4pt;
-    padding: 5pt 10pt;
-    margin: 8pt 0;
-    font-size: 7.5pt;
-    color: #555;
-    display: flex;
-    gap: 14pt;
-}
-.legend-box .item { display: flex; align-items: center; gap: 4pt; }
-.legend-box .swatch {
-    display: inline-block;
-    width: 8pt;
-    height: 8pt;
-    border-radius: 2pt;
-}
-.legend-box .swatch-red { background: #d32f2f; }
-.legend-box .swatch-pink { background: #fff5f5; border: 0.5pt solid #e57373; }
-.legend-box .swatch-parent { background: #e8f5e9; border: 0.5pt solid #66bb6a; }
-"""
+def _build_assignment_lookup(
+    tasks, assignments
+) -> dict[tuple[int, str], list[AssignmentEntry]]:
+    """Map (game_id, task_type) → list of assigned players with display info."""
+    assigned: dict[tuple[int, str], list[AssignmentEntry]] = {}
+    for t in tasks:
+        for a in assignments:
+            if a.task.id != t.id:
+                continue
+            name = a.player.full_name
+            if t.task_type in (TaskType.SCORER, TaskType.TIMER):
+                # Only label "Ouder van" when the task's own team is
+                # parent_responsible AND the player is a member/coach of
+                # that specific team.
+                own_team = t.game.own_team
+                if own_team.parent_responsible and own_team in a.player.all_teams:
+                    name = f"Ouder van {a.player.full_name}"
+            # Checked over the WHOLE season — the 2× rule depends only
+            # on same-date games, so export scope can't change it.
+            player_team = a.player.team
+            is_away_day = (
+                player_team is not None
+                and not _is_own_team_game(player_team, t.game)
+                and not Game.objects.filter(
+                    season=t.game.season,
+                    date=t.game.date,
+                    own_team=player_team,
+                )
+                .exclude(pk=t.game.id)
+                .exists()
+            )
+            assigned.setdefault((t.game.id, t.task_type), []).append(
+                AssignmentEntry(name, a.player.team.name, is_away_day, t.id)
+            )
+    return assigned
 
 
-def export_schedule_pdf(season: Season) -> bytes:
-    """Generate a compact, date-grouped PDF of the task schedule."""
-    html_content = _build_html(season)
-    # Use SITE_URL as base so relative links resolve to absolute URLs
+def export_schedule_pdf(
+    season: Season,
+    half: Literal["1", "2"] | None = None,
+    game_ids: list[int] | None = None,
+    full_season_stats: bool = False,
+) -> bytes:
+    """Generate a compact, date-grouped PDF of the task schedule.
+
+    ``half`` ("1"/"2") or ``game_ids`` (explicit selection) restrict which
+    games are rendered (issue #9); absent means the whole season.
+    ``full_season_stats`` opts the summary sections into season-wide totals
+    even when the rendered games are scoped.
+    """
+    html_content = _build_html(
+        season, half=half, game_ids=game_ids, full_season_stats=full_season_stats
+    )
     base_url = getattr(settings, "SITE_URL", "http://localhost:5173")
     html = HTML(string=html_content, base_url=base_url)
-    font_config = FontConfiguration()
-    # Use a custom URL fetcher that doesn't actually fetch external URLs
-    # (WeasyPrint strips links if it can't resolve the URL)
     return html.write_pdf(
-        font_config=font_config,
+        font_config=FontConfiguration(),
         url_fetcher=NoFetchURLFetcher(),
         uncompressed_pdf=True,
     )
@@ -309,18 +140,32 @@ class NoFetchURLFetcher(URLFetcher):
         return super().fetch(url, headers)
 
 
-def _build_html(season: Season) -> str:
-    """Build the HTML content for the PDF."""
-    games = list(season.games.all().order_by("half", "date", "time", "court"))
+def _build_html(
+    season: Season,
+    half: Literal["1", "2"] | None = None,
+    game_ids: list[int] | None = None,
+    full_season_stats: bool = False,
+) -> str:
+    """Build the HTML content for the PDF.
 
-    # Group games by date
+    ``half`` / ``game_ids`` scope which games are rendered (issue #9);
+    ``full_season_stats`` makes the summary sections cover the whole season
+    even when the rendered games are scoped.
+    """
+    games_qs = season.games.all().order_by("half", "date", "time", "court")
+    if game_ids is not None:
+        games_qs = games_qs.filter(pk__in=game_ids)
+    elif half:
+        games_qs = games_qs.filter(half=half)
+    games = list(games_qs)
+
     by_date: dict[date_type, list[Game]] = {}
     for game in games:
         by_date.setdefault(game.date, []).append(game)
 
-    # Pre-fetch all tasks and assignments
-    game_ids = [g.id for g in games]
-    tasks = Task.objects.filter(game__id__in=game_ids).order_by(
+    # Named ``rendered_game_ids`` so it doesn't shadow the ``game_ids`` param.
+    rendered_game_ids = [g.id for g in games]
+    tasks = Task.objects.filter(game__id__in=rendered_game_ids).order_by(
         "game", "task_type", "slot_number"
     )
     task_ids = [t.id for t in tasks]
@@ -328,39 +173,8 @@ def _build_html(season: Season) -> str:
         "player", "player__team"
     )
 
-    # Build lookup: (game_id, task_type) -> [(name, team, is_away_day)]
-    assigned: dict[tuple[int, str], list[tuple[str, str, bool, int]]] = {}
-    for t in tasks:
-        for a in assignments:
-            if a.task.id == t.id:
-                key = (t.game.id, t.task_type)
-                name = a.player.full_name
-                if t.task_type in (TaskType.SCORER, TaskType.TIMER):
-                    # Only label "Ouder van" when the task's own team is
-                    # parent_responsible AND the player is a member/coach of
-                    # that specific team. A VSE member coaching X12 must not be
-                    # labelled a parent for an unrelated team's slot.
-                    own_team = t.game.own_team
-                    if own_team.parent_responsible and own_team in a.player.all_teams:
-                        name = f"Ouder van {a.player.full_name}"
-                # Away day = player's team has no game on this date → 2x multiplier
-                player_team = a.player.team
-                is_away_day = (
-                    player_team is not None
-                    and not _is_own_team_game(player_team, t.game)
-                    and not Game.objects.filter(
-                        season=t.game.season,
-                        date=t.game.date,
-                        own_team=player_team,
-                    )
-                    .exclude(pk=t.game.id)
-                    .exists()
-                )
-                assigned.setdefault(key, []).append(
-                    (name, a.player.team.name, is_away_day, t.id)
-                )
+    assigned = _build_assignment_lookup(tasks, assignments)
 
-    # Determine max referees needed
     max_referees = 0
     for t in tasks:
         if t.task_type == TaskType.REFEREE:
@@ -369,7 +183,6 @@ def _build_html(season: Season) -> str:
 
     has_24sec = any(t.task_type == TaskType.SECOND_24_OPERATOR for t in tasks)
 
-    # Build header row
     headers = ["Datum", "Tijd", "Thuis", "Uit", "Locatie"]
     for i in range(1, max_referees + 1):
         suffix = f" #{i}" if i > 1 else ""
@@ -379,15 +192,21 @@ def _build_html(season: Season) -> str:
     if has_24sec:
         headers.extend(["24 sec", "Team"])
 
-    # Logo
     logo_html = ""
     if os.path.exists(LOGO_PATH):
         logo_url = f"file://{LOGO_PATH.absolute()}"
         logo_html = f'<img src="{logo_url}" class="logo" alt="Logo">'
 
-    # Club name from site config (empty string if not set)
     club_name = SiteConfig.load().club_name
     club_html = f'<span class="club-name">{club_name}</span>' if club_name else ""
+
+    # A scoped document states its scope in the title so a distributed file
+    # is self-describing (issue #9).
+    half_label = {"1": "First Half", "2": "Second Half"}.get(half or "")
+    scope_label = half_label or ("Custom Selection" if game_ids is not None else "")
+    title = f"Task Schedule — {season.name}" + (
+        f" ({scope_label})" if scope_label else ""
+    )
 
     html_parts = [
         "<!DOCTYPE html>",
@@ -397,7 +216,7 @@ def _build_html(season: Season) -> str:
         "</head>",
         "<body>",
         f'<div class="header">{logo_html}{club_html}'
-        f'<span class="title">Task Schedule — {season.name}</span></div>',
+        f'<span class="title">{title}</span></div>',
     ]
 
     # Shared column header row, reused in every per-day table so the labels
@@ -418,7 +237,6 @@ def _build_html(season: Season) -> str:
         html_parts.append("</tr>")
 
         day_games = by_date[game_date]
-        # Gym setup: 30-minute window before the first game of the day.
         first_time = day_games[0].time
         if first_time.minute >= 30:
             setup_time = first_time.replace(minute=first_time.minute - 30)
@@ -437,7 +255,6 @@ def _build_html(season: Season) -> str:
             row = _build_game_row_html(game, assigned, max_referees, has_24sec)
             html_parts.append(f"<tr>{row}</tr>")
 
-        # Gym cleanup: after the last game of the day.
         cleanup_time = day_games[-1].time
         html_parts.append(
             f'<tr class="setup-row">'
@@ -447,7 +264,6 @@ def _build_html(season: Season) -> str:
 
         html_parts.extend(["</tbody>", "</table>"])
 
-    # Legend box (under the schedule, above the statistics)
     legend_items = (
         ("swatch-red", "Away day (counts 2\u00d7)"),
         ("swatch-pink", "Unfilled slot"),
@@ -459,23 +275,25 @@ def _build_html(season: Season) -> str:
     )
     html_parts.append(f'<div class="legend-box">{items_html}</div>')
 
-    # Force page break before summaries
-    html_parts.append('<div style="page-break-before: always"></div>')
+    # Summaries follow the export scope by default; ``full_season_stats``
+    # opts into season-wide totals (issue #9).
+    stats_games = season.games.all() if full_season_stats else games_qs
 
-    # Team summary (total tasks per team)
-    team_summary_html = _build_team_summary_html(season)
+    team_summary_html = _build_team_summary_html(season, stats_games)
+    summary_html = _build_player_summary_html(season, stats_games)
+
+    # Only force a page break when there is something to break to — a sparse
+    # scope can leave both summaries empty, which must not yield a trailing
+    # blank page.
+    if team_summary_html or summary_html:
+        html_parts.append('<div style="page-break-before: always"></div>')
     if team_summary_html:
         html_parts.append(team_summary_html)
-
-    # Player summary
-    summary_html = _build_player_summary_html(season)
-    html_parts.append(summary_html)
-
-    # Footer
-    from datetime import date as _date
+    if summary_html:
+        html_parts.append(summary_html)
 
     html_parts.append(
-        f'<div class="footer">Generated on {_date.today().strftime("%Y-%m-%d")} '
+        f'<div class="footer">Generated on {date_type.today().strftime("%Y-%m-%d")} '
         f'• <a href="https://github.com/coenvdgrinten/hoops-planner">'
         f"Hoops Planner</a></div>"
     )
@@ -487,7 +305,7 @@ def _build_html(season: Season) -> str:
 
 def _build_game_row_html(
     game: Game,
-    assigned: dict[tuple[int, str], list[tuple[str, str, bool, int]]],
+    assigned: dict[tuple[int, str], list[AssignmentEntry]],
     max_referees: int,
     has_24sec: bool,
 ) -> str:
@@ -587,17 +405,28 @@ def _build_setup_row_html(time: time_type, label: str, col_count: int) -> str:
     return "".join(cells)
 
 
-def _build_team_summary_html(season: Season) -> str:
+def _build_team_summary_html(
+    season: Season, games: QuerySet[Game] | None = None
+) -> str:
     """Build a per-team total task count section.
 
     Mirrors the "NT" indicator in the UI: how many tasks each team's members
     have been assigned this season, giving context for fair distribution
     across differently-sized teams. Also shows the average tasks per member.
+
+    ``games`` scopes which games' assignments are counted (issue #9);
+    ``None`` means the whole season. Member counts stay roster-wide, so
+    "Avg/Member" reads as the scoped load per full-time member.
     """
+    game_ids = (
+        games.values_list("pk", flat=True)
+        if games is not None
+        else season.games.all().values_list("pk", flat=True)
+    )
     counts = {
         tid: n
         for tid, n in (
-            TaskAssignment.objects.filter(task__game__season=season)
+            TaskAssignment.objects.filter(task__game__id__in=game_ids)
             .values("player__team_id")
             .annotate(n=Count("id"))
             .values_list("player__team_id", "n")
@@ -606,7 +435,6 @@ def _build_team_summary_html(season: Season) -> str:
     if not counts:
         return ""
 
-    # Member count per team.
     member_counts = {
         tid: n
         for tid, n in (
@@ -646,20 +474,31 @@ def _build_team_summary_html(season: Season) -> str:
     return "\n".join(html_parts)
 
 
-def _build_player_summary_html(season: Season) -> str:
-    """Build player summary HTML sections, grouped by team.
+def _build_player_summary_html(
+    season: Season, games: QuerySet[Game] | None = None
+) -> str:
+    """Build player summary HTML sections, grouped by team."
 
     Instead of one flat alphabetical list, players are split into a section
     per team so each team's member statistics sit together. Includes an
     "Eff." column showing the multiplier-weighted total (2× when the
     player's team has no game that day), matching the app's fairness logic.
+
+    ``games`` scopes which games' assignments are counted (issue #9);
+    ``None`` means the whole season. Players with no assignments in scope
+    simply don't appear — every number refers to what is visible.
     """
+    game_ids = (
+        games.values_list("pk", flat=True)
+        if games is not None
+        else season.games.all().values_list("pk", flat=True)
+    )
     assignments = TaskAssignment.objects.filter(
-        task__game__season=season
+        task__game__id__in=game_ids
     ).select_related("player", "player__team", "task__game")
 
-    # --- Effective-load data (same rule as statistics.get_player_stats) ---
-    # Which teams play on which date.
+    # Teams playing per date — over the WHOLE season (not scoped games),
+    # since the 2× multiplier depends only on same-date games.
     date_teams: dict[date_type, set[int]] = {}
     for d, tid in Game.objects.filter(season=season).values_list("date", "own_team_id"):
         date_teams.setdefault(d, set()).add(tid)
@@ -669,7 +508,6 @@ def _build_player_summary_html(season: Season) -> str:
     for p in Player.objects.all().prefetch_related("coached_teams"):
         player_team_ids[p.id] = {p.team_id} | {t.id for t in p.coached_teams.all()}
 
-    # Count assignments per player per task type AND effective total.
     player_counts: dict[tuple[int, str], dict[str, int]] = {}
     player_effective: dict[tuple[int, str], float] = {}
     for a in assignments:
@@ -678,7 +516,6 @@ def _build_player_summary_html(season: Season) -> str:
         counts = player_counts.setdefault(key, {})
         counts[task_label] = counts.get(task_label, 0) + 1
 
-        # Effective: 1 if any of the player's teams plays that day, else 2.
         game_date = a.task.game.date
         my_teams = player_team_ids.get(a.player.id, {a.player.team_id})
         mult = 1 if my_teams & date_teams.get(game_date, set()) else 2
@@ -687,7 +524,6 @@ def _build_player_summary_html(season: Season) -> str:
     if not player_counts:
         return ""
 
-    # Group players by their team
     by_team: dict[int, list[tuple[str, dict[str, int]]]] = {}
     for (team_id, name), counts in player_counts.items():
         by_team.setdefault(team_id, []).append((name, counts))
