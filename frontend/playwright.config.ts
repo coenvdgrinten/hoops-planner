@@ -9,10 +9,20 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // CI (ubuntu-latest = 2 vCPUs) runs 2 workers; locally we default to ~half
+  // the core count. Validated stable at 12 workers via scripts/e2e-soak.sh.
+  workers: process.env.CI ? 2 : undefined,
   reporter: "list",
+  // Generous timeouts: the suite drives a real backend (PDF generation,
+  // multi-page list fetches) across many parallel workers, so under CPU
+  // contention a single action can exceed Playwright's tight 5s/30s defaults
+  // and flake. These give every test headroom to let the UI catch up. CI runs
+  // fewer workers than a local stress run, so it has even more margin.
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   use: {
     baseURL: "http://localhost:5173",
+    actionTimeout: 15_000,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },

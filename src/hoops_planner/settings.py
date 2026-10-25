@@ -84,9 +84,11 @@ TEMPLATES = [
     },
 ]
 
-# Database configuration — supports both SQLite (dev) and PostgreSQL (prod)
+# Database configuration — SQLite (fallback) or PostgreSQL (docker-compose / CI).
+# DB_ENGINE is the full engine path (e.g. "django.db.backends.postgresql"), so match
+# by substring: a startswith() check never matched and silently fell back to SQLite.
 DB_ENGINE = os.getenv("DB_ENGINE", "")
-if DB_ENGINE.startswith("postgresql"):
+if "postgresql" in DB_ENGINE:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
@@ -102,6 +104,9 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": os.getenv("DB_PATH", str(BASE_DIR / "db.sqlite3")),
+            # Busy-timeout so concurrent writes queue instead of failing with
+            # "database is locked" under the parallel e2e suite.
+            "OPTIONS": {"timeout": 30},
         }
     }
 
