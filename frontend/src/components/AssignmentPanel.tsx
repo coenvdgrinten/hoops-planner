@@ -53,7 +53,6 @@ export function AssignmentPanel({
     setToast(null);
   }, [toast, queryClient, gameId, task?.id]);
 
-  // Reset search and error when switching to a different task
   useEffect(() => {
     if (task?.id !== prevTaskId.current) {
       prevTaskId.current = task?.id;
@@ -71,21 +70,18 @@ export function AssignmentPanel({
 
   const fetchedTask = currentTask?.find((t) => t.id === task?.id) ?? task;
 
-  // Fetch team eligibility data
   const { data: teamEligibility = [] } = useQuery({
     queryKey: ["team-eligibility", task?.id],
     queryFn: () => getTeamEligibility(task!.id),
     enabled: open && !!task?.id,
   });
 
-  // Fetch suggested candidates
   const { data: candidates = [] } = useQuery({
     queryKey: ["candidate-details", task?.id],
     queryFn: () => getCandidateDetails(task!.id),
     enabled: open && !!task?.id,
   });
 
-  // Assign mutation
   const { mutate: assign, isPending: assigning } = useMutation({
     mutationFn: (player: Player) => createAssignment(task!.id, player.id),
     onSuccess: (assignment, player) => {
@@ -101,7 +97,6 @@ export function AssignmentPanel({
     },
   });
 
-  // Unassign mutation
   const { mutate: unassign } = useMutation({
     mutationFn: (assignmentId: number) => deleteAssignment(assignmentId),
     onSuccess: () => {
@@ -115,10 +110,8 @@ export function AssignmentPanel({
     },
   });
 
-  // Get assigned player IDs for quick lookup
   const assignedIds = new Set((fetchedTask?.assignments ?? []).map((a) => a.player.id));
 
-  // Filter teams and players by search query
   const filteredTeams = useMemo(() => {
     if (!search.trim()) return teamEligibility;
     const q = search.toLowerCase();
@@ -133,7 +126,6 @@ export function AssignmentPanel({
       .filter((t) => t.players.length > 0);
   }, [teamEligibility, search]);
 
-  // Toggle team expansion
   const toggleTeam = (teamId: number) => {
     setExpandedTeams((prev) => {
       const next = new Set(prev);
@@ -304,7 +296,6 @@ export function AssignmentPanel({
           {filteredTeams.map((teamData) => {
             const isExpanded = expandedTeams.has(teamData.team.id);
             const hasEligible = teamData.eligible_count > 0;
-            // Determine border color: green (eligible + at gym), orange (eligible + not at gym), red (no eligible)
             let headerClass: string;
             if (!hasEligible) {
               headerClass = String(styles.ineligible);

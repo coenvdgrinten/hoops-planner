@@ -21,7 +21,6 @@ export function Settings({ isStaff }: Props) {
   const queryClient = useQueryClient();
   const { addToast } = useToastContext();
 
-  // Club name from server
   const { data: siteConfig } = useQuery({
     queryKey: ["site-config"],
     queryFn: getSiteConfig,
@@ -133,7 +132,7 @@ export function Settings({ isStaff }: Props) {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 brandMutation.mutate(brandName);
-                (e.target as HTMLInputElement).blur();
+                e.currentTarget.blur();
               }
             }}
           />
@@ -143,7 +142,8 @@ export function Settings({ isStaff }: Props) {
       <p className={styles["settings-subtitle"]}>
         Configure how many task slots are created per team. Changes
         apply to games imported or created afterwards.
-        Parents Responsible excludes players from Scorer/Timer suggestions.
+        Parents Responsible lets a team's own members and coaches fill
+        Scorer/Timer slots at their own team's games.
       </p>
       <table className={styles["settings-table"]}>
         <thead>

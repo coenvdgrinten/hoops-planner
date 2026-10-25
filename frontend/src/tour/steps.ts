@@ -68,7 +68,7 @@ export function buildTourSteps(seasonId: number | null, panelOpen: boolean): Dri
     step(
       GAME_CARD,
       "One card per game",
-      "Each card is one game: the teams, time, location, and its task chips below. Away games have no tasks and live in the Availability view.",
+      "Each card is one game: the teams, time, location, and its task chips below. Away games don't appear here \u2014 they're listed in the Availability view.",
       { waitForElement: 3000 },
     ),
     step(

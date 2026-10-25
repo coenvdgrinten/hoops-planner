@@ -17,7 +17,6 @@ import {
 import type { Player, Team, AgeCategory } from "../types";
 import styles from "./MemberView.module.css";
 
-// Age category display order (descending: oldest to youngest)
 const CATEGORY_ORDER: AgeCategory[] = [
   "MSE",
   "M22",
@@ -52,7 +51,6 @@ export function MemberView() {
   const [editingCoachedTeams, setEditingCoachedTeams] = useState<number | null>(null);
   const [tempCoachedTeams, setTempCoachedTeams] = useState<number[]>([]);
 
-  // Team management state
   const [addingTeam, setAddingTeam] = useState(false);
   const [editingTeamId, setEditingTeamId] = useState<number | null>(null);
   const [newTeam, setNewTeam] = useState<{ name: string; age_category: AgeCategory }>({
@@ -64,7 +62,6 @@ export function MemberView() {
     age_category: "X14",
   });
 
-  // Player management state
   const [addingPlayerForTeam, setAddingPlayerForTeam] = useState<number | null>(null);
   const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -218,7 +215,6 @@ export function MemberView() {
     return "";
   };
 
-  // Group players by team
   const playersByTeam = new Map<number, Player[]>();
   for (const player of players) {
     const existing = playersByTeam.get(player.team.id) || [];
@@ -226,7 +222,6 @@ export function MemberView() {
     playersByTeam.set(player.team.id, existing);
   }
 
-  // Sort teams by age category then name
   const sortedTeams = [...teams].sort((a, b) => {
     const aIdx = CATEGORY_ORDER.indexOf(a.age_category);
     const bIdx = CATEGORY_ORDER.indexOf(b.age_category);
@@ -719,7 +714,6 @@ export function MemberView() {
         })}
       </div>
 
-      {/* Delete confirmation dialog */}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

@@ -70,7 +70,6 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     ...options,
   });
   if (!res.ok) {
-    // If 401, clear auth and rethrow
     if (res.status === 401) {
       clearAuth();
       window.dispatchEvent(new CustomEvent("auth:logout"));
@@ -146,7 +145,6 @@ async function collectPages<T>(
   return all;
 }
 
-// Seasons
 export function getSeasons() {
   return request<Season[]>("/seasons/");
 }
@@ -203,7 +201,6 @@ interface VersionOutcome {
   versionMessage: string | null;
 }
 
-/** Read the snapshot-outcome headers set by the backend on export responses. */
 function parseVersionHeaders(res: Response, saveVersion: boolean): VersionOutcome {
   const h = res.headers.get("X-Schedule-Version");
   return {
@@ -304,7 +301,6 @@ export function importSchedule(seasonName: string, csvText: string, replace?: bo
   });
 }
 
-// Teams
 export function getTeams() {
   return request<Team[]>("/teams/");
 }
@@ -330,7 +326,6 @@ export function deleteTeam(teamId: number) {
   return request<void>(`/teams/${teamId}/`, { method: "DELETE" });
 }
 
-// Players
 export function getPlayers() {
   return request<Player[]>("/players/");
 }
@@ -416,7 +411,6 @@ export async function exportMembersCsv() {
   URL.revokeObjectURL(url);
 }
 
-// Games
 export function getGames(season: number) {
   return request<Game[]>(`/games/?season=${season}`);
 }
@@ -467,7 +461,6 @@ export function clearGameAssignments(gameId: number) {
   });
 }
 
-// Tasks
 export function getTasks(game: number) {
   return request<Task[]>(`/tasks/?game=${game}`);
 }
@@ -492,7 +485,6 @@ export function getTeamEligibility(task: number) {
   return request<TeamEligibility[]>(`/tasks/${task}/team_eligibility/`);
 }
 
-// Task Assignments
 export function getAssignments(task: number) {
   return request<TaskAssignment[]>(`/assignments/?task=${task}`);
 }
@@ -508,7 +500,6 @@ export function deleteAssignment(id: number) {
   return request<void>(`/assignments/${id}/`, { method: "DELETE" });
 }
 
-// Statistics
 export function getPlayerStats(playerId: number, seasonName?: string, half?: string) {
   const params = new URLSearchParams();
   if (seasonName) params.set("season", seasonName);
@@ -531,7 +522,6 @@ export function getLeaderboard(seasonId: number, half?: string) {
   return request<LeaderboardEntry[]>(`/seasons/${seasonId}/leaderboard/${qs}`);
 }
 
-// Site config (club name)
 export function getSiteConfig() {
   return request<{ club_name: string }>("/site-config/");
 }
@@ -543,7 +533,6 @@ export function setSiteConfig(clubName: string) {
   });
 }
 
-// Settings
 export function getTeamSettings() {
   return request<Team[]>("/settings/");
 }
@@ -558,12 +547,10 @@ export function updateTeamSettings(
   });
 }
 
-// Availability
 export function getAvailability(season: number) {
   return request<AvailabilityDay[]>(`/availability/?season=${season}`);
 }
 
-// Auth
 export function login(username: string, password: string) {
   return request<AuthResponse>("/auth/login/", {
     method: "POST",
@@ -573,7 +560,8 @@ export function login(username: string, password: string) {
 }
 
 export function register(username: string, password: string, email: string) {
-  return request<{ detail: string; token: string }>("/auth/register/", {
+  // The backend only includes the token in DEBUG mode.
+  return request<{ detail: string; token?: string }>("/auth/register/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password, email }),

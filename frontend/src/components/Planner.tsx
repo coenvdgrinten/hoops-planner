@@ -99,7 +99,8 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
     [addToast, queryClient, exportFormat, season],
   );
 
-  // Away games have no tasks; they live in the Availability view instead.
+  // Away games are hidden from the planner grid; they surface in the
+  // Availability view instead.
   const games = allGames.filter((g) => g.game_type !== "AWAY");
 
   const handleSelectTask = useCallback(
@@ -212,6 +213,8 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
             <div key={halfKey} className={styles["half-group"]}>
               <div className={styles["half-label"]}>{halfLabel}</div>
               {Object.entries(dates).map(([date, slots]) => {
+                // The 1970-01-01 sentinel sorts before any real date, so
+                // undated games render first.
                 const dateObj = new Date(`${date || "1970-01-01"}T00:00`);
                 const formattedDate = dateObj.toLocaleDateString("nl-BE", {
                   weekday: "long",

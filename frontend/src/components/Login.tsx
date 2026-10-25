@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { login, register, setAuth, passwordResetRequest, passwordResetConfirm, verifyEmailRequest, verifyEmailConfirm } from "../api";
+import { login, register, setAuth, passwordResetRequest, passwordResetConfirm, verifyEmailConfirm } from "../api";
 import type { AuthResponse } from "../api";
 import styles from "./Login.module.css";
 
@@ -9,7 +9,7 @@ interface Props {
   initialVerifyToken?: string;
 }
 
-type Mode = "login" | "register" | "password_reset" | "password_reset_confirm" | "verify_email";
+type Mode = "login" | "register" | "password_reset" | "password_reset_confirm";
 
 export function Login({ onLogin, brand, initialVerifyToken }: Props) {
   const [mode, setMode] = useState<Mode>("login");
@@ -17,7 +17,7 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [resetToken, setResetToken] = useState("");
-  const [resetUid, setResetUid] = useState("");
+  const [resetUid, setResetUid] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,22 +40,11 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
     }
   };
 
-  // Handle verification token from URL
   useEffect(() => {
     if (initialVerifyToken) {
       verifyToken(initialVerifyToken);
     }
   }, [initialVerifyToken]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        // Optional: could close modal if we had one
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +71,7 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
           // In dev, the backend returns the token directly
           if (data.token && data.uid) {
             setResetToken(data.token);
-            setResetUid(String(data.uid));
+            setResetUid(data.uid);
             setSuccess("Reset link sent. Enter new password below.");
             setMode("password_reset_confirm");
           } else {
@@ -91,19 +80,13 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
           break;
         }
         case "password_reset_confirm": {
-          await passwordResetConfirm(resetToken, parseInt(resetUid), password);
+          if (resetUid === null) {
+            setError("Missing user id \u2014 please request a new reset link.");
+            return;
+          }
+          await passwordResetConfirm(resetToken, resetUid, password);
           setSuccess("Password has been reset. You can now log in.");
           setMode("login");
-          break;
-        }
-        case "verify_email": {
-          const data = await verifyEmailRequest();
-          if (data.token) {
-            await verifyEmailConfirm(data.token);
-            setSuccess("Email verified successfully.");
-          } else {
-            setSuccess("Verification email sent.");
-          }
           break;
         }
       }
@@ -122,7 +105,7 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
     setPassword("");
     setEmail("");
     setResetToken("");
-    setResetUid("");
+    setResetUid(null);
   };
 
   return (
@@ -140,7 +123,6 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
             {mode === "register" && "Create Account"}
             {mode === "password_reset" && "Reset Password"}
             {mode === "password_reset_confirm" && "Set New Password"}
-            {mode === "verify_email" && "Verify Email"}
           </h3>
 
           {error && <div className={styles["auth-error"]}>{error}</div>}
@@ -231,7 +213,7 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
                     ? "Send Reset Link"
                     : mode === "password_reset_confirm"
                       ? "Reset Password"
-                      : "Verify Email"}
+                      : "Submit"}
           </button>
 
           <p className={styles["auth-toggle"]}>
@@ -256,11 +238,6 @@ export function Login({ onLogin, brand, initialVerifyToken }: Props) {
               </>
             )}
             {(mode === "password_reset" || mode === "password_reset_confirm") && (
-              <>
-                <button type="button" onClick={resetForm}>Back to Sign In</button>
-              </>
-            )}
-            {mode === "verify_email" && (
               <>
                 <button type="button" onClick={resetForm}>Back to Sign In</button>
               </>

@@ -53,7 +53,6 @@ export function Statistics({ season }: Props) {
         </div>
       </div>
 
-      {/* Overview Cards */}
       <div className={styles["stat-cards"]}>
         <div className={styles["stat-card"]}>
           <span className={styles["stat-value"]}>{stats.total_games}</span>
@@ -69,7 +68,6 @@ export function Statistics({ season }: Props) {
         </div>
       </div>
 
-      {/* Task Type Breakdown */}
       <div className={styles["stat-section"]}>
         <h3>By Task Type</h3>
         <table>
@@ -99,7 +97,6 @@ export function Statistics({ season }: Props) {
         </table>
       </div>
 
-      {/* Leaderboard */}
       {leaderboard.length > 0 && (
         <div className={styles["stat-section"]}>
           <h3>Top Contributors</h3>
@@ -135,9 +132,9 @@ export function Statistics({ season }: Props) {
       )}
 
       <p className={styles["stat-note"]}>
-        Tasks done on a day the member's own team has no home game count
-        double (2×) toward the effective total, to reward members who travel
-        in just to help.
+        Tasks on a day when none of the member's teams (including coached
+        ones) plays count double (2\u00d7) toward the effective total, to
+        reward members who travel in just to help.
       </p>
     </div>
   );

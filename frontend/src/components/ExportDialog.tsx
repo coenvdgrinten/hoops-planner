@@ -45,7 +45,8 @@ export function ExportDialog({ format, season, games, exporting, onClose, onExpo
   const allSelected =
     allPickerGameIds.length > 0 && selectedGameIds.length === allPickerGameIds.length;
 
-  // Scoped so the warning only counts open tasks in the exported subset.
+  // For custom selections the stats endpoint can't filter by game_ids,
+  // so the warning falls back to whole-season open-task counts.
   const { data: scopeStats } = useQuery({
     queryKey: ["season-stats", season.id, exportScope],
     queryFn: () =>
@@ -181,8 +182,8 @@ export function ExportDialog({ format, season, games, exporting, onClose, onExpo
                 ⚠
               </span>
               <strong>
-                {openTasks} unplanned task{openTasks === 1 ? "" : "s"} in this
-                scope:
+                {openTasks} unplanned task{openTasks === 1 ? "" : "s"} in{" "}
+                {exportScope === "custom" ? "this season" : "this scope"}:
               </strong>
             </div>
             <div className="export-warning-chips" data-testid="pdf-warning-list">

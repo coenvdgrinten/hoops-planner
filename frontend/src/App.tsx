@@ -76,7 +76,6 @@ function AppInner() {
   });
   const brand = siteConfig?.club_name ?? "";
 
-  // Close assignment panel when switching views
   const handleViewChange = useCallback((view: View) => {
     setCurrentView(view);
     setSelectedTask(null);
@@ -106,7 +105,6 @@ function AppInner() {
     setSelectedTask(null);
   }, []);
 
-  // Handle email verification from URL
   const verifyMatch = window.location.hash.match(/^#\/verify-email\/(.+)$/);
   if (verifyMatch && verifyMatch[1] && !authenticated) {
     return (
@@ -124,7 +122,6 @@ function AppInner() {
 
   return (
     <div className={styles.app}>
-      {/* Top Bar */}
       <header className={styles["top-bar"]}>
         <div className={styles["top-bar-left"]}>
           <img src="/favicon.svg" alt="Logo" className={styles["logo-img"]} />
@@ -205,7 +202,6 @@ function AppInner() {
       </header>
 
       <div className={styles["app-body"]}>
-        {/* Sidebar */}
         <aside
           data-testid="sidebar"
           className={`${styles.sidebar} ${sidebarCollapsed ? styles["sidebar-collapsed"] : ""}`}
@@ -269,7 +265,6 @@ function AppInner() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className={styles["main-content"]}>
           {currentView === "settings" ? (
             <Settings isStaff={user?.is_staff ?? false} />

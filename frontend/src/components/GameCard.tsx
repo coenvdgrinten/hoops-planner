@@ -51,11 +51,9 @@ export function GameCard({
     queryFn: () => getTasksWithAssignments(id),
   });
 
-  // Check if all tasks are assigned
   const allAssigned =
     tasks.length > 0 && tasks.every((t) => t.assignments.length > 0);
 
-  // Count total assignments for this game
   const totalAssignments = tasks.reduce(
     (sum, t) => sum + t.assignments.length,
     0
@@ -90,7 +88,6 @@ export function GameCard({
     minute: "2-digit",
   });
 
-  // Extract age category from team
   const ageBadge = ownTeam.age_category || "MIXED";
 
   if (isLoading) return <p>Loading tasks...</p>;
@@ -168,7 +165,8 @@ export function GameCard({
             ? `Ouder van ${first.player.first_name} ${first.player.last_name}`
             : first?.player?.full_name;
 
-          // Away day: player's team has no game on this date (counts 2×).
+          // Away day: none of the player's teams (incl. coached) plays on
+          // this date (counts 2×).
           const isAwayDay = first?.effective_value === 2;
           const hasOtherSameDay = !!first?.has_other_task_same_day;
 
@@ -233,7 +231,6 @@ export function GameCard({
         })}
       </div>
 
-      {/* Clear confirmation dialog */}
       {showClearConfirm && (
         <div className="modal-overlay" onClick={() => setShowClearConfirm(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>

@@ -5,7 +5,7 @@ import type { Game } from "../types";
 import styles from "./GameEditModal.module.css";
 
 interface Props {
-  game?: Game; // Optional — if missing, operate in create mode
+  game?: Game;
   seasonId: number;
   onClose: () => void;
   onSuccess: () => void;
@@ -20,6 +20,7 @@ export function GameEditModal({ game, seasonId, onClose, onSuccess }: Props) {
   const [date, setDate] = useState(game?.date || "");
   const [time, setTime] = useState(game?.time || "");
   const [court, setCourt] = useState(game?.court || "1");
+  // "Den Ekkerman" mirrors the backend default on models.Game.location.
   const [location, setLocation] = useState(game?.location || "Den Ekkerman");
   const [half, setHalf] = useState(game?.half || "1");
   const [ownTeamId, setOwnTeamId] = useState(game?.own_team.id || 0);
