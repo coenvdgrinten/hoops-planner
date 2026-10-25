@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGames,
   getSeasonStats,
@@ -7,11 +7,13 @@ import {
   exportSeasonPdf,
   exportSeasonIcs,
 } from "../api";
+import type { ExportOptions, ExportResult } from "../api";
 import { useToastContext } from "./ToastContext";
-import type { Season, Game } from "../types";
-import type { TaskWithAssignments } from "../types";
+import type { Season, Game, TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
 import { GameEditModal } from "./GameEditModal";
+import { ExportDialog } from "./ExportDialog";
+import { VersionsPanel } from "./VersionsPanel";
 import styles from "./Planner.module.css";
 
 interface Props {
@@ -21,23 +23,48 @@ interface Props {
   selectedTaskId?: number | null;
 }
 
-const OPEN_TASK_LABELS: Record<string, string> = {
-  REFEREE: "Referee",
-  SCORER: "Scorer",
-  TIMER: "Timer",
-  ["24_SECOND_OPERATOR"]: "24-sec Operator",
-};
+interface TimeSlot {
+  time: string;
+  cells: Record<string, Game>;
+}
+
+type GroupedSchedule = Record<string, Record<string, TimeSlot[]>>;
+
+/** Group games by half → date → time slot, with each court as a cell. */
+function groupGamesBySchedule(games: Game[]): GroupedSchedule {
+  const sorted = [...games].sort((a, b) => {
+    const ha = a.half || "1";
+    const hb = b.half || "1";
+    if (ha !== hb) return ha.localeCompare(hb);
+    return `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`);
+  });
+  const grouped: GroupedSchedule = {};
+  for (const game of sorted) {
+    const h = game.half || "1";
+    const d = game.date || "";
+    const t = game.time || "";
+    const c = game.court || "1";
+    if (!grouped[h]) grouped[h] = {};
+    if (!grouped[h][d]) grouped[h][d] = [];
+    const slots = grouped[h][d];
+    let slot = slots.find((s) => s.time === t);
+    if (!slot) {
+      slot = { time: t, cells: {} };
+      slots.push(slot);
+    }
+    slot.cells[c] = game;
+  }
+  return grouped;
+}
 
 export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }: Props) {
   const { addToast } = useToastContext();
+  const queryClient = useQueryClient();
   const [editingGame, setEditingGame] = useState<number | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  // Which export dialog is open (issue #3: both formats share one dialog so
-  // the "save a schedule version" option lives in exactly one place).
   const [exportFormat, setExportFormat] = useState<"pdf" | "csv" | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [saveVersion, setSaveVersion] = useState(false);
-  const [versionNote, setVersionNote] = useState("");
+  const [tab, setTab] = useState<"schedule" | "versions">("schedule");
 
   const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
@@ -48,23 +75,19 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
     queryKey: ["season-stats", season.id],
     queryFn: () => getSeasonStats(season.id),
   });
-  const openTasks = stats?.open_task_slots ?? 0;
 
   const doExport = useCallback(
-    async (format: "pdf" | "csv") => {
+    async (options: ExportOptions) => {
+      const format = exportFormat!;
       setExporting(true);
       try {
-        const options = { saveVersion, note: versionNote.trim() };
-        const result =
+        const result: ExportResult =
           format === "pdf"
             ? await exportSeasonPdf(season.id, season.name, options)
             : await exportSeasonCsv(season.id, season.name, options);
-        // Surface the snapshot outcome (saved vN / dedupe-skipped) as a toast.
         if (options.saveVersion && result.versionMessage) {
-          addToast(
-            result.versionMessage,
-            result.versionNumber ? "success" : "info",
-          );
+          addToast(result.versionMessage, result.versionNumber ? "success" : "info");
+          queryClient.invalidateQueries({ queryKey: ["season-versions", season.id] });
         }
         setExportFormat(null);
       } catch (err) {
@@ -73,23 +96,11 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
         setExporting(false);
       }
     },
-    [addToast, saveVersion, versionNote, season],
-  );
-
-  const openExportDialog = useCallback(
-    (format: "pdf" | "csv") => {
-      if (exporting) return;
-      setSaveVersion(false);
-      setVersionNote("");
-      setExportFormat(format);
-    },
-    [exporting],
+    [addToast, queryClient, exportFormat, season],
   );
 
   // Away games have no tasks; they live in the Availability view instead.
   const games = allGames.filter((g) => g.game_type !== "AWAY");
-
-  const editingGameData = editingGame !== null ? games.find((g) => g.id === editingGame) : null;
 
   const handleSelectTask = useCallback(
     (task: TaskWithAssignments, gameId: number) => {
@@ -113,38 +124,8 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   if (isLoading) return <p>Loading games...</p>;
   if (error) return <p className="error">Error: {error.message}</p>;
   const hasGames = games.length > 0;
-
-  // Group games by half, then by date, then by time slot. Within a slot each
-  // court maps to at most one game, so games sharing a time always land in the
-  // same visual row regardless of how tall their cards are.
-  interface TimeSlot {
-    time: string;
-    cells: Record<string, Game>;
-  }
-  const grouped: Record<string, Record<string, TimeSlot[]>> = {};
-  const sorted = [...games].sort((a, b) => {
-    const ha = a.half || "1";
-    const hb = b.half || "1";
-    if (ha !== hb) return ha.localeCompare(hb);
-    const da = `${a.date}T${a.time}`;
-    const db = `${b.date}T${b.time}`;
-    return da.localeCompare(db);
-  });
-  for (const game of sorted) {
-    const h = game.half || "1";
-    const d = game.date || "";
-    const t = game.time || "";
-    const c = game.court || "1";
-    if (!grouped[h]) grouped[h] = {};
-    if (!grouped[h][d]) grouped[h][d] = [];
-    const slots = grouped[h][d];
-    let slot = slots.find((s) => s.time === t);
-    if (!slot) {
-      slot = { time: t, cells: {} };
-      slots.push(slot);
-    }
-    slot.cells[c] = game;
-  }
+  const grouped = groupGamesBySchedule(games);
+  const editingGameData = editingGame !== null ? games.find((g) => g.id === editingGame) : null;
 
   return (
     <div className={styles.planner}>
@@ -178,7 +159,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           <button
             data-testid="export-csv-btn"
             className={styles["btn-export"]}
-            onClick={() => openExportDialog("csv")}
+            onClick={() => setExportFormat("csv")}
             disabled={exporting}
           >
             Export CSV
@@ -186,7 +167,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           <button
             data-testid="export-pdf-btn"
             className={styles["btn-export"]}
-            onClick={() => openExportDialog("pdf")}
+            onClick={() => setExportFormat("pdf")}
             disabled={exporting}
           >
             {exporting ? "Generating…" : "Export PDF"}
@@ -203,7 +184,27 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           </button>
         </div>
       </div>
-      {hasGames ? (
+      <div className={styles["planner-tabs"]} role="tablist">
+        <button
+          role="tab"
+          aria-selected={tab === "schedule"}
+          data-testid="planner-tab-schedule"
+          className={`${styles["planner-tab"]} ${tab === "schedule" ? styles["planner-tab-active"] : ""}`}
+          onClick={() => setTab("schedule")}
+        >
+          Schedule
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === "versions"}
+          data-testid="planner-tab-versions"
+          className={`${styles["planner-tab"]} ${tab === "versions" ? styles["planner-tab-active"] : ""}`}
+          onClick={() => setTab("versions")}
+        >
+          Versions
+        </button>
+      </div>
+      {tab === "schedule" && (hasGames ? (
         <div className={styles["games-by-date"]}>
         {Object.entries(grouped).map(([halfKey, dates]) => {
           const halfLabel = halfKey === "1" ? "First Half" : "Second Half";
@@ -276,7 +277,8 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
         </div>
       ) : (
         <p>No games in this season yet. Click "+ Add Game" to create one.</p>
-      )}
+      ))}
+      {tab === "versions" && <VersionsPanel seasonId={season.id} seasonName={season.name} />}
       {editingGameData && (
         <GameEditModal
           game={editingGameData}
@@ -293,77 +295,14 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
         />
       )}
       {exportFormat && (
-        <div
-          className="modal-overlay"
-          onClick={() => {
-            if (!exporting) setExportFormat(null);
-          }}
-        >
-          <div role="dialog" className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{exportFormat === "pdf" ? "Export PDF" : "Export CSV"}</h2>
-            {exportFormat === "pdf" && openTasks > 0 && (
-              <>
-                <p style={{ marginBottom: 8 }}>
-                  There are still {openTasks} unplanned task
-                  {openTasks === 1 ? "" : "s"} in this schedule:
-                </p>
-                <ul
-                  data-testid="pdf-warning-list"
-                  style={{
-                    margin: "0 0 16px 20px",
-                    fontSize: 13,
-                    color: "var(--color-text-secondary)",
-                  }}
-                >
-                  {Object.entries(stats?.open_by_task_type ?? {}).map(([type, count]) => (
-                    <li key={type}>
-                      {count} × {OPEN_TASK_LABELS[type] ?? type}
-                    </li>
-                  ))}
-                </ul>
-                <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
-                  These will appear as empty slots in the exported PDF.
-                </p>
-              </>
-            )}
-            <div className="form-group form-checkbox">
-              <label>
-                <input
-                  type="checkbox"
-                  data-testid="save-version-checkbox"
-                  checked={saveVersion}
-                  onChange={(e) => setSaveVersion(e.target.checked)}
-                />
-                Save a schedule version (snapshot of the whole season)
-              </label>
-            </div>
-            {saveVersion && (
-              <div className="form-group">
-                <label htmlFor="version-note">Note (optional)</label>
-                <input
-                  id="version-note"
-                  data-testid="version-note-input"
-                  value={versionNote}
-                  onChange={(e) => setVersionNote(e.target.value)}
-                  placeholder="e.g. sent to team managers"
-                  maxLength={500}
-                />
-              </div>
-            )}
-            <div className="modal-actions">
-              <button onClick={() => setExportFormat(null)} disabled={exporting}>
-                Cancel
-              </button>
-              <button
-                data-testid="pdf-warning-export-btn"
-                onClick={() => void doExport(exportFormat)}
-                disabled={exporting}
-              >
-                {exporting ? "Generating…" : openTasks > 0 ? "Export anyway" : "Export"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ExportDialog
+          format={exportFormat}
+          season={season}
+          games={games}
+          exporting={exporting}
+          onClose={() => setExportFormat(null)}
+          onExport={(opts) => void doExport(opts)}
+        />
       )}
     </div>
   );

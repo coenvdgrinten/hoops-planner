@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "./fixtures";
+import { test, expect } from "./fixtures";
+import type { APIRequestContext, Download, Page } from "@playwright/test";
 import { authenticate, fetchAllPages, uniqueName } from "./helpers";
 
 const API = "/api";
@@ -12,9 +13,8 @@ test.describe("Planner", () => {
   let teamD: string;
 
   test.beforeEach(async ({ request, page }) => {
-    // Every test gets its OWN season, teams AND players (see uniqueName):
-    // the backend keys teams by name and players by first+last name globally,
-    // so fixed names would be shared rows across parallel tests.
+    // uniqueName: the backend keys teams/players by name globally, so fixed
+    // names would collide across parallel workers.
     token = await authenticate(request, page, uniqueName("pl-"));
     seasonName = uniqueName("Planner-");
     teamA = uniqueName("Team A");
@@ -22,21 +22,18 @@ test.describe("Planner", () => {
     teamC = uniqueName("Team C");
     teamD = uniqueName("Team D");
 
-    // Seed data via API before each test
     const scheduleCsv =
       `date,time,court,home_team,away_team\n2025-10-01,14:00,1,${teamA},${teamB}\n2025-10-01,14:00,2,${teamC},${teamD}`;
 
     const membersCsv =
       `first_name,last_name,team,is_coach,referee_certification\n${uniqueName("Alice")},Refsen,${teamA},True,SENIOR\n${uniqueName("Bob")},Player,${teamA},False,\n${uniqueName("Charlie")},Coachsen,${teamC},True,F\n${uniqueName("Diana")},Referee,${teamA},False,F\n${uniqueName("Eve")},Player,${teamC},False,NONE`;
 
-    // Import schedule (creates season automatically)
     const schedRes = await request.post(`${API}/seasons/import_schedule/`, {
       headers: { Authorization: `Token ${token}` },
       data: { season_name: seasonName, csv_text: scheduleCsv },
     });
     expect(schedRes.status(), "import_schedule should succeed").toBe(201);
 
-    // Import members
     const memRes = await request.post(`${API}/players/import_members/`, {
       headers: { Authorization: `Token ${token}` },
       data: { csv_text: membersCsv, upsert: true },
@@ -52,8 +49,6 @@ test.describe("Planner", () => {
   test("displays games after selecting a season", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
-
-    // Games should appear
     await expect(page.getByText(teamA)).toBeVisible();
     await expect(page.getByText(teamB)).toBeVisible();
   });
@@ -61,35 +56,25 @@ test.describe("Planner", () => {
   test("groups games by date", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
-
-    // Date group label should be visible
     await expect(page.getByTestId("date-label").first()).toBeVisible();
   });
 
   test("shows age badges on game cards", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
-
-    // Age badges should be visible
     await expect(page.getByTestId("age-badge").first()).toBeVisible();
   });
 
   test("shows task chips on game cards", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
-
-    // Task chips should appear
     await expect(page.getByTestId(/^task-chip-\d+$/).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("opens assignment panel when clicking a task chip", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
-
-    // Click on a task chip
     await page.getByTestId(/^task-chip-\d+$/).first().click();
-
-    // Assignment panel should appear
     const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
   });
@@ -97,23 +82,16 @@ test.describe("Planner", () => {
   test("shows assigned state after adding a player", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
-
-    // Click on a task chip to open panel
     await page.getByTestId(/^task-chip-\d+$/).first().click();
     const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // Find a candidate to add
     const addBtn = panel.getByTestId(/^add-candidate-\d+$/).first();
     const addBtnVisible = await addBtn.isVisible();
 
     if (addBtnVisible) {
       await addBtn.click();
-
-      // Close panel and check for filled state
       await panel.getByTestId("assignment-panel-close").click();
-
-      // The game card should show assigned state
       await expect(page.getByTestId(/^task-chip-\d+$/).first()).toHaveClass(/filled/, {
         timeout: 10_000,
       });
@@ -123,19 +101,16 @@ test.describe("Planner", () => {
   test("removes an assignment through the panel", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
-
     const chip = page.getByTestId(/^task-chip-\d+$/).first();
     await chip.click();
     const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // Assign the first suggested candidate
     const addBtn = panel.getByTestId(/^add-candidate-\d+$/).first();
     await expect(addBtn).toBeVisible({ timeout: 10_000 });
     await addBtn.click();
     await expect(chip).toHaveClass(/filled/, { timeout: 10_000 });
 
-    // Remove the assignment again
     await panel.getByTitle("Remove").click();
     await expect(chip).toHaveClass(/unfilled/, { timeout: 10_000 });
     await expect(panel.getByText("No one assigned yet")).toBeVisible();
@@ -150,11 +125,9 @@ test.describe("Planner", () => {
     await firstChip.click();
     await expect(page.getByTestId("assignment-panel")).toBeVisible({ timeout: 10_000 });
 
-    // The card containing the clicked chip is highlighted
     const firstCard = firstChip.locator("..").locator("..");
     await expect(firstCard).toHaveClass(/selected/);
 
-    // Selecting a task on the other game moves the highlight
     const secondChip = page.getByTestId(/^task-chip-\d+$/).nth(4);
     await secondChip.click();
     const secondCard = secondChip.locator("..").locator("..");
@@ -163,7 +136,7 @@ test.describe("Planner", () => {
   });
 
   /** Find a season id by name, walking pages (fixed page size of 100). */
-  async function findSeasonId(request: any, name: string): Promise<number> {
+  async function findSeasonId(request: APIRequestContext, name: string): Promise<number> {
     for (let p = 1; p <= 10; p++) {
       const data = await (
         await request.get(`${API}/seasons/?page=${p}`, {
@@ -180,7 +153,7 @@ test.describe("Planner", () => {
 
   /** Find a player id by exact name (walks all pages — new players land at the end). */
   async function findPlayerId(
-    request: any,
+    request: APIRequestContext,
     first: string,
     last: string,
   ): Promise<number> {
@@ -209,7 +182,7 @@ test.describe("Planner", () => {
     request,
     page,
   }: {
-    request: any;
+    request: APIRequestContext;
     page: Page;
   }) => {
     // Add a member of a third team (no games of its own on the date).
@@ -223,7 +196,6 @@ test.describe("Planner", () => {
     });
     expect(memRes.status()).toBe(201);
 
-    // Assign Sam to our home team's scorer task via the API
     const seasonId = await findSeasonId(request, seasonName);
     const gamesData = await (
       await request.get(`${API}/games/?season=${seasonId}`, {
@@ -248,18 +220,17 @@ test.describe("Planner", () => {
     });
     expect(assignRes.status(), "assignment should succeed").toBe(201);
 
-    // Sam's team has no game on this date → the task counts double
+    // Sam's team has no game on this date → the task counts double.
     const twa = await (
       await request.get(`${API}/games/${teamAGame.id}/tasks_with_assignments/`, {
         headers: { Authorization: `Token ${token}` },
       })
     ).json();
-    const assignment = (twa as { id: number; assignments: { effective_value: number }[] })
+    const assignment = (twa as { id: number; assignments: { effective_value: number }[] }[])
       .find((t) => t.id === scorerTask.id)!
       .assignments[0];
     expect(assignment.effective_value).toBe(2);
 
-    // The panel shows the highlighted +2× badge next to his name
     await page.goto("/");
     await selectSeason(page);
     const chip = gameCard(page, teamA)
@@ -270,7 +241,6 @@ test.describe("Planner", () => {
     const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // The assigned-player row contains both the name and the badge
     const samRow = panel
       .locator("div")
       .filter({ has: page.getByText(`${samFirst} Solo`) })
@@ -285,11 +255,11 @@ test.describe("Planner", () => {
     request,
     page,
   }: {
-    request: any;
+    request: APIRequestContext;
     page: Page;
   }) => {
-    // Create a fresh season through the UI (auto-selected afterwards, so no
-    // pagination issues), then seed two home games at different times.
+    // Created through the UI (not API) so the import's cache invalidation
+    // makes the new games visible without waiting for staleTime expiry.
     const seasonName = uniqueName("EffOwn-");
     await page.goto("/");
     await page.getByTestId("season-dropdown-toggle").click();
@@ -298,10 +268,6 @@ test.describe("Planner", () => {
     await page.getByRole("button", { name: "Create" }).click();
     await expect(page.getByTestId("season-dropdown-value")).toHaveText(seasonName);
 
-    // Import the schedule through the UI: its onSuccess invalidates the
-    // ["games"] query, so the Planner picks up the new games. An API-only
-    // import would sit behind the 10s staleTime and the Planner would keep
-    // showing the cached (empty) list.
     await page.getByRole("button", { name: "Import Schedule" }).click();
     const modal = page.getByRole("dialog");
     await expect(modal).toBeVisible();
@@ -328,8 +294,6 @@ test.describe("Planner", () => {
     });
     expect(memRes.status()).toBe(201);
 
-    // Locate the ZB game and its scorer task (used for the server-side
-    // check at the end).
     const seasonId = await findSeasonId(request, seasonName);
     const gamesData = await (
       await request.get(`${API}/games/?season=${seasonId}`, {
@@ -349,8 +313,6 @@ test.describe("Planner", () => {
     );
     const kimId = await findPlayerId(request, kimFirst, "Keeper");
 
-    // The UI import invalidated the game list, so the imported games are
-    // visible in the Planner.
     const chip = gameCard(page, teamZB)
       .getByTestId(/^task-chip-\d+$/)
       .filter({ hasText: "SCORER" })
@@ -360,33 +322,25 @@ test.describe("Planner", () => {
     const panel = page.getByTestId("assignment-panel");
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // Assign Kim through the UI — her team ZA is not involved in this game,
-    // so she is eligible. An API-only assignment would sit behind the 10s
-    // staleTime and the panel would keep showing the cached (empty) list;
-    // the UI mutation invalidates the task cache instead. Searching by name
-    // puts her at the top of the Suggested list.
+    // Assigned through the UI so the mutation invalidates the task cache.
     const searchBox = panel.getByLabel("Search member or team");
     await searchBox.fill(`${kimFirst} Keeper`);
     const addBtn = panel.getByTestId(`add-candidate-${kimId}`);
     await expect(addBtn).toBeVisible({ timeout: 10_000 });
     await addBtn.click();
 
-    // The Assigned section now shows a plain +1 badge next to her name.
-    // Kim is the only assignment on this task, so the panel has exactly one
-    // effective-value badge.
+    // Kim's team plays on this date → the task counts single (+1, not +2).
     const assignedBadge = panel.getByTestId(/^effective-value-\d+$/).first();
     await expect(assignedBadge).toBeVisible({ timeout: 10_000 });
     await expect(assignedBadge).toHaveText("+1");
     await expect(assignedBadge).not.toHaveClass(/away/);
 
-    // Kim's team plays on this date (at 18:00) → the task counts single.
-    // Verify server-side that the assignment carries effective_value 1.
     const twa = await (
       await request.get(`${API}/games/${zbGame.id}/tasks_with_assignments/`, {
         headers: { Authorization: `Token ${token}` },
       })
     ).json();
-    const assignment = (twa as { id: number; assignments: { effective_value: number }[] })
+    const assignment = (twa as { id: number; assignments: { effective_value: number }[] }[])
       .find((t) => t.id === scorerTask.id)!
       .assignments[0];
     expect(assignment.effective_value).toBe(1);
@@ -396,8 +350,6 @@ test.describe("Planner", () => {
     await page.goto("/");
     await selectSeason(page);
 
-    // The CSV button opens the export dialog (issue #3 added the optional
-    // "save a schedule version" step); confirm without saving a version.
     await page.getByTestId("export-csv-btn").click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 10_000 });
@@ -407,35 +359,23 @@ test.describe("Planner", () => {
 
     expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.csv`);
 
-    const stream = await download.createReadStream();
-    let csv = "";
-    for await (const chunk of stream) {
-      csv += chunk.toString();
-    }
-    expect(csv).toContain("date,time,court");
-    expect(csv).toContain(teamA);
+    const rows = await readDownloadedCsvRows(download);
+    expect(rows.join("\n")).toContain(teamA);
   });
 
   test("warns about open tasks before exporting PDF", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
 
-    // Wait for the season-stats query to resolve: the export handler reads
-    // the open-task count from that cache, and clicking before it loads would
-    // skip the warning (openTasks still 0) and download straight away.
-    // The fill-rate bar only renders once stats are available.
+    // Wait for stats to load — the warning depends on the open-task count.
     await expect(page.getByTestId("fill-rate-bar")).toBeVisible();
 
-    // Seeded games have unassigned tasks, so clicking Export PDF should show
-    // the warning modal instead of downloading immediately.
     await page.getByTestId("export-pdf-btn").click();
-
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 10_000 });
     await expect(dialog.getByText(/unplanned task/)).toBeVisible();
     await expect(page.getByTestId("pdf-warning-list")).toBeVisible();
 
-    // Cancelling closes the modal without downloading.
     await dialog.getByRole("button", { name: "Cancel" }).click();
     await expect(dialog).not.toBeVisible();
   });
@@ -445,37 +385,23 @@ test.describe("Planner", () => {
     await selectSeason(page);
 
     await page.getByTestId("export-pdf-btn").click();
-
-    // Open tasks exist → confirm through the warning modal first.
     const dialog = page.getByRole("dialog");
     if (await dialog.isVisible().catch(() => false)) {
       const downloadPromise = page.waitForEvent("download");
       await dialog.getByTestId("pdf-warning-export-btn").click();
       const download = await downloadPromise;
-
       expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.pdf`);
-
-      const stream = await download.createReadStream();
-      let pdf = "";
-      for await (const chunk of stream) {
-        pdf += chunk.toString();
-      }
-      expect(pdf).toContain("%PDF");
+      const buf = await download.createReadStream().then(readStream);
+      expect(buf).toContain("%PDF");
       return;
     }
 
     const downloadPromise = page.waitForEvent("download");
     await page.getByTestId("export-pdf-btn").click();
     const download = await downloadPromise;
-
     expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.pdf`);
-
-    const stream = await download.createReadStream();
-    let pdf = "";
-    for await (const chunk of stream) {
-      pdf += chunk.toString();
-    }
-    expect(pdf).toContain("%PDF");
+    const buf = await download.createReadStream().then(readStream);
+    expect(buf).toContain("%PDF");
   });
 
   test("exports the schedule as calendar (.ics)", async ({ page }: { page: Page }) => {
@@ -488,15 +414,178 @@ test.describe("Planner", () => {
 
     expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.ics`);
 
-    const stream = await download.createReadStream();
-    let ics = "";
-    for await (const chunk of stream) {
-      ics += chunk.toString();
-    }
+    const ics = await readStream(await download.createReadStream());
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("BEGIN:VEVENT");
     expect(ics).toContain("END:VCALENDAR");
     expect(ics).toContain(teamA);
     expect(ics).toContain(teamB);
+  });
+
+  /** Import an extra second-half game into the seeded season. */
+  async function seedSecondHalfGame(request: APIRequestContext) {
+    const res = await request.post(`${API}/seasons/import_schedule/`, {
+      headers: { Authorization: `Token ${token}` },
+      data: {
+        season_name: seasonName,
+        csv_text: `date,time,court,home_team,away_team,half\n2026-01-10,14:00,1,${teamA},${teamB},2`,
+      },
+    });
+    expect(res.status(), "second-half import should succeed").toBe(201);
+  }
+
+  /** Read a downloaded file's full text content. */
+  async function readStream(stream: AsyncIterable<Uint8Array | string>): Promise<string> {
+    let text = "";
+    for await (const chunk of stream) {
+      text += chunk.toString();
+    }
+    return text;
+  }
+
+  /** Read a downloaded CSV and return its data rows (header stripped). */
+  async function readDownloadedCsvRows(download: Download): Promise<string[]> {
+    const csv = await readStream(await download.createReadStream());
+    return csv.trim().split("\n").slice(1);
+  }
+
+  test("whole season remains the default export scope", async ({
+    page,
+    request,
+  }) => {
+    await seedSecondHalfGame(request);
+    await page.goto("/");
+    await selectSeason(page);
+
+    await page.getByTestId("export-csv-btn").click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    // No interaction → the "Whole season" radio is checked by default.
+    await expect(dialog.getByTestId("export-scope-full")).toBeChecked();
+
+    const downloadPromise = page.waitForEvent("download");
+    await dialog.getByTestId("pdf-warning-export-btn").click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.csv`);
+
+    const rows = await readDownloadedCsvRows(download);
+    const halves = rows.map((r) => r.split(",")[4]);
+    expect(halves).toContain("1");
+    expect(halves).toContain("2");
+  });
+
+  test("exports only the first half as CSV", async ({ page, request }) => {
+    await seedSecondHalfGame(request);
+    await page.goto("/");
+    await selectSeason(page);
+
+    await page.getByTestId("export-csv-btn").click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await dialog.getByTestId("export-scope-first-half").check();
+
+    const downloadPromise = page.waitForEvent("download");
+    await dialog.getByTestId("pdf-warning-export-btn").click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toBe(`schedule_${seasonName}.csv`);
+
+    const rows = await readDownloadedCsvRows(download);
+    expect(rows.length).toBeGreaterThan(0);
+    // Every row's half column (index 4) is "1".
+    for (const row of rows) {
+      expect(row.split(",")[4]).toBe("1");
+    }
+  });
+
+  test("exports only the second half as CSV", async ({ page, request }) => {
+    await seedSecondHalfGame(request);
+    await page.goto("/");
+    await selectSeason(page);
+
+    await page.getByTestId("export-csv-btn").click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await dialog.getByTestId("export-scope-second-half").check();
+
+    const downloadPromise = page.waitForEvent("download");
+    await dialog.getByTestId("pdf-warning-export-btn").click();
+    const download = await downloadPromise;
+
+    const rows = await readDownloadedCsvRows(download);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.split(",")[4]).toBe("2");
+    }
+  });
+
+  test("exports a custom selection of games", async ({ page, request }) => {
+    await seedSecondHalfGame(request);
+    await page.goto("/");
+    await selectSeason(page);
+
+    // Resolve the season id and pick two games with distinct dates.
+    // (DRF pagination wraps list responses in {count, …, results}.)
+    const authHeaders = { Authorization: `Token ${token}` };
+    const seasonsPage = await (
+      await request.get(`${API}/seasons/`, { headers: authHeaders })
+    ).json();
+    const seasonId = seasonsPage.results.find(
+      (s: { name: string }) => s.name === seasonName,
+    ).id;
+    const gamesPage = await (
+      await request.get(`${API}/games/?season=${seasonId}`, {
+        headers: authHeaders,
+      })
+    ).json();
+    const games = Array.isArray(gamesPage) ? gamesPage : gamesPage.results;
+    const picked = [games[0], games[games.length - 1]];
+    const pickedDates = new Set(picked.map((g: { date: string }) => g.date));
+
+    await page.getByTestId("export-csv-btn").click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await dialog.getByTestId("export-scope-custom").check();
+    const picker = dialog.getByTestId("game-picker");
+    await expect(picker).toBeVisible();
+    // The export button stays disabled until at least one game is ticked.
+    await expect(dialog.getByTestId("pdf-warning-export-btn")).toBeDisabled();
+    for (const g of picked) {
+      await picker.getByTestId(`game-picker-${g.id}`).check();
+    }
+    await expect(dialog.getByTestId("pdf-warning-export-btn")).toBeEnabled();
+
+    const downloadPromise = page.waitForEvent("download");
+    await dialog.getByTestId("pdf-warning-export-btn").click();
+    const download = await downloadPromise;
+
+    const rows = await readDownloadedCsvRows(download);
+    expect(rows.length).toBeGreaterThan(0);
+    const exportedDates = new Set(rows.map((r) => r.split(",")[0]));
+    expect(exportedDates).toEqual(pickedDates);
+  });
+
+  test("shows the full-season statistics checkbox only for scoped PDF exports", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    // PDF dialog, whole season (default): hidden.
+    await page.getByTestId("export-pdf-btn").click();
+    let dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 10_000 });
+    await expect(dialog.getByTestId("full-season-stats-checkbox")).toHaveCount(0);
+
+    // Select a half → visible.
+    await dialog.getByTestId("export-scope-first-half").check();
+    await expect(dialog.getByTestId("full-season-stats-checkbox")).toBeVisible();
+
+    // CSV dialog with a half selected → still hidden (CSV has no summaries).
+    await dialog.getByRole("button", { name: "Cancel" }).click();
+    await page.getByTestId("export-csv-btn").click();
+    dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByTestId("export-scope-first-half").check();
+    await expect(dialog.getByTestId("full-season-stats-checkbox")).toHaveCount(0);
   });
 });

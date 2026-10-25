@@ -2,7 +2,7 @@
 
 import csv
 import io
-from typing import Any
+from typing import Any, Literal
 
 from hoops_planner.core.models import Player, Season, Task, TaskAssignment, TaskType
 
@@ -14,12 +14,17 @@ TASK_LABELS: dict[str, str] = {
 }
 
 
-def export_schedule_csv(season: Season) -> str:
+def export_schedule_csv(
+    season: Season,
+    half: Literal["1", "2"] | None = None,
+    game_ids: list[int] | None = None,
+) -> str:
     """Generate a CSV of the task schedule (one row per task) for a season.
 
     Each row carries the game details, the task type/slot, and the assigned
     player (with their team). Unassigned tasks list an empty assigned player.
-    Returns the CSV as a string.
+    ``half`` ("1"/"2") or ``game_ids`` restrict which games are exported
+    (issue #9); absent means the whole season. Returns the CSV as a string.
     """
     buffer = io.StringIO()
     writer = csv.writer(buffer)
@@ -42,6 +47,10 @@ def export_schedule_csv(season: Season) -> str:
     )
 
     games = season.games.all().order_by("date", "time", "court")
+    if game_ids is not None:
+        games = games.filter(pk__in=game_ids)
+    elif half:
+        games = games.filter(half=half)
     for game in games:
         tasks = Task.objects.filter(game=game).order_by("task_type", "slot_number")
         if not tasks:

@@ -196,6 +196,182 @@ class TestSeasonViewSet:
         assert "END:VCALENDAR" in body
         assert "Tafelen (Scorer) Vido X14-1 vs Opponent" in body
 
+    def _make_one_game_per_half(self, season, team_x14, player):
+        """Create a half-1 and a half-2 game, each with an assigned scorer."""
+        from datetime import date, time
+
+        from hoops_planner.core.models import Game, Task, TaskAssignment
+
+        g1 = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="First Half Opp",
+            game_type=Game.GameType.HOME,
+            date=date(2025, 10, 1),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+            half=Game.Half.FIRST,
+        )
+        t1 = Task.objects.create(game=g1, task_type="SCORER", slot_number=1)
+        TaskAssignment.objects.create(task=t1, player=player)
+        g2 = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Second Half Opp",
+            game_type=Game.GameType.HOME,
+            date=date(2026, 1, 10),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+            half=Game.Half.SECOND,
+        )
+        t2 = Task.objects.create(game=g2, task_type="SCORER", slot_number=1)
+        TaskAssignment.objects.create(task=t2, player=player)
+        return g1, g2
+
+    def test_export_csv_first_half(self, api_client, season, team_x14, player):
+        """?half=1 exports only first-half games; filename is unchanged."""
+        self._make_one_game_per_half(season, team_x14, player)
+
+        response = api_client.get(f"/api/seasons/{season.id}/export_csv/?half=1")
+        assert response.status_code == 200
+        assert (
+            response["Content-Disposition"]
+            == f'attachment; filename="schedule_{season.name}.csv"'
+        )
+        body = response.content.decode()
+        assert "2025-10-01" in body
+        assert "First Half Opp" in body
+        assert "2026-01-10" not in body
+        assert "Second Half Opp" not in body
+
+    def test_export_csv_second_half(self, api_client, season, team_x14, player):
+        """?half=2 exports only second-half games."""
+        self._make_one_game_per_half(season, team_x14, player)
+
+        response = api_client.get(f"/api/seasons/{season.id}/export_csv/?half=2")
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert "2026-01-10" in body
+        assert "Second Half Opp" in body
+        assert "2025-10-01" not in body
+        assert "First Half Opp" not in body
+
+    def test_export_csv_custom_game_ids(self, api_client, season, team_x14, player):
+        """?game_ids=… exports exactly the selected games."""
+        from datetime import date, time
+
+        from hoops_planner.core.models import Game, Task, TaskAssignment
+
+        games = []
+        for opponent, day in [("Pick A", 1), ("Skip B", 2), ("Pick C", 3)]:
+            g = Game.objects.create(
+                season=season,
+                own_team=team_x14,
+                opponent=opponent,
+                game_type=Game.GameType.HOME,
+                date=date(2025, 10, day),
+                time=time(14, 0),
+                court=Game.Court.COURT_1,
+            )
+            t = Task.objects.create(game=g, task_type="SCORER", slot_number=1)
+            TaskAssignment.objects.create(task=t, player=player)
+            games.append(g)
+
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_csv/?game_ids={games[0].id},{games[2].id}"
+        )
+        assert response.status_code == 200
+        body = response.content.decode()
+        assert "Pick A" in body
+        assert "Pick C" in body
+        assert "Skip B" not in body
+
+    def test_export_csv_invalid_half_rejected(self, api_client, season):
+        response = api_client.get(f"/api/seasons/{season.id}/export_csv/?half=3")
+        assert response.status_code == 400
+
+    def test_export_csv_empty_game_ids_rejected(self, api_client, season):
+        response = api_client.get(f"/api/seasons/{season.id}/export_csv/?game_ids=")
+        assert response.status_code == 400
+
+    def test_export_csv_non_integer_game_ids_rejected(self, api_client, season):
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_csv/?game_ids=abc"
+        )
+        assert response.status_code == 400
+
+    def test_export_csv_foreign_game_ids_rejected(self, api_client, season, team_x14):
+        """Game ids from another season are rejected, not silently dropped."""
+        from datetime import date, time
+
+        from hoops_planner.core.models import Game, Season
+
+        other_season = Season.objects.create(name="2024-2025")
+        foreign_game = Game.objects.create(
+            season=other_season,
+            own_team=team_x14,
+            opponent="Foreign",
+            game_type=Game.GameType.HOME,
+            date=date(2024, 10, 1),
+            time=time(14, 0),
+            court=Game.Court.COURT_1,
+        )
+
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_csv/?game_ids={foreign_game.id}"
+        )
+        assert response.status_code == 400
+
+    def test_export_csv_half_and_game_ids_rejected(self, api_client, season):
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_csv/?half=1&game_ids=1"
+        )
+        assert response.status_code == 400
+
+    def test_export_pdf_first_half(self, api_client, season, team_x14, player):
+        """?half=1 renders a PDF of only that half; filename is unchanged."""
+        self._make_one_game_per_half(season, team_x14, player)
+
+        response = api_client.get(f"/api/seasons/{season.id}/export_pdf/?half=1")
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/pdf"
+        assert (
+            response["Content-Disposition"]
+            == f'attachment; filename="schedule_{season.name}.pdf"'
+        )
+        assert response.content.startswith(b"%PDF")
+
+    def test_export_pdf_full_season_stats_accepted(
+        self, api_client, season, team_x14, player
+    ):
+        """full_season_stats=1 is accepted alongside a half scope (effect is
+        covered at the HTML level in test_pdf_export.py)."""
+        self._make_one_game_per_half(season, team_x14, player)
+
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_pdf/?half=1&full_season_stats=1"
+        )
+        assert response.status_code == 200
+        assert response.content.startswith(b"%PDF")
+
+    def test_export_pdf_scoped_save_version_stores_full_season(
+        self, api_client, season, team_x14, player
+    ):
+        """A half-scoped export still snapshots the ENTIRE season (issue #9)."""
+        from hoops_planner.core.models import ScheduleVersion
+
+        self._make_one_game_per_half(season, team_x14, player)
+
+        response = api_client.get(
+            f"/api/seasons/{season.id}/export_pdf/?half=1&save_version=1"
+        )
+        assert response.status_code == 200
+
+        version = ScheduleVersion.objects.get(season=season)
+        payload_dates = [g["date"] for g in version.payload["games"]]
+        assert "2025-10-01" in payload_dates
+        assert "2026-01-10" in payload_dates
+
     def test_game_ics_public_access(self, season, team_x14, player):
         """The game_ics endpoint should be accessible without authentication."""
         from datetime import date, time

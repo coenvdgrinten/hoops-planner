@@ -104,8 +104,6 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": os.getenv("DB_PATH", str(BASE_DIR / "db.sqlite3")),
-            # Busy-timeout so concurrent writes queue instead of failing with
-            # "database is locked" under the parallel e2e suite.
             "OPTIONS": {"timeout": 30},
         }
     }

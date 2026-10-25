@@ -381,3 +381,213 @@ class TestExportSchedulePdf:
         # (The CSS rule .away-day is always present — check the td markup.)
         assert 'class="center away-day"' not in html
         assert 'class="team away-day"' not in html
+
+
+@pytest.mark.django_db
+class TestExportScope:
+    """Half / custom game scoping of the exported document (issue #9)."""
+
+    def _make_one_game_per_half(self, season, team_x14, player):
+        """A half-1 and a half-2 game, each with an assigned scorer task."""
+        g1 = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="First Half Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+            half=Game.Half.FIRST,
+        )
+        t1 = Task.objects.create(game=g1, task_type=TaskType.SCORER, slot_number=1)
+        TaskAssignment.objects.create(task=t1, player=player)
+        g2 = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Second Half Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2026, 1, 10),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+            half=Game.Half.SECOND,
+        )
+        t2 = Task.objects.create(game=g2, task_type=TaskType.SCORER, slot_number=1)
+        TaskAssignment.objects.create(task=t2, player=player)
+        return g1, g2
+
+    def test_build_html_scoped_to_first_half(self, season, team_x14, player):
+        self._make_one_game_per_half(season, team_x14, player)
+
+        html = _build_html(season, half="1")
+        assert "First Half Opp" in html
+        assert "01-10-2025" in html
+        assert "Second Half Opp" not in html
+        assert "10-01-2026" not in html
+
+    def test_build_html_scoped_to_second_half(self, season, team_x14, player):
+        self._make_one_game_per_half(season, team_x14, player)
+
+        html = _build_html(season, half="2")
+        assert "Second Half Opp" in html
+        assert "10-01-2026" in html
+        assert "First Half Opp" not in html
+        assert "01-10-2025" not in html
+
+    def test_build_html_default_is_whole_season(self, season, team_x14, player):
+        """No scope args → both halves rendered (backward-compatible default)."""
+        self._make_one_game_per_half(season, team_x14, player)
+
+        html = _build_html(season)
+        assert "First Half Opp" in html
+        assert "Second Half Opp" in html
+
+    def test_build_html_custom_game_subset(self, season, team_x14, player):
+        g1, _ = self._make_one_game_per_half(season, team_x14, player)
+        g3 = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Third Game Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2026, 2, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+            half=Game.Half.SECOND,
+        )
+        Task.objects.create(game=g3, task_type=TaskType.SCORER, slot_number=1)
+
+        html = _build_html(season, game_ids=[g1.id, g3.id])
+        assert "First Half Opp" in html
+        assert "Third Game Opp" in html
+        assert "Second Half Opp" not in html
+
+    def test_build_html_title_indicates_scope(self, season, team_x14, player):
+        g1, _ = self._make_one_game_per_half(season, team_x14, player)
+
+        assert "Task Schedule — 2025-2026 (First Half)" in _build_html(
+            season, half="1"
+        )
+        assert "Task Schedule — 2025-2026 (Second Half)" in _build_html(
+            season, half="2"
+        )
+        assert "Task Schedule — 2025-2026 (Custom Selection)" in _build_html(
+            season, game_ids=[g1.id]
+        )
+        # Whole season: no parenthetical.
+        whole = _build_html(season)
+        assert "Task Schedule — 2025-2026</span>" in whole
+
+    def test_team_summary_follows_scope(self, season, team_x14, player):
+        """Scoped summary counts only the selected games' assignments."""
+        g1, g2 = self._make_one_game_per_half(season, team_x14, player)
+        # A second assignment in the first-half game → scoped total 2, full 3.
+        extra_task = Task.objects.create(
+            game=g1, task_type=TaskType.TIMER, slot_number=1
+        )
+        TaskAssignment.objects.create(task=extra_task, player=player)
+
+        scoped = _build_html(season, half="1")
+        unscoped = _build_html(season)
+
+        # In the team summary row, Vido X14-1's total is the 2nd <td>.
+        scoped_row = next(
+            line
+            for line in scoped.split("\n")
+            if "Vido X14-1" in line and "<td>2</td>" in line
+        )
+        assert "<td>2</td>" in scoped_row
+        unscoped_rows = [
+            line
+            for line in unscoped.split("\n")
+            if "Vido X14-1" in line and "<td>3</td>" in line
+        ]
+        assert unscoped_rows
+
+    def test_player_summary_eff_identical_across_scopes(
+        self, season, team_x14, player
+    ):
+        """Eff. figures are identical whether or not the scope filter is
+        applied (the 2× multiplier depends only on same-date games)."""
+        # Own-team-date game in half 1 → eff 1.
+        g1 = Game.objects.create(
+            season=season,
+            own_team=team_x14,
+            opponent="Own Day Opp",
+            game_type=Game.GameType.HOME,
+            date=dt.date(2025, 10, 1),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+            half=Game.Half.FIRST,
+        )
+        t1 = Task.objects.create(game=g1, task_type=TaskType.SCORER, slot_number=1)
+        TaskAssignment.objects.create(task=t1, player=player)
+        # Away-day game in half 2 (other team, other date) → eff 2.
+        other_team = Team.objects.create(
+            name="Vido X16-1", age_category=Team.AgeCategory.X16
+        )
+        g2 = Game.objects.create(
+            season=season,
+            own_team=other_team,
+            opponent="Away Day Opp",
+            game_type=Game.GameType.AWAY,
+            date=dt.date(2026, 1, 10),
+            time=dt.time(14, 0),
+            court=Game.Court.COURT_1,
+            half=Game.Half.SECOND,
+        )
+        t2 = Task.objects.create(game=g2, task_type=TaskType.TIMER, slot_number=1)
+        TaskAssignment.objects.create(task=t2, player=player)
+
+        def john_row(html):
+            # The player-summary row (the game-table row also mentions the
+            # player, but its cells never match the Total/Eff. pattern).
+            return next(
+                line for line in html.split("\n") if "<td>John Doe</td>" in line
+            )
+
+        # Half 1 only: 1 task, eff 1.
+        h1 = _build_html(season, half="1")
+        assert "<td>1</td><td>1</td>" in john_row(h1)
+        assert "Away Day Opp" not in h1
+        # Half 2 only: 1 task, eff 2 — same multiplier as in the full run.
+        h2 = _build_html(season, half="2")
+        assert "<td>1</td><td>2</td>" in john_row(h2)
+        # Whole season: 2 tasks, eff 3.
+        whole = _build_html(season)
+        assert "<td>2</td><td>3</td>" in john_row(whole)
+
+    def test_full_season_stats_opts_into_season_wide_summaries(
+        self, season, team_x14, player
+    ):
+        """full_season_stats=True: tables stay scoped, summaries go wide."""
+        self._make_one_game_per_half(season, team_x14, player)
+
+        html = _build_html(season, half="1", full_season_stats=True)
+        # Tables still scoped to the first half…
+        assert "First Half Opp" in html
+        assert "Second Half Opp" not in html
+        # …but the team summary counts both halves (2 assignments total).
+        team_rows = [
+            line
+            for line in html.split("\n")
+            if "Vido X14-1" in line and "<td>2</td>" in line
+        ]
+        assert team_rows
+        # John Doe's player-summary total spans both halves.
+        john_rows = [line for line in html.split("\n") if "John Doe" in line]
+        assert any("<td>2</td><td>2</td>" in line for line in john_rows)
+
+    def test_summaries_absent_when_no_assignments_in_scope(
+        self, season, team_x14, player
+    ):
+        """A scope without assignments yields no summary sections and no
+        trailing page break."""
+        g1, g2 = self._make_one_game_per_half(season, team_x14, player)
+        # Move all assignments out of half 1: reassign them to half 2 only.
+        TaskAssignment.objects.filter(task__game=g1).delete()
+
+        html = _build_html(season, half="1")
+        assert "Team Summary" not in html
+        assert "Player Summary" not in html
+        assert "page-break-before" not in html
+        # The schedule table for the (unassigned) first-half game is present.
+        assert "First Half Opp" in html

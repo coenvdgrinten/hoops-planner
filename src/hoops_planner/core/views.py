@@ -1,10 +1,13 @@
 """API views for Hoops Planner."""
 
+from typing import Literal
+
 from django.conf import settings
 from django.db.models import Count
 from django.http import HttpResponse
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
@@ -22,6 +25,7 @@ from hoops_planner.core.importers import import_members, import_schedule
 from hoops_planner.core.models import (
     Game,
     Player,
+    ScheduleVersion,
     Season,
     SiteConfig,
     Task,
@@ -31,6 +35,7 @@ from hoops_planner.core.models import (
 from hoops_planner.core.pdf_export import export_schedule_pdf
 from hoops_planner.core.schedule_versions import (
     SaveVersionResult,
+    is_current,
     save_version,
 )
 from hoops_planner.core.serializers import (
@@ -44,17 +49,67 @@ from hoops_planner.core.serializers import (
 )
 
 
-def _maybe_save_version(request, season: Season) -> SaveVersionResult | None:
+def _maybe_save_version(
+    request,
+    season: Season,
+    artifact: bytes | None = None,
+    artifact_format: str = "",
+) -> SaveVersionResult | None:
     """Capture a schedule snapshot when the export asked for one (issue #3).
 
     Reads ``save_version`` (truthy flag) and ``note`` from the query string.
     Returns the save result (saved or dedupe-skipped), or None when no
-    snapshot was requested.
+    snapshot was requested. ``artifact`` carries the exact document bytes so
+    later downloads are byte-for-byte identical (issue #6).
     """
     if not request.query_params.get("save_version"):
         return None
     note = request.query_params.get("note", "")
-    return save_version(season, note)
+    return save_version(
+        season, note, artifact=artifact, artifact_format=artifact_format
+    )
+
+
+def _parse_export_scope(
+    request,
+) -> tuple[Literal["1", "2"] | None, list[int] | None]:
+    """Parse and validate the optional ``half`` / ``game_ids`` query params.
+
+    Returns ``(half, game_ids)`` — each ``None`` when absent (whole season).
+    An invalid value is a 400: unlike the stats endpoints (where an unknown
+    half just yields empty numbers), an invalid scope here would render an
+    empty document (issue #9).
+    """
+    half = request.query_params.get("half")
+    raw_ids = request.query_params.get("game_ids")
+    if half is not None and raw_ids is not None:
+        raise ValidationError(
+            {"detail": "Provide either 'half' or 'game_ids', not both."}
+        )
+    if half is not None:
+        if half not in ("1", "2"):
+            raise ValidationError({"half": 'Must be "1" or "2".'})
+        return half, None
+    if raw_ids is not None:
+        try:
+            ids = [int(part) for part in raw_ids.split(",") if part.strip()]
+        except ValueError as err:
+            raise ValidationError(
+                {"game_ids": "Must be a comma-separated list of integers."}
+            ) from err
+        if not ids:
+            raise ValidationError({"game_ids": "Provide at least one game id."})
+        return None, ids
+    return None, None
+
+
+def _validate_game_ids(season: Season, game_ids: list[int]) -> None:
+    """Reject game ids that don't belong to this season (issue #9)."""
+    found = season.games.filter(pk__in=set(game_ids)).count()
+    if found != len(set(game_ids)):
+        raise ValidationError(
+            {"game_ids": "All game ids must belong to this season."}
+        )
 
 
 def _export_filename(
@@ -142,10 +197,29 @@ class SeasonViewSet(viewsets.ModelViewSet):
         - ``note`` — free-text note stored with the snapshot.
         When a snapshot is saved, the response filename gains a ``_vN`` suffix
         so the downloaded file matches the stored version.
+
+        Optional query params (issue #9) — which games to render:
+        - ``half=1|2`` — only that half of the season.
+        - ``game_ids=3,7,12`` — an explicit selection (mutually exclusive
+          with ``half``).
+        - ``full_season_stats=1`` — compute the summary sections over the
+          whole season even when the rendered games are scoped.
+        The snapshot (when requested) always records the entire season,
+        regardless of scope.
         """
         season = self.get_object()
-        version_result = _maybe_save_version(request, season)
-        pdf_bytes = export_schedule_pdf(season)
+        half, game_ids = _parse_export_scope(request)
+        if game_ids:
+            _validate_game_ids(season, game_ids)
+        full_season_stats = bool(request.query_params.get("full_season_stats"))
+        # Render first: the exact bytes are what get stored as the version's
+        # artifact (issue #6), so download == what was distributed.
+        pdf_bytes = export_schedule_pdf(
+            season, half=half, game_ids=game_ids, full_season_stats=full_season_stats
+        )
+        version_result = _maybe_save_version(
+            request, season, artifact=pdf_bytes, artifact_format="pdf"
+        )
         filename = _export_filename(season.name, version_result, "pdf")
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         _add_version_headers(headers, version_result)
@@ -171,15 +245,93 @@ class SeasonViewSet(viewsets.ModelViewSet):
         """Export the task schedule (assignments) as a CSV.
 
         Accepts the same optional ``save_version``/``note`` params as
-        ``export_pdf`` (see there).
+        ``export_pdf`` (see there), plus the same ``half``/``game_ids``
+        scope params. ``full_season_stats`` does not apply: the CSV has no
+        summary sections.
         """
         season = self.get_object()
-        version_result = _maybe_save_version(request, season)
-        csv_text = export_schedule_csv(season)
+        half, game_ids = _parse_export_scope(request)
+        if game_ids:
+            _validate_game_ids(season, game_ids)
+        # Render first: store the exact bytes as the version's artifact so a
+        # later download is byte-for-byte identical to this one (issue #6).
+        csv_text = export_schedule_csv(season, half=half, game_ids=game_ids)
+        csv_bytes = csv_text.encode("utf-8")
+        version_result = _maybe_save_version(
+            request, season, artifact=csv_bytes, artifact_format="csv"
+        )
         filename = _export_filename(season.name, version_result, "csv")
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         _add_version_headers(headers, version_result)
-        return HttpResponse(csv_text, content_type="text/csv", headers=headers)
+        return HttpResponse(csv_bytes, content_type="text/csv", headers=headers)
+
+    @action(detail=True, methods=["get"])
+    def versions(self, request, pk=None):
+        """List this season's saved schedule versions, newest first (issue #6).
+
+        Each entry carries number, timestamp, note, format, and whether it has
+        a downloadable artifact. The response also reports ``live_matches`` —
+        whether the live schedule still matches the latest version (null when
+        the season has no versions).
+        """
+        season = self.get_object()
+        versions = season.versions.order_by("-number")
+        # NOTE: the list key is "versions", NOT "results" — the frontend
+        # request() helper treats any {results: [...]} body as a DRF paginated
+        # page and would unwrap it, dropping "live_matches".
+        return Response(
+            {
+                "live_matches": is_current(season),
+                "versions": [
+                    {
+                        "number": v.number,
+                        "created_at": v.created_at,
+                        "note": v.note,
+                        "artifact_format": v.artifact_format,
+                        "has_artifact": bool(v.artifact),
+                    }
+                    for v in versions
+                ],
+            }
+        )
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path=r"versions/(?P<number>[0-9]+)/download",
+    )
+    def version_download(self, request, pk=None, number=None):
+        """Download the exact stored artifact of a schedule version (issue #6).
+
+        Returns the bytes captured at save time — never re-rendered — so the
+        file is byte-for-byte identical to what was distributed. Versions
+        predating artifact storage (or without one) get a 404 with a clear
+        message.
+        """
+        season = self.get_object()
+        try:
+            version = season.versions.get(number=int(number))
+        except ScheduleVersion.DoesNotExist:
+            return Response(
+                {"detail": f"Schedule version v{number} not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not version.artifact:
+            return Response(
+                {"detail": "This version has no stored document to download."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        content_type = (
+            "application/pdf"
+            if version.artifact_format == "pdf"
+            else "text/csv; charset=utf-8"
+        )
+        filename = f"schedule_{season.name}_v{version.number}.{version.artifact_format}"
+        return HttpResponse(
+            version.artifact,
+            content_type=content_type,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
     @action(detail=True, methods=["get"])
     def conflicts(self, request, pk=None):
