@@ -21,6 +21,7 @@ from hoops_planner.core.eligibility import (
     find_conflicts_for_game,
     get_eligible_players_with_indicator,
 )
+from hoops_planner.core.gym_coverage import get_gym_coverage
 from hoops_planner.core.importers import import_members, import_schedule
 from hoops_planner.core.models import (
     Game,
@@ -359,6 +360,13 @@ class SeasonViewSet(viewsets.ModelViewSet):
                 for c in conflicts
             ]
         )
+
+    @action(detail=True, methods=["get"])
+    def gym_coverage(self, request, pk=None):
+        """Compute which home games are covered by gym reservations."""
+        season = self.get_object()
+        data = get_gym_coverage(season)
+        return Response(data)
 
 
 class TeamViewSet(viewsets.ModelViewSet):
