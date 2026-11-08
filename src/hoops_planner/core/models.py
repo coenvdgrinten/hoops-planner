@@ -119,13 +119,25 @@ class Player(models.Model):
 
 
 class SiteConfig(models.Model):
-    """Singleton for site-wide configuration (club name, etc.)."""
+    """Singleton for site-wide configuration (club name, gym settings, etc.)."""
 
     club_name = models.CharField(
         max_length=100,
         blank=True,
         default="",
         help_text="Club or organization name shown in the header and PDF.",
+    )
+    gym_game_duration_minutes = models.PositiveIntegerField(
+        default=90,
+        help_text="Duration of a single game in minutes (used for coverage checks).",
+    )
+    gym_margin_before_minutes = models.PositiveIntegerField(
+        default=30,
+        help_text="Setup/warm-up margin before the first game in a reservation block.",
+    )
+    gym_margin_after_minutes = models.PositiveIntegerField(
+        default=15,
+        help_text="Cleanup margin after the last game in a reservation block.",
     )
 
     class Meta:
@@ -395,6 +407,48 @@ class ScheduleVersion(models.Model):
 
     def __str__(self) -> str:
         return f"{self.season} v{self.number}"
+
+
+class GymReservation(models.Model):
+    """A reserved time block at the gym for a season."""
+
+    season = models.ForeignKey(
+        Season,
+        on_delete=models.CASCADE,
+        related_name="gym_reservations",
+    )
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    note = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Optional note (e.g. 'shared with volleyball club').",
+    )
+
+    class Meta:
+        ordering = ["season", "date", "start_time"]
+
+    def clean(self):
+        """Ensure end_time is after start_time."""
+        super().clean()
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            raise ValidationError(
+                {"end_time": "End time must be after start time."}
+            )
+
+    def __str__(self) -> str:
+        return f"{self.date} {self.start_time:%H:%M}\u2013{self.end_time:%H:%M}"
+
+    @property
+    def duration_minutes(self) -> int:
+        """Total duration of this reservation block in minutes."""
+        from datetime import timedelta
+
+        delta = timedelta(hours=self.end_time.hour, minutes=self.end_time.minute) - \
+                timedelta(hours=self.start_time.hour, minutes=self.start_time.minute)
+        return int(delta.total_seconds() // 60)
 
 
 class EmailVerificationToken(models.Model):
