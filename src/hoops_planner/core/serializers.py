@@ -6,6 +6,7 @@ from rest_framework import serializers
 from hoops_planner.core.eligibility import get_ineligibility_reason
 from hoops_planner.core.models import (
     Game,
+    GymReservation,
     Player,
     Season,
     Task,
@@ -251,6 +252,32 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(exc.messages[0]) from exc
 
         return super().create(validated_data)
+
+
+class GymReservationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GymReservation
+        fields = [
+            "id",
+            "season",
+            "date",
+            "start_time",
+            "end_time",
+            "note",
+        ]
+
+    def validate(self, attrs):
+        start = attrs.get("start_time")
+        end = attrs.get("end_time")
+        if start is None and self.instance:
+            start = self.instance.start_time
+        if end is None and self.instance:
+            end = self.instance.end_time
+        if start and end and end <= start:
+            raise serializers.ValidationError(
+                {"end_time": "End time must be after start time."}
+            )
+        return attrs
 
 
 class TaskWithAssignmentsSerializer(serializers.ModelSerializer):

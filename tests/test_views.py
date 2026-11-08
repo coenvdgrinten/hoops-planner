@@ -6,6 +6,7 @@ import pytest
 
 from hoops_planner.core.models import (
     Game,
+    GymReservation,
     Player,
     Season,
     Task,
@@ -1560,13 +1561,17 @@ class TestTaskSuggestionsEndpoint:
 @pytest.mark.django_db
 class TestSiteConfig:
     def test_get_site_config(self, client):
-        """GET is public (no auth needed) and returns club_name."""
+        """GET is public (no auth needed) and returns club_name + gym settings."""
         from hoops_planner.core.models import SiteConfig
 
         SiteConfig.objects.update_or_create(pk=1, defaults={"club_name": "BC Vido"})
         response = client.get("/api/site-config/")
         assert response.status_code == 200
-        assert response.json() == {"club_name": "BC Vido"}
+        data = response.json()
+        assert data["club_name"] == "BC Vido"
+        assert data["gym_game_duration_minutes"] == 90
+        assert data["gym_margin_before_minutes"] == 30
+        assert data["gym_margin_after_minutes"] == 15
 
     def test_put_site_config_requires_auth(self, client):
         """PUT without authentication is rejected."""
@@ -1585,9 +1590,169 @@ class TestSiteConfig:
             format="json",
         )
         assert response.status_code == 200
-        assert response.json() == {"club_name": "Vido Basketball"}
+        assert response.json()["club_name"] == "Vido Basketball"
 
-        # Verify persistence
         from hoops_planner.core.models import SiteConfig
 
         assert SiteConfig.load().club_name == "Vido Basketball"
+
+    def test_put_site_config_updates_gym_settings(self, api_client):
+        """Authenticated PUT updates gym reservation settings."""
+        response = api_client.put(
+            "/api/site-config/",
+            {
+                "gym_game_duration_minutes": 60,
+                "gym_margin_before_minutes": 20,
+                "gym_margin_after_minutes": 10,
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["gym_game_duration_minutes"] == 60
+        assert data["gym_margin_before_minutes"] == 20
+        assert data["gym_margin_after_minutes"] == 10
+
+        from hoops_planner.core.models import SiteConfig
+
+        config = SiteConfig.load()
+        assert config.gym_game_duration_minutes == 60
+        assert config.gym_margin_before_minutes == 20
+        assert config.gym_margin_after_minutes == 10
+
+
+@pytest.mark.django_db
+class TestGymReservationViewSet:
+    def test_list_empty(self, api_client, season):
+        response = api_client.get(f"/api/reservations/?season={season.id}")
+        assert response.status_code == 200
+        assert response.json()["results"] == []
+
+    def test_list_filters_by_season(self, api_client, season):
+        other = Season.objects.create(name="2024-2025")
+        r1 = GymReservation.objects.create(
+            season=season, date=dt.date(2025, 10, 1),
+            start_time=dt.time(9, 0), end_time=dt.time(17, 0),
+        )
+        GymReservation.objects.create(
+            season=other, date=dt.date(2025, 10, 1),
+            start_time=dt.time(9, 0), end_time=dt.time(17, 0),
+        )
+        response = api_client.get(f"/api/reservations/?season={season.id}")
+        assert response.status_code == 200
+        results = response.json()["results"]
+        assert len(results) == 1
+        assert results[0]["id"] == r1.id
+
+    def test_create_reservation(self, api_client, season):
+        response = api_client.post(
+            "/api/reservations/",
+            {
+                "season": season.id,
+                "date": "2025-10-01",
+                "start_time": "09:00:00",
+                "end_time": "17:00:00",
+                "note": "Full day booking",
+            },
+            format="json",
+        )
+        assert response.status_code == 201
+        body = response.json()
+        assert body["season"] == season.id
+        assert body["date"] == "2025-10-01"
+        assert body["start_time"] == "09:00:00"
+        assert body["end_time"] == "17:00:00"
+        assert body["note"] == "Full day booking"
+        assert GymReservation.objects.filter(season=season).count() == 1
+
+    def test_create_requires_fields(self, api_client, season):
+        response = api_client.post(
+            "/api/reservations/",
+            {"season": season.id},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_create_rejects_end_before_start(self, api_client, season):
+        response = api_client.post(
+            "/api/reservations/",
+            {
+                "season": season.id,
+                "date": "2025-10-01",
+                "start_time": "17:00:00",
+                "end_time": "09:00:00",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert "end_time" in response.json()
+
+    def test_create_rejects_end_equal_start(self, api_client, season):
+        response = api_client.post(
+            "/api/reservations/",
+            {
+                "season": season.id,
+                "date": "2025-10-01",
+                "start_time": "12:00:00",
+                "end_time": "12:00:00",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_retrieve_reservation(self, api_client, season):
+        from hoops_planner.core.models import GymReservation
+
+        r = GymReservation.objects.create(
+            season=season, date=dt.date(2025, 10, 1),
+            start_time=dt.time(9, 0), end_time=dt.time(17, 0),
+        )
+        response = api_client.get(f"/api/reservations/{r.id}/")
+        assert response.status_code == 200
+        assert response.json()["id"] == r.id
+
+    def test_update_reservation(self, api_client, season):
+        from hoops_planner.core.models import GymReservation
+
+        r = GymReservation.objects.create(
+            season=season, date=dt.date(2025, 10, 1),
+            start_time=dt.time(9, 0), end_time=dt.time(17, 0),
+        )
+        response = api_client.patch(
+            f"/api/reservations/{r.id}/",
+            {"end_time": "18:30:00", "note": "Extended"},
+            format="json",
+        )
+        assert response.status_code == 200
+        r.refresh_from_db()
+        assert r.end_time == dt.time(18, 30)
+        assert r.note == "Extended"
+
+    def test_update_rejects_invalid_times(self, api_client, season):
+        from hoops_planner.core.models import GymReservation
+
+        r = GymReservation.objects.create(
+            season=season, date=dt.date(2025, 10, 1),
+            start_time=dt.time(9, 0), end_time=dt.time(17, 0),
+        )
+        response = api_client.patch(
+            f"/api/reservations/{r.id}/",
+            {"end_time": "08:00:00"},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_delete_reservation(self, api_client, season):
+        from hoops_planner.core.models import GymReservation
+
+        r = GymReservation.objects.create(
+            season=season, date=dt.date(2025, 10, 1),
+            start_time=dt.time(9, 0), end_time=dt.time(17, 0),
+        )
+        response = api_client.delete(f"/api/reservations/{r.id}/")
+        assert response.status_code == 204
+        assert not GymReservation.objects.filter(id=r.id).exists()
+
+    def test_requires_auth(self, client, season):
+        response = client.get(f"/api/reservations/?season={season.id}")
+        assert response.status_code == 401

@@ -24,6 +24,7 @@ from hoops_planner.core.eligibility import (
 from hoops_planner.core.importers import import_members, import_schedule
 from hoops_planner.core.models import (
     Game,
+    GymReservation,
     Player,
     ScheduleVersion,
     Season,
@@ -40,6 +41,7 @@ from hoops_planner.core.schedule_versions import (
 )
 from hoops_planner.core.serializers import (
     GameSerializer,
+    GymReservationSerializer,
     PlayerSerializer,
     SeasonSerializer,
     TaskAssignmentSerializer,
@@ -611,23 +613,50 @@ class TaskAssignmentViewSet(viewsets.ModelViewSet):
 @api_view(["GET", "PUT"])
 @permission_classes([AllowAny])
 def site_config(request):
-    """Get or update site-wide configuration (club name).
+    """Get or update site-wide configuration.
 
     GET is public so the login screen can show the club name before auth;
     PUT requires an authenticated user (checked explicitly).
     """
     config = SiteConfig.load()
     if request.method == "GET":
-        return Response({"club_name": config.club_name})
+        return Response(
+            {
+                "club_name": config.club_name,
+                "gym_game_duration_minutes": config.gym_game_duration_minutes,
+                "gym_margin_before_minutes": config.gym_margin_before_minutes,
+                "gym_margin_after_minutes": config.gym_margin_after_minutes,
+            }
+        )
     if not request.user.is_authenticated:
         return Response(
             {"detail": "Authentication required."},
             status=status.HTTP_403_FORBIDDEN,
         )
-    club_name = request.data.get("club_name", "").strip()[:100]
-    config.club_name = club_name
-    config.save(update_fields=["club_name"])
-    return Response({"club_name": config.club_name})
+    update_fields = []
+    if "club_name" in request.data:
+        config.club_name = request.data["club_name"].strip()[:100]
+        update_fields.append("club_name")
+    if "gym_game_duration_minutes" in request.data:
+        val = int(request.data["gym_game_duration_minutes"])
+        config.gym_game_duration_minutes = val
+        update_fields.append("gym_game_duration_minutes")
+    if "gym_margin_before_minutes" in request.data:
+        val = int(request.data["gym_margin_before_minutes"])
+        config.gym_margin_before_minutes = val
+        update_fields.append("gym_margin_before_minutes")
+    if "gym_margin_after_minutes" in request.data:
+        config.gym_margin_after_minutes = int(request.data["gym_margin_after_minutes"])
+        update_fields.append("gym_margin_after_minutes")
+    config.save(update_fields=update_fields)
+    return Response(
+        {
+            "club_name": config.club_name,
+            "gym_game_duration_minutes": config.gym_game_duration_minutes,
+            "gym_margin_before_minutes": config.gym_margin_before_minutes,
+            "gym_margin_after_minutes": config.gym_margin_after_minutes,
+        }
+    )
 
 
 class SettingsViewSet(viewsets.ViewSet):
@@ -652,6 +681,18 @@ class SettingsViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class GymReservationViewSet(viewsets.ModelViewSet):
+    queryset = GymReservation.objects.all()
+    serializer_class = GymReservationSerializer
+
+    def get_queryset(self):
+        qs = GymReservation.objects.all()
+        season = self.request.query_params.get("season")
+        if season:
+            qs = qs.filter(season_id=season)
+        return qs
 
 
 class AvailabilityViewSet(viewsets.ViewSet):
