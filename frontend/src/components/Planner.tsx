@@ -14,6 +14,7 @@ import { GameCard } from "./GameCard";
 import { GameEditModal } from "./GameEditModal";
 import { ExportDialog } from "./ExportDialog";
 import { VersionsPanel } from "./VersionsPanel";
+import { AlertTriangleIcon } from "./Icons";
 import styles from "./Planner.module.css";
 
 interface Props {
@@ -151,7 +152,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           )}
           {stats && (stats.conflict_count ?? 0) > 0 && (
             <div className={styles["conflict-badge"]} data-testid="conflict-count">
-              ⚠ {stats.conflict_count}{" "}
+              <AlertTriangleIcon size={13} /> {stats.conflict_count}{" "}
               {stats.conflict_count === 1 ? "conflict" : "conflicts"} — assignments no longer valid
             </div>
           )}

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSeasons, createSeason } from "../api";
 import type { Season } from "../types";
+import { CheckIcon } from "./Icons";
 import styles from "./SeasonSelector.module.css";
 
 interface Props {
@@ -140,7 +141,11 @@ export function SeasonSelector({ onSelect, selectedId }: Props) {
               }}
             >
               <span className={styles["season-dropdown-item-text"]}>{s.name}</span>
-              {s.id === selectedId && <span data-testid="season-check" className={styles["season-check"]}>✓</span>}
+              {s.id === selectedId && (
+                <span data-testid="season-check" className={styles["season-check"]}>
+                  <CheckIcon size={14} />
+                </span>
+              )}
             </button>
           ))}
           <button

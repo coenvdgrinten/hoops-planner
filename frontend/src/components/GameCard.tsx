@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getTasksWithAssignments, clearGameAssignments } from "../api";
 import type { TaskWithAssignments } from "../types";
+import { AlertTriangleIcon, PencilIcon } from "./Icons";
 import styles from "./GameCard.module.css";
 
 interface Team {
@@ -123,7 +124,7 @@ export function GameCard({
             onClick={() => onEditGame(id)}
             title="Edit game"
           >
-            ✎
+            <PencilIcon size={13} />
           </button>
           {totalAssignments > 0 && (
             <button
@@ -195,7 +196,9 @@ export function GameCard({
             >
               <span className={styles["chip-label"]}>
                 {conflictReason && (
-                  <span className={styles["chip-conflict-icon"]}>⚠ </span>
+                  <span className={styles["chip-conflict-icon"]}>
+                    <AlertTriangleIcon size={11} />
+                  </span>
                 )}
                 {displayLabel}
               </span>

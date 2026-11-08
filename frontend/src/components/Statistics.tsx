@@ -133,7 +133,7 @@ export function Statistics({ season }: Props) {
 
       <p className={styles["stat-note"]}>
         Tasks on a day when none of the member's teams (including coached
-        ones) plays count double (2\u00d7) toward the effective total, to
+        ones) plays count double (2×) toward the effective total, to
         reward members who travel in just to help.
       </p>
     </div>

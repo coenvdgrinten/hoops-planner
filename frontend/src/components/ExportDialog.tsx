@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSeasonStats } from "../api";
 import type { ExportOptions } from "../api";
 import type { Season, Game } from "../types";
+import { AlertTriangleIcon, CalendarIcon } from "./Icons";
 
 const OPEN_TASK_LABELS: Record<string, string> = {
   REFEREE: "Referee",
@@ -144,7 +145,7 @@ export function ExportDialog({ format, season, games, exporting, onClose, onExpo
               {pickerGamesByDate.map(([dateStr, dayGames]) => (
                 <div key={dateStr}>
                   <div className="game-picker-date">
-                    <span aria-hidden="true">📅</span>
+                    <CalendarIcon size={13} />
                     {new Date(dateStr).toLocaleDateString("nl-NL", {
                       weekday: "short",
                       day: "numeric",
@@ -179,7 +180,7 @@ export function ExportDialog({ format, season, games, exporting, onClose, onExpo
           <div className="export-warning" role="alert">
             <div className="export-warning-head">
               <span className="export-warning-icon" aria-hidden="true">
-                ⚠
+                <AlertTriangleIcon size={15} />
               </span>
               <strong>
                 {openTasks} unplanned task{openTasks === 1 ? "" : "s"} in{" "}

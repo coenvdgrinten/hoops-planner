@@ -431,6 +431,9 @@
 }
 
 .export-csv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 14px;
   border: 1px solid var(--color-primary);
   border-radius: 6px;

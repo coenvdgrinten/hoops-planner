@@ -15,6 +15,7 @@ import {
   exportMembersCsv,
 } from "../api";
 import type { Player, Team, AgeCategory } from "../types";
+import { DownloadIcon, PencilIcon, TrashIcon } from "./Icons";
 import styles from "./MemberView.module.css";
 
 const CATEGORY_ORDER: AgeCategory[] = [
@@ -261,7 +262,7 @@ export function MemberView() {
             title="Download all members as a CSV (same format as the import)"
             onClick={handleExportCsv}
           >
-            ⬇ Export CSV
+            <DownloadIcon size={14} /> Export CSV
           </button>
           <button
             className={styles["add-team-btn"]}
@@ -342,7 +343,7 @@ export function MemberView() {
                       setAddingTeam(false);
                     }}
                   >
-                    ✎
+                    <PencilIcon size={13} />
                   </button>
                   <button
                     data-testid={`team-delete-${team.id}`}
@@ -352,7 +353,7 @@ export function MemberView() {
                       setDeleteConfirm({ type: "team", id: team.id, name: team.name });
                     }}
                   >
-                    🗑
+                    <TrashIcon size={13} />
                   </button>
                 </div>
               </div>
@@ -688,7 +689,7 @@ export function MemberView() {
                                     });
                                   }}
                                 >
-                                  ✎
+                                  <PencilIcon size={13} />
                                 </button>
                                 <button
                                   data-testid={`player-delete-${player.id}`}
@@ -698,7 +699,7 @@ export function MemberView() {
                                     setDeleteConfirm({ type: "player", id: player.id, name: player.full_name });
                                   }}
                                 >
-                                  🗑
+                                  <TrashIcon size={13} />
                                 </button>
                               </div>
                             </div>

@@ -9,6 +9,15 @@ import { Availability } from "./components/Availability";
 import { ImportModal } from "./components/ImportModal";
 import { AssignmentPanel } from "./components/AssignmentPanel";
 import { Login } from "./components/Login";
+import {
+  BanIcon,
+  BarChartIcon,
+  CalendarIcon,
+  MoonIcon,
+  SettingsIcon,
+  SunIcon,
+  UsersIcon,
+} from "./components/Icons";
 import { ToastContextProvider, useToastContext } from "./components/ToastContext";
 import { useToast } from "./components/Toast";
 import { useTheme } from "./theme/useTheme";
@@ -160,7 +169,10 @@ function AppInner() {
             aria-label={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
             data-testid="theme-toggle"
           >
-            {theme === "light" ? "🌙 Dark" : "☀️ Light"}
+            <span className={styles["theme-toggle"]}>
+              {theme === "light" ? <MoonIcon size={14} /> : <SunIcon size={14} />}
+              {theme === "light" ? "Dark" : "Light"}
+            </span>
           </button>
           <button
             className="icon-btn"
@@ -213,7 +225,7 @@ function AppInner() {
               aria-label="Schedule Planner"
               title="Schedule Planner"
             >
-              <span className={styles["nav-icon"]}>📅</span>
+              <span className={styles["nav-icon"]}><CalendarIcon size={18} /></span>
               <span className={styles["nav-label"]}>Schedule Planner</span>
             </button>
             <button
@@ -222,7 +234,7 @@ function AppInner() {
               aria-label="Member Roster"
               title="Member Roster"
             >
-              <span className={styles["nav-icon"]}>👥</span>
+              <span className={styles["nav-icon"]}><UsersIcon size={18} /></span>
               <span className={styles["nav-label"]}>Member Roster</span>
             </button>
             <button
@@ -231,7 +243,7 @@ function AppInner() {
               aria-label="Statistics"
               title="Statistics"
             >
-              <span className={styles["nav-icon"]}>📊</span>
+              <span className={styles["nav-icon"]}><BarChartIcon size={18} /></span>
               <span className={styles["nav-label"]}>Statistics</span>
             </button>
             <button
@@ -240,7 +252,7 @@ function AppInner() {
               aria-label="Settings"
               title="Settings"
             >
-              <span className={styles["nav-icon"]}>⚙️</span>
+              <span className={styles["nav-icon"]}><SettingsIcon size={18} /></span>
               <span className={styles["nav-label"]}>Settings</span>
             </button>
             <button
@@ -249,7 +261,7 @@ function AppInner() {
               aria-label="Availability"
               title="Availability"
             >
-              <span className={styles["nav-icon"]}>🚫</span>
+              <span className={styles["nav-icon"]}><BanIcon size={18} /></span>
               <span className={styles["nav-label"]}>Availability</span>
             </button>
           </nav>

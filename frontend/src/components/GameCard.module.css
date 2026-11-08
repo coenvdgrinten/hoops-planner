@@ -225,7 +225,9 @@
 }
 
 .chip-conflict-icon {
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 3px;
 }
 
 .task-chip.selected {
