@@ -647,14 +647,14 @@ def site_config(request):
         update_fields.append("club_name")
     if "gym_game_duration_minutes" in request.data:
         val = int(request.data["gym_game_duration_minutes"])
-        config.gym_game_duration_minutes = val
+        config.gym_game_duration_minutes = val  # ty: ignore[invalid-assignment]
         update_fields.append("gym_game_duration_minutes")
     if "gym_margin_before_minutes" in request.data:
         val = int(request.data["gym_margin_before_minutes"])
-        config.gym_margin_before_minutes = val
+        config.gym_margin_before_minutes = val  # ty: ignore[invalid-assignment]
         update_fields.append("gym_margin_before_minutes")
     if "gym_margin_after_minutes" in request.data:
-        config.gym_margin_after_minutes = int(request.data["gym_margin_after_minutes"])
+        config.gym_margin_after_minutes = int(request.data["gym_margin_after_minutes"])  # ty: ignore[invalid-assignment]
         update_fields.append("gym_margin_after_minutes")
     config.save(update_fields=update_fields)
     return Response(

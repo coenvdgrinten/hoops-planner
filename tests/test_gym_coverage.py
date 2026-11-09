@@ -126,8 +126,8 @@ class TestGymCoverageMargins:
 
     def test_zero_margins(self, season, home_game):
         config = SiteConfig.load()
-        config.gym_margin_before_minutes = 0
-        config.gym_margin_after_minutes = 0
+        config.gym_margin_before_minutes = 0  # ty: ignore[invalid-assignment]
+        config.gym_margin_after_minutes = 0  # ty: ignore[invalid-assignment]
         config.save()
 
         # Required window is just the game: 14:00 - 15:30
@@ -142,7 +142,7 @@ class TestGymCoverageMargins:
 
     def test_custom_duration(self, season, home_game):
         config = SiteConfig.load()
-        config.gym_game_duration_minutes = 60
+        config.gym_game_duration_minutes = 60  # ty: ignore[invalid-assignment]
         config.save()
 
         # Required: 13:30 - 15:15 (60min game + 30 before + 15 after)
@@ -620,8 +620,8 @@ class TestGymCoverageSurplusEdges:
 
     def test_zero_margins_change_surplus_windows(self, season, home_game):
         config = SiteConfig.load()
-        config.gym_margin_before_minutes = 0
-        config.gym_margin_after_minutes = 0
+        config.gym_margin_before_minutes = 0  # ty: ignore[invalid-assignment]
+        config.gym_margin_after_minutes = 0  # ty: ignore[invalid-assignment]
         config.save()
         GymReservation.objects.create(
             season=season,

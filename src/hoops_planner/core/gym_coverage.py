@@ -6,6 +6,7 @@ identifies surplus time in reservations that can be returned.
 """
 
 from datetime import date, datetime, time, timedelta
+from typing import Any
 
 from hoops_planner.core.models import Game, GymReservation, Season, SiteConfig
 
@@ -14,7 +15,7 @@ def _to_datetime(d: date, t: time) -> datetime:
     return datetime.combine(d, t)
 
 
-def get_gym_coverage(season: Season) -> dict:
+def get_gym_coverage(season: Season) -> dict[str, Any]:
     """Compute coverage status for all home games in a season.
 
     Returns a dict with:
@@ -91,7 +92,7 @@ def _compute_surplus(
     duration: timedelta,
     margin_before: timedelta,
     margin_after: timedelta,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Find gaps within each reservation that contain no game windows.
 
     A "game window" is [start - margin_before, end + margin_after]. Surplus

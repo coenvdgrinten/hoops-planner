@@ -317,9 +317,9 @@ class TestSiteConfigGymSettings:
 
     def test_update_settings(self):
         config = SiteConfig.load()
-        config.gym_game_duration_minutes = 60
-        config.gym_margin_before_minutes = 20
-        config.gym_margin_after_minutes = 10
+        config.gym_game_duration_minutes = 60  # ty: ignore[invalid-assignment]
+        config.gym_margin_before_minutes = 20  # ty: ignore[invalid-assignment]
+        config.gym_margin_after_minutes = 10  # ty: ignore[invalid-assignment]
         config.save()
 
         fresh = SiteConfig.load()
@@ -329,9 +329,9 @@ class TestSiteConfigGymSettings:
 
     def test_gym_settings_zero_boundary(self):
         config = SiteConfig.load()
-        config.gym_game_duration_minutes = 0
-        config.gym_margin_before_minutes = 0
-        config.gym_margin_after_minutes = 0
+        config.gym_game_duration_minutes = 0  # ty: ignore[invalid-assignment]
+        config.gym_margin_before_minutes = 0  # ty: ignore[invalid-assignment]
+        config.gym_margin_after_minutes = 0  # ty: ignore[invalid-assignment]
         config.save()
 
         fresh = SiteConfig.load()
@@ -341,9 +341,9 @@ class TestSiteConfigGymSettings:
 
     def test_gym_settings_large_values(self):
         config = SiteConfig.load()
-        config.gym_game_duration_minutes = 600
-        config.gym_margin_before_minutes = 120
-        config.gym_margin_after_minutes = 60
+        config.gym_game_duration_minutes = 600  # ty: ignore[invalid-assignment]
+        config.gym_margin_before_minutes = 120  # ty: ignore[invalid-assignment]
+        config.gym_margin_after_minutes = 60  # ty: ignore[invalid-assignment]
         config.save()
 
         fresh = SiteConfig.load()
@@ -353,15 +353,15 @@ class TestSiteConfigGymSettings:
 
     def test_gym_settings_reject_negative_via_full_clean(self):
         config = SiteConfig.load()
-        config.gym_game_duration_minutes = -1
+        config.gym_game_duration_minutes = -1  # ty: ignore[invalid-assignment]
         with pytest.raises(ValidationError) as exc_info:
             config.full_clean()
         assert "gym_game_duration_minutes" in exc_info.value.message_dict
 
     def test_no_constraint_when_margin_exceeds_game_duration(self):
         config = SiteConfig.load()
-        config.gym_game_duration_minutes = 60
-        config.gym_margin_before_minutes = 120
+        config.gym_game_duration_minutes = 60  # ty: ignore[invalid-assignment]
+        config.gym_margin_before_minutes = 120  # ty: ignore[invalid-assignment]
         config.save()
 
         fresh = SiteConfig.load()
@@ -377,10 +377,10 @@ class TestSiteConfigGymSettings:
 
     def test_gym_update_preserves_other_fields(self):
         config = SiteConfig.load()
-        config.club_name = "BC Vido"
+        config.club_name = "BC Vido"  # ty: ignore[invalid-assignment]
         config.save()
 
-        config.gym_game_duration_minutes = 45
+        config.gym_game_duration_minutes = 45  # ty: ignore[invalid-assignment]
         config.save(update_fields=["gym_game_duration_minutes"])
 
         fresh = SiteConfig.load()
