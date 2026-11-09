@@ -3,14 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToastContext } from "./ToastContext";
 import {
   getSiteConfig,
-  setSiteConfig,
+  updateSiteConfig,
   getTeamSettings,
   updateTeamSettings,
   getPendingUsers,
   approveUser,
   rejectUser,
 } from "../api";
-import type { Team } from "../types";
+import type { SiteConfigData, Team } from "../types";
 import styles from "./Settings.module.css";
 
 interface Props {
@@ -26,22 +26,34 @@ export function Settings({ isStaff }: Props) {
     queryFn: getSiteConfig,
   });
   const [brandName, setBrandName] = useState(siteConfig?.club_name ?? "");
+  const [gymDuration, setGymDuration] = useState("");
+  const [gymMarginBefore, setGymMarginBefore] = useState("");
+  const [gymMarginAfter, setGymMarginAfter] = useState("");
 
-  // Sync input when server data arrives (query may resolve after mount)
+  // Sync inputs when server data arrives (query may resolve after mount)
   useEffect(() => {
     if (siteConfig) {
       setBrandName(siteConfig.club_name);
+      setGymDuration(String(siteConfig.gym_game_duration_minutes));
+      setGymMarginBefore(String(siteConfig.gym_margin_before_minutes));
+      setGymMarginAfter(String(siteConfig.gym_margin_after_minutes));
     }
   }, [siteConfig]);
 
-  const brandMutation = useMutation({
-    mutationFn: (name: string) => setSiteConfig(name),
+  const siteConfigMutation = useMutation({
+    mutationFn: (data: Partial<SiteConfigData>) => updateSiteConfig(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["site-config"] });
     },
     onError: (err) =>
       addToast(err instanceof Error ? err.message : "Failed to save", "error"),
   });
+
+  const saveGymField = (key: keyof SiteConfigData, raw: string) => {
+    const value = Number(raw);
+    if (raw === "" || !Number.isFinite(value) || value < 0) return;
+    siteConfigMutation.mutate({ [key]: value });
+  };
 
   const { data: teams = [], isLoading, error } = useQuery({
     queryKey: ["team-settings"],
@@ -122,18 +134,75 @@ export function Settings({ isStaff }: Props) {
             type="text"
             value={brandName}
             placeholder="e.g. BC Vido"
-            disabled={brandMutation.isPending}
+            disabled={siteConfigMutation.isPending}
             onChange={(e) => setBrandName(e.target.value)}
             onBlur={() => {
               if (brandName.trim() !== (siteConfig?.club_name ?? "")) {
-                brandMutation.mutate(brandName);
+                siteConfigMutation.mutate({ club_name: brandName });
               }
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                brandMutation.mutate(brandName);
+                siteConfigMutation.mutate({ club_name: brandName });
                 e.currentTarget.blur();
               }
+            }}
+          />
+        </div>
+      </div>
+
+      <div className={styles["settings-section"]}>
+        <h3>Gym Reservations</h3>
+        <p className={styles["settings-subtitle"]}>
+          Used to check whether your reserved gym time covers every home game.
+          A game needs its start time minus the before-margin, plus the game
+          duration and the after-margin, inside one reservation block.
+        </p>
+        <div className={styles["brand-row"]}>
+          <label htmlFor="gym-duration">Game duration (minutes)</label>
+          <input
+            id="gym-duration"
+            type="number"
+            min={0}
+            step={5}
+            value={gymDuration}
+            disabled={siteConfigMutation.isPending}
+            onChange={(e) => setGymDuration(e.target.value)}
+            onBlur={() => saveGymField("gym_game_duration_minutes", gymDuration)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+          />
+        </div>
+        <div className={styles["brand-row"]}>
+          <label htmlFor="gym-margin-before">Margin before game (minutes)</label>
+          <input
+            id="gym-margin-before"
+            type="number"
+            min={0}
+            step={5}
+            value={gymMarginBefore}
+            disabled={siteConfigMutation.isPending}
+            onChange={(e) => setGymMarginBefore(e.target.value)}
+            onBlur={() => saveGymField("gym_margin_before_minutes", gymMarginBefore)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
+            }}
+          />
+        </div>
+        <div className={styles["brand-row"]}>
+          <label htmlFor="gym-margin-after">Margin after game (minutes)</label>
+          <input
+            id="gym-margin-after"
+            type="number"
+            min={0}
+            step={5}
+            value={gymMarginAfter}
+            disabled={siteConfigMutation.isPending}
+            onChange={(e) => setGymMarginAfter(e.target.value)}
+            onBlur={() => saveGymField("gym_margin_after_minutes", gymMarginAfter)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") e.currentTarget.blur();
             }}
           />
         </div>

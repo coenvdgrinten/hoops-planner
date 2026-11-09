@@ -54,6 +54,50 @@ textarea {
   border-color: var(--color-border-hover);
 }
 
+/* Primary / secondary buttons (used in modal footers) */
+.btn-primary {
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Inline error text */
 .error {
   color: var(--color-danger-bright);

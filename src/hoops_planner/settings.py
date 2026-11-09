@@ -177,3 +177,16 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+
+class _PytestOnlyRunner:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def run_tests(self, *args, **kwargs):
+        raise SystemExit(
+            "This project uses pytest. Run: uv run pytest tests/ -v"
+        )
+
+
+TEST_RUNNER = "hoops_planner.settings._PytestOnlyRunner"

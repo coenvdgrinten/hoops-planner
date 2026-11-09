@@ -124,6 +124,8 @@ test.describe("Planner", () => {
     const firstChip = page.getByTestId(/^task-chip-\d+$/).first();
     await firstChip.click();
     await expect(page.getByTestId("assignment-panel")).toBeVisible({ timeout: 10_000 });
+    // Allow React to propagate the selection state to the card on slower CI runners
+    await page.waitForTimeout(100);
 
     const firstCard = firstChip.locator("..").locator("..");
     await expect(firstCard).toHaveClass(/selected/);

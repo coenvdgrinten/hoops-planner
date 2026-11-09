@@ -7,6 +7,7 @@ from hoops_planner.core import auth_views
 from hoops_planner.core.views import (
     AvailabilityViewSet,
     GameViewSet,
+    GymReservationViewSet,
     PlayerViewSet,
     SeasonViewSet,
     SettingsViewSet,
@@ -27,6 +28,7 @@ router.register(r"tasks", TaskViewSet)
 router.register(r"assignments", TaskAssignmentViewSet)
 router.register(r"settings", SettingsViewSet, basename="settings")
 router.register(r"availability", AvailabilityViewSet, basename="availability")
+router.register(r"reservations", GymReservationViewSet, basename="reservations")
 
 urlpatterns = [
     path("auth/login/", auth_views.login, name="login"),

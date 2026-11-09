@@ -47,6 +47,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  seasons:     {summary['seasons']}")
         self.stdout.write(f"  games:       {summary['games']}")
         self.stdout.write(f"  assignments: {summary['assignments']}")
+        self.stdout.write(f"  gym resv.:   {summary['gym_reservations']}")
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("Demo seasons:"))
         for name in DEMO_SEASONS:
