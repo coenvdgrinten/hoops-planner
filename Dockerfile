@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy project files
-COPY pyproject.toml uv.lock manage.py ./
+# README.md is required because the project is built as a package (hatchling)
+COPY pyproject.toml uv.lock manage.py README.md ./
 COPY src/ src/
 
 # Create media directory (assets are copied separately if needed)
@@ -32,13 +33,11 @@ ENV PYTHONPATH=/app/src
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["uv", "run", "manage.py", "runserver", "0.0.0.0:8000"]
-
 # Create media directory and copy assets
 RUN mkdir -p /app/media/assets
 COPY media/assets/ /app/media/assets/
 
 EXPOSE 8000
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["uv", "run", "manage.py", "runserver", "0.0.0.0:8000"]

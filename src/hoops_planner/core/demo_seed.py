@@ -31,6 +31,7 @@ from hoops_planner.core.eligibility import get_eligible_players
 from hoops_planner.core.importers import import_schedule
 from hoops_planner.core.models import (
     Game,
+    GymReservation,
     Player,
     Season,
     TaskAssignment,
@@ -183,6 +184,7 @@ OPPONENTS = [
 SEASON_DATES: dict[str, list[dt.date]] = {
     "2025-2026": [
         dt.date(2025, 10, 4),
+        dt.date(2025, 10, 11),
         dt.date(2025, 10, 18),
         dt.date(2025, 11, 1),
         dt.date(2025, 11, 15),
@@ -206,6 +208,7 @@ def seed_demo_data() -> dict[str, object]:
     _ensure_players()
     games_created = _ensure_schedules()
     assignments_created = _seed_assignments()
+    reservations_created = _seed_gym_reservations()
     return {
         "users": User.objects.count(),
         "teams": Team.objects.count(),
@@ -215,6 +218,8 @@ def seed_demo_data() -> dict[str, object]:
         "games_created_this_run": games_created,
         "assignments": TaskAssignment.objects.count(),
         "assignments_created_this_run": assignments_created,
+        "gym_reservations": GymReservation.objects.count(),
+        "gym_reservations_created_this_run": reservations_created,
         "demo_seasons": DEMO_SEASONS,
         "credentials": [
             {"username": u["username"], "password": u["password"]} for u in DEMO_USERS
@@ -353,4 +358,75 @@ def _seed_assignments(max_games: int = 10) -> int:
                 continue
             TaskAssignment.objects.get_or_create(task=task, player=eligible[0])
             count += 1
+    return count
+
+
+def _seed_gym_reservations() -> int:
+    """Seed gym reservations that exercise every Gym-panel state.
+
+    With the default site settings (90 min game, 30 min before-margin,
+    15 min after-margin) each time slot needs this window:
+
+        13:00 -> 12:30-14:45     16:00 -> 15:30-17:45
+        14:30 -> 14:00-16:15     17:30 -> 17:00-19:15
+
+    We create five distinct situations so the UI can be checked at a glance:
+
+    * Oct 4   fully covered  - one block spans the whole day (plus surplus).
+    * Oct 11  midday only    - a short block covers just the 14:30 game; the
+              13:00 and 17:30 games are left uncovered on both sides.
+    * Oct 18  partly reserved - a morning block covers the 13:00 and 14:30
+              games only; the 16:00 and 17:30 games are left uncovered.
+    * Nov 1   gap in the middle - the 14:30 and 16:00 games are removed so
+              only 13:00 and 17:30 remain; a wide reservation (12:30-19:15)
+              shows a visible unused gap between the two game windows.
+    * Nov 15  no reservation at all (fully uncovered).
+    """
+    season = Season.objects.filter(name=DEMO_SEASONS[0]).first()
+    if season is None:
+        return 0
+
+    # Rebuild from scratch so re-seeding stays deterministic.
+    GymReservation.objects.filter(season=season).delete()
+
+    # --- Gap demo: remove mid-day games on Nov 1 so only 13:00 & 17:30 remain
+    gap_date = dt.date(2025, 11, 1)
+    Game.objects.filter(
+        season=season,
+        date=gap_date,
+        game_type="HOME",
+        time__in=[dt.time(14, 30), dt.time(16, 0)],
+    ).delete()
+
+    specs: list[dict[str, object]] = [
+        {
+            "date": dt.date(2025, 10, 4),
+            "start_time": dt.time(12, 30),
+            "end_time": dt.time(20, 0),
+            "note": "Full day booking",
+        },
+        {
+            "date": dt.date(2025, 10, 11),
+            "start_time": dt.time(14, 0),
+            "end_time": dt.time(16, 15),
+            "note": "Midday block only",
+        },
+        {
+            "date": dt.date(2025, 10, 18),
+            "start_time": dt.time(12, 30),
+            "end_time": dt.time(16, 15),
+            "note": "Morning block only",
+        },
+        {
+            "date": gap_date,
+            "start_time": dt.time(12, 30),
+            "end_time": dt.time(19, 15),
+            "note": "Split booking (morning + evening)",
+        },
+    ]
+
+    count = 0
+    for spec in specs:
+        GymReservation.objects.create(season=season, **spec)
+        count += 1
     return count

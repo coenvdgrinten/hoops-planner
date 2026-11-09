@@ -173,6 +173,47 @@ export interface SeasonVersionsResponse {
   versions: ScheduleVersionSummary[];
 }
 
+export interface GymReservation {
+  id: number;
+  season: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  note: string;
+}
+
+export interface GymCoverageUncoveredGame {
+  game_id: number;
+  date: string;
+  time: string;
+  own_team: string;
+  opponent: string;
+  required_start: string;
+  required_end: string;
+}
+
+export interface GymCoverageSurplus {
+  reservation_id: number;
+  date: string;
+  start: string;
+  end: string;
+  minutes: number;
+}
+
+export interface GymCoverage {
+  uncovered_games: GymCoverageUncoveredGame[];
+  covered_games: number;
+  total_home_games: number;
+  surplus: GymCoverageSurplus[];
+}
+
+export interface SiteConfigData {
+  club_name: string;
+  gym_game_duration_minutes: number;
+  gym_margin_before_minutes: number;
+  gym_margin_after_minutes: number;
+}
+
 export interface AvailabilityMember {
   id: number;
   name: string;

@@ -3,11 +3,14 @@ import type {
   CandidateDetail,
   EligiblePlayer,
   Game,
+  GymCoverage,
+  GymReservation,
   LeaderboardEntry,
   Player,
   Season,
   SeasonStats,
   SeasonVersionsResponse,
+  SiteConfigData,
   Task,
   TaskAssignment,
   TaskWithAssignments,
@@ -523,13 +526,13 @@ export function getLeaderboard(seasonId: number, half?: string) {
 }
 
 export function getSiteConfig() {
-  return request<{ club_name: string }>("/site-config/");
+  return request<SiteConfigData>("/site-config/");
 }
 
-export function setSiteConfig(clubName: string) {
-  return request<{ club_name: string }>("/site-config/", {
+export function updateSiteConfig(data: Partial<SiteConfigData>) {
+  return request<SiteConfigData>("/site-config/", {
     method: "PUT",
-    body: JSON.stringify({ club_name: clubName }),
+    body: JSON.stringify(data),
   });
 }
 
@@ -549,6 +552,46 @@ export function updateTeamSettings(
 
 export function getAvailability(season: number) {
   return request<AvailabilityDay[]>(`/availability/?season=${season}`);
+}
+
+export function getReservations(season: number) {
+  return request<GymReservation[]>(`/reservations/?season=${season}`);
+}
+
+export function createReservation(data: {
+  season: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  note?: string;
+}) {
+  return request<GymReservation>("/reservations/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateReservation(
+  id: number,
+  data: Partial<{
+    date: string;
+    start_time: string;
+    end_time: string;
+    note: string;
+  }>,
+) {
+  return request<GymReservation>(`/reservations/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteReservation(id: number) {
+  return request<void>(`/reservations/${id}/`, { method: "DELETE" });
+}
+
+export function getGymCoverage(seasonId: number) {
+  return request<GymCoverage>(`/seasons/${seasonId}/gym_coverage/`);
 }
 
 export function login(username: string, password: string) {

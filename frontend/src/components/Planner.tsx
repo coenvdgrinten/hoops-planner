@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGames,
   getSeasonStats,
+  getGymCoverage,
   exportSeasonCsv,
   exportSeasonPdf,
   exportSeasonIcs,
@@ -14,6 +15,7 @@ import { GameCard } from "./GameCard";
 import { GameEditModal } from "./GameEditModal";
 import { ExportDialog } from "./ExportDialog";
 import { VersionsPanel } from "./VersionsPanel";
+import { GymPanel } from "./GymPanel";
 import { AlertTriangleIcon } from "./Icons";
 import styles from "./Planner.module.css";
 
@@ -65,7 +67,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [exportFormat, setExportFormat] = useState<"pdf" | "csv" | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [tab, setTab] = useState<"schedule" | "versions">("schedule");
+  const [tab, setTab] = useState<"schedule" | "versions" | "gym">("schedule");
 
   const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
@@ -75,6 +77,11 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   const { data: stats } = useQuery({
     queryKey: ["season-stats", season.id],
     queryFn: () => getSeasonStats(season.id),
+  });
+
+  const { data: gymCoverage } = useQuery({
+    queryKey: ["gym-coverage", season.id],
+    queryFn: () => getGymCoverage(season.id),
   });
 
   const doExport = useCallback(
@@ -156,6 +163,18 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
               {stats.conflict_count === 1 ? "conflict" : "conflicts"} — assignments no longer valid
             </div>
           )}
+          {gymCoverage && gymCoverage.uncovered_games.length > 0 && (
+            <button
+              className={styles["conflict-badge"]}
+              data-testid="gym-coverage-badge"
+              onClick={() => setTab("gym")}
+              title="View uncovered games in the Gym tab"
+            >
+              <AlertTriangleIcon size={13} /> {gymCoverage.uncovered_games.length}{" "}
+              {gymCoverage.uncovered_games.length === 1 ? "game" : "games"} without a gym
+              reservation
+            </button>
+          )}
         </div>
         <div className={styles["planner-actions"]}>
           <button
@@ -204,6 +223,15 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
           onClick={() => setTab("versions")}
         >
           Versions
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === "gym"}
+          data-testid="planner-tab-gym"
+          className={`${styles["planner-tab"]} ${tab === "gym" ? styles["planner-tab-active"] : ""}`}
+          onClick={() => setTab("gym")}
+        >
+          Gym
         </button>
       </div>
       {tab === "schedule" && (hasGames ? (
@@ -283,6 +311,7 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
         <p>No games in this season yet. Click "+ Add Game" to create one.</p>
       ))}
       {tab === "versions" && <VersionsPanel seasonId={season.id} seasonName={season.name} />}
+      {tab === "gym" && <GymPanel season={season} />}
       {editingGameData && (
         <GameEditModal
           game={editingGameData}
