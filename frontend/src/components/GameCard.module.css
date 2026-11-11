@@ -224,10 +224,34 @@
   color: var(--color-danger-dark);
 }
 
+.task-chip.needs-replacement {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+}
+
+.task-chip.needs-replacement .chip-label,
+.task-chip.needs-replacement .chip-empty {
+  color: var(--color-warning-dark);
+}
+
 .chip-conflict-icon {
   display: inline-flex;
   align-items: center;
   margin-right: 3px;
+}
+
+.replacement-icon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--color-warning-dark);
+  color: var(--color-surface);
+  font-size: 10px;
+  letter-spacing: 0;
 }
 
 .task-chip.selected {

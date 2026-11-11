@@ -95,6 +95,7 @@ export function GameCard({
 
   return (
     <div
+      id={`game-card-${id}`}
       data-testid={`game-card-${id}`}
       className={`${styles["game-card"]} ${isSelected ? styles.selected : ""}`}
     >
@@ -190,11 +191,18 @@ export function GameCard({
                     ? `${styles.filled} ${styles.away}`
                     : styles.filled
               } ${conflictReason ? styles.conflict : ""} ${
+                task.needs_replacement ? styles["needs-replacement"] : ""
+              } ${
                 task.id === isSelectedTaskId ? styles.selected : ""
               }`}
               onClick={() => handleSelectTask(task)}
             >
               <span className={styles["chip-label"]}>
+                {task.needs_replacement && (
+                  <span className={styles["replacement-icon"]} title="Needs replacement">
+                    !
+                  </span>
+                )}
                 {conflictReason && (
                   <span className={styles["chip-conflict-icon"]}>
                     <AlertTriangleIcon size={11} />

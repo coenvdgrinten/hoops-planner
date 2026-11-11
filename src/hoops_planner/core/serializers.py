@@ -1,6 +1,7 @@
 """Serializers for the Hoops Planner API."""
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from rest_framework import serializers
 
 from hoops_planner.core.eligibility import get_ineligibility_reason
@@ -116,7 +117,9 @@ class TaskSerializer(serializers.ModelSerializer):
             "task_type",
             "slot_number",
             "optional",
+            "needs_replacement",
         ]
+        read_only_fields = ["needs_replacement"]
 
 
 class TaskAssignmentSerializer(serializers.ModelSerializer):
@@ -251,7 +254,12 @@ class TaskAssignmentSerializer(serializers.ModelSerializer):
         except ValidationError as exc:
             raise serializers.ValidationError(exc.messages[0]) from exc
 
-        return super().create(validated_data)
+        with transaction.atomic():
+            assignment = super().create(validated_data)
+            if task.needs_replacement:
+                task.needs_replacement = False
+                task.save(update_fields=["needs_replacement"])
+        return assignment
 
 
 class GymReservationSerializer(serializers.ModelSerializer):
@@ -295,6 +303,8 @@ class TaskWithAssignmentsSerializer(serializers.ModelSerializer):
             "game",
             "task_type",
             "slot_number",
+            "optional",
+            "needs_replacement",
             "assignments",
         ]
         read_only_fields = ["assigned_at"]

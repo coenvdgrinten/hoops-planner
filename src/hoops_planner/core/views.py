@@ -3,9 +3,10 @@
 from typing import Literal
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Count
 from django.http import HttpResponse
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -555,7 +556,39 @@ class TaskViewSet(viewsets.ModelViewSet):
         game = self.request.query_params.get("game")
         if game:
             qs = qs.filter(game_id=game)
+        season = self.request.query_params.get("season")
+        if season:
+            qs = qs.filter(game__season_id=season)
+        needs_replacement = self.request.query_params.get("needs_replacement")
+        if needs_replacement is not None:
+            try:
+                needs_replacement = serializers.BooleanField().to_internal_value(
+                    needs_replacement
+                )
+            except serializers.ValidationError as exc:
+                raise ValidationError(
+                    {"needs_replacement": exc.detail}
+                ) from exc
+            qs = qs.filter(needs_replacement=needs_replacement)
         return qs
+
+    @action(detail=True, methods=["post"])
+    def mark_needs_replacement(self, request, pk=None):
+        """Flag a task for replacement and remove its current assignment."""
+        task = self.get_object()
+        with transaction.atomic():
+            task.needs_replacement = True
+            task.save(update_fields=["needs_replacement"])
+            TaskAssignment.objects.filter(task=task).delete()
+        return Response(TaskSerializer(task).data)
+
+    @action(detail=True, methods=["post"])
+    def clear_needs_replacement(self, request, pk=None):
+        """Clear a replacement flag, for example when it was set by mistake."""
+        task = self.get_object()
+        task.needs_replacement = False
+        task.save(update_fields=["needs_replacement"])
+        return Response(TaskSerializer(task).data)
 
     @action(detail=True, methods=["get"])
     def suggestions(self, request, pk=None):

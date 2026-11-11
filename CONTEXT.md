@@ -12,6 +12,9 @@ _Avoid_: duty, shift
 The link of one player to one task slot. At most one assignment per slot.
 _Avoid_: entry, booking
 
+**Replacement needed**:
+A task slot whose assigned player can no longer perform it and still needs a replacement. Marking it removes its current assignment; assigning a replacement clears the marker.
+
 **Conflict**:
 An existing assignment that no longer satisfies the eligibility rules after a roster or schedule change (member changed team, away game added on the same day, home game added at the same time, double-booking, exemption, referee age or certification). Conflicts are detected on read, not prevented on write.
 _Avoid_: invalid entry, stale assignment, violation

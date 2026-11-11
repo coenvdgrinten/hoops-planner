@@ -468,6 +468,24 @@ export function getTasks(game: number) {
   return request<Task[]>(`/tasks/?game=${game}`);
 }
 
+export function getReplacementTasks(seasonId: number) {
+  return request<Task[]>(
+    `/tasks/?season=${seasonId}&needs_replacement=true`,
+  );
+}
+
+export function markTaskNeedsReplacement(taskId: number) {
+  return request<Task>(`/tasks/${taskId}/mark_needs_replacement/`, {
+    method: "POST",
+  });
+}
+
+export function clearTaskNeedsReplacement(taskId: number) {
+  return request<Task>(`/tasks/${taskId}/clear_needs_replacement/`, {
+    method: "POST",
+  });
+}
+
 export function getTasksWithAssignments(game: number) {
   return request<TaskWithAssignments[]>(`/games/${game}/tasks_with_assignments/`);
 }

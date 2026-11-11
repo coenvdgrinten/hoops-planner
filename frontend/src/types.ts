@@ -54,10 +54,11 @@ export interface Game {
 
 export interface Task {
   id: number;
-  game: number;
+  game: Game;
   task_type: string;
   slot_number: number;
   optional: boolean;
+  needs_replacement: boolean;
 }
 
 export interface TaskWithAssignments {
@@ -66,6 +67,7 @@ export interface TaskWithAssignments {
   task_type: string;
   slot_number: number;
   optional: boolean;
+  needs_replacement: boolean;
   assignments: TaskAssignment[];
 }
 
