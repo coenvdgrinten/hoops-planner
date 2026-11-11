@@ -3,10 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { TaskWithAssignments, Player, CandidateDetail, TaskAssignment } from "../types";
 import {
   createAssignment,
+  clearTaskNeedsReplacement,
   deleteAssignment,
   getTasksWithAssignments,
   getTeamEligibility,
   getCandidateDetails,
+  markTaskNeedsReplacement,
 } from "../api";
 import styles from "./AssignmentPanel.module.css";
 
@@ -33,25 +35,67 @@ export function AssignmentPanel({
   const [search, setSearch] = useState("");
   const [lastError, setLastError] = useState<string | null>(null);
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
-  const [toast, setToast] = useState<{ msg: string; assignment: TaskAssignment } | null>(null);
+  const [showReplacementConfirm, setShowReplacementConfirm] = useState(false);
+  const [toast, setToast] = useState<{
+    msg: string;
+    assignment: TaskAssignment;
+    taskId: number;
+    gameId: number;
+    wasReplacement: boolean;
+  } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const queryClient = useQueryClient();
   const prevTaskId = useRef<number | undefined>(undefined);
 
-  const showToast = useCallback((msg: string, assignment: TaskAssignment) => {
+  const invalidateTaskData = useCallback((
+    taskId: number | undefined = task?.id,
+    targetGameId: number | undefined = gameId,
+  ) => {
+    if (targetGameId !== undefined) {
+      queryClient.invalidateQueries({
+        queryKey: ["tasks-with-assignments", targetGameId],
+      });
+    }
+    if (taskId !== undefined) {
+      queryClient.invalidateQueries({ queryKey: ["team-eligibility", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["candidate-details", taskId] });
+    }
+    queryClient.invalidateQueries({ queryKey: ["season-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["replacement-tasks"] });
+  }, [queryClient, gameId, task?.id]);
+
+  const showToast = useCallback((
+    msg: string,
+    assignment: TaskAssignment,
+    taskId: number,
+    assignedGameId: number,
+    wasReplacement: boolean,
+  ) => {
     clearTimeout(toastTimer.current);
-    setToast({ msg, assignment });
+    setToast({
+      msg,
+      assignment,
+      taskId,
+      gameId: assignedGameId,
+      wasReplacement,
+    });
     toastTimer.current = setTimeout(() => setToast(null), 5000);
   }, []);
 
   const handleUndo = useCallback(async () => {
     if (!toast) return;
-    await deleteAssignment(toast.assignment.id);
-    queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
-    queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
-    queryClient.invalidateQueries({ queryKey: ["season-stats"] });
-    setToast(null);
-  }, [toast, queryClient, gameId, task?.id]);
+    try {
+      if (toast.wasReplacement) {
+        await markTaskNeedsReplacement(toast.taskId);
+      } else {
+        await deleteAssignment(toast.assignment.id);
+      }
+      invalidateTaskData(toast.taskId, toast.gameId);
+      setToast(null);
+    } catch (err) {
+      setLastError(err instanceof Error ? err.message : "Undo failed");
+    }
+  }, [toast, invalidateTaskData]);
 
   useEffect(() => {
     if (task?.id !== prevTaskId.current) {
@@ -85,11 +129,15 @@ export function AssignmentPanel({
   const { mutate: assign, isPending: assigning } = useMutation({
     mutationFn: (player: Player) => createAssignment(task!.id, player.id),
     onSuccess: (assignment, player) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
-      queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
-      queryClient.invalidateQueries({ queryKey: ["season-stats"] });
+      invalidateTaskData();
       const label = TASK_LABELS[fetchedTask?.task_type ?? ""] ?? fetchedTask?.task_type ?? "";
-      showToast(`${player.full_name} assigned as ${label}`, assignment);
+      showToast(
+        `${player.full_name} assigned as ${label}`,
+        assignment,
+        task!.id,
+        gameId!,
+        !!fetchedTask?.needs_replacement,
+      );
     },
     onError: (err) => {
       console.error("Failed to assign player:", err);
@@ -100,15 +148,40 @@ export function AssignmentPanel({
   const { mutate: unassign } = useMutation({
     mutationFn: (assignmentId: number) => deleteAssignment(assignmentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks-with-assignments", gameId] });
-      queryClient.invalidateQueries({ queryKey: ["team-eligibility", task?.id] });
-      queryClient.invalidateQueries({ queryKey: ["season-stats"] });
+      invalidateTaskData();
     },
     onError: (err) => {
       console.error("Failed to unassign player:", err);
       setLastError(err instanceof Error ? err.message : "Removal failed");
     },
   });
+
+  const replacementMutation = useMutation({
+    mutationFn: () => markTaskNeedsReplacement(task!.id),
+    onSuccess: () => {
+      setShowReplacementConfirm(false);
+      invalidateTaskData();
+    },
+    onError: (err) => {
+      setLastError(err instanceof Error ? err.message : "Could not mark replacement needed");
+    },
+  });
+
+  const clearReplacementMutation = useMutation({
+    mutationFn: () => clearTaskNeedsReplacement(task!.id),
+    onSuccess: () => invalidateTaskData(),
+    onError: (err) => {
+      setLastError(err instanceof Error ? err.message : "Could not clear replacement request");
+    },
+  });
+
+  const markNeedsReplacement = () => {
+    if ((fetchedTask?.assignments.length ?? 0) > 0) {
+      setShowReplacementConfirm(true);
+    } else {
+      replacementMutation.mutate();
+    }
+  };
 
   const assignedIds = new Set((fetchedTask?.assignments ?? []).map((a) => a.player.id));
 
@@ -162,6 +235,31 @@ export function AssignmentPanel({
           <button className="dismiss-btn" onClick={() => setLastError(null)}>×</button>
         </div>
       )}
+
+      <div className={styles["replacement-section"]}>
+        {fetchedTask?.needs_replacement ? (
+          <>
+            <p className={styles["replacement-status"]}>This task needs a replacement.</p>
+            <button
+              className={styles["replacement-btn"]}
+              onClick={() => clearReplacementMutation.mutate()}
+              disabled={clearReplacementMutation.isPending}
+              data-testid="clear-replacement-btn"
+            >
+              {clearReplacementMutation.isPending ? "Clearing..." : "Cancel replacement request"}
+            </button>
+          </>
+        ) : (
+          <button
+            className={styles["replacement-btn"]}
+            onClick={markNeedsReplacement}
+            disabled={replacementMutation.isPending}
+            data-testid="mark-replacement-btn"
+          >
+            {replacementMutation.isPending ? "Marking..." : "Mark as needing replacement"}
+          </button>
+        )}
+      </div>
 
       {/* Search */}
       <div className={styles["panel-search"]}>
@@ -386,6 +484,30 @@ export function AssignmentPanel({
         <div className={styles["toast"]} data-testid="assignment-toast">
           <span>{toast.msg}</span>
           <button onClick={() => void handleUndo()}>Undo</button>
+        </div>
+      )}
+
+      {showReplacementConfirm && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowReplacementConfirm(false)}
+        >
+          <div className="modal" role="dialog" onClick={(e) => e.stopPropagation()}>
+            <h2>Mark as needing replacement?</h2>
+            <p>
+              This removes the current assignment and marks the task as needing a
+              replacement.
+            </p>
+            <div className="modal-actions">
+              <button onClick={() => setShowReplacementConfirm(false)}>Cancel</button>
+              <button
+                onClick={() => replacementMutation.mutate()}
+                disabled={replacementMutation.isPending}
+              >
+                {replacementMutation.isPending ? "Marking..." : "Confirm"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </aside>

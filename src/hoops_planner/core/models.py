@@ -261,6 +261,10 @@ class Task(models.Model):
             "required to be filled)."
         ),
     )
+    needs_replacement = models.BooleanField(
+        default=False,
+        help_text="Whether this task needs a replacement assignment.",
+    )
 
     class Meta:
         ordering = ["task_type", "slot_number", "game"]

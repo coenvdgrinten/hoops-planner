@@ -584,6 +584,8 @@ class TestGameViewSet:
         data = response.json()
         assert len(data) == 1
         assert data[0]["task_type"] == "SCORER"
+        assert data[0]["optional"] is False
+        assert data[0]["needs_replacement"] is False
         assert len(data[0]["assignments"]) == 1
         # Own team has a game on this date → counts single
         assert data[0]["assignments"][0]["effective_value"] == 1
@@ -834,6 +836,71 @@ class TestTaskViewSet:
         assert response.status_code == 200
         data = response.json()
         assert any(t["id"] == task.id for t in data["results"])
+
+    def test_filters_by_season_and_replacement_state(self, api_client, task, season):
+        task.needs_replacement = True
+        task.save(update_fields=["needs_replacement"])
+
+        other_task = Task.objects.create(
+            game=task.game,
+            task_type=TaskType.TIMER,
+            slot_number=1,
+        )
+
+        response = api_client.get(
+            f"/api/tasks/?season={season.id}&needs_replacement=true"
+        )
+        assert response.status_code == 200
+        assert [item["id"] for item in response.json()["results"]] == [task.id]
+        assert response.json()["results"][0]["needs_replacement"] is True
+        assert response.json()["results"][0]["optional"] is False
+        assert other_task.id not in [
+            item["id"] for item in response.json()["results"]
+        ]
+
+    def test_rejects_invalid_replacement_filter(self, api_client):
+        response = api_client.get("/api/tasks/?needs_replacement=sometimes")
+        assert response.status_code == 400
+
+    def test_mark_needs_replacement_removes_current_assignment(
+        self, api_client, task, player
+    ):
+        TaskAssignment.objects.create(task=task, player=player)
+
+        response = api_client.post(
+            f"/api/tasks/{task.id}/mark_needs_replacement/"
+        )
+
+        assert response.status_code == 200
+        assert response.json()["needs_replacement"] is True
+        assert not TaskAssignment.objects.filter(task=task).exists()
+        task.refresh_from_db()
+        assert task.needs_replacement is True
+
+        nested_response = api_client.get(
+            f"/api/games/{task.game_id}/tasks_with_assignments/"
+        )
+        assert nested_response.status_code == 200
+        nested_task = next(
+            item
+            for item in nested_response.json()
+            if item["id"] == task.id
+        )
+        assert nested_task["needs_replacement"] is True
+        assert nested_task["assignments"] == []
+
+    def test_clear_needs_replacement(self, api_client, task):
+        task.needs_replacement = True
+        task.save(update_fields=["needs_replacement"])
+
+        response = api_client.post(
+            f"/api/tasks/{task.id}/clear_needs_replacement/"
+        )
+
+        assert response.status_code == 200
+        assert response.json()["needs_replacement"] is False
+        task.refresh_from_db()
+        assert task.needs_replacement is False
 
 
 @pytest.mark.django_db

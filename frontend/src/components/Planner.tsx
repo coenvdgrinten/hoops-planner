@@ -4,13 +4,14 @@ import {
   getGames,
   getSeasonStats,
   getGymCoverage,
+  getReplacementTasks,
   exportSeasonCsv,
   exportSeasonPdf,
   exportSeasonIcs,
 } from "../api";
 import type { ExportOptions, ExportResult } from "../api";
 import { useToastContext } from "./ToastContext";
-import type { Season, Game, TaskWithAssignments } from "../types";
+import type { Season, Game, Task, TaskWithAssignments } from "../types";
 import { GameCard } from "./GameCard";
 import { GameEditModal } from "./GameEditModal";
 import { ExportDialog } from "./ExportDialog";
@@ -67,7 +68,9 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [exportFormat, setExportFormat] = useState<"pdf" | "csv" | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [tab, setTab] = useState<"schedule" | "versions" | "gym">("schedule");
+  const [tab, setTab] = useState<
+    "schedule" | "replacements" | "versions" | "gym"
+  >("schedule");
 
   const { data: allGames = [], isLoading, error } = useQuery({
     queryKey: ["games", season.id],
@@ -82,6 +85,15 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   const { data: gymCoverage } = useQuery({
     queryKey: ["gym-coverage", season.id],
     queryFn: () => getGymCoverage(season.id),
+  });
+
+  const {
+    data: replacementTasks = [],
+    isLoading: replacementsLoading,
+    error: replacementsError,
+  } = useQuery({
+    queryKey: ["replacement-tasks", season.id],
+    queryFn: () => getReplacementTasks(season.id),
   });
 
   const doExport = useCallback(
@@ -121,6 +133,26 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
   const handleEditGame = useCallback((gameId: number) => {
     setEditingGame(gameId);
   }, []);
+
+  const handleOpenReplacementTask = useCallback(
+    (task: Task) => {
+      setTab("schedule");
+      onSelectTask(
+        {
+          ...task,
+          game: task.game.id,
+          assignments: [],
+        },
+        task.game.id,
+      );
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`game-card-${task.game.id}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    },
+    [onSelectTask],
+  );
 
   const handleEditClose = useCallback(() => {
     setEditingGame(null);
@@ -217,6 +249,15 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
         </button>
         <button
           role="tab"
+          aria-selected={tab === "replacements"}
+          data-testid="planner-tab-replacements"
+          className={`${styles["planner-tab"]} ${tab === "replacements" ? styles["planner-tab-active"] : ""}`}
+          onClick={() => setTab("replacements")}
+        >
+          Needs replacement{replacementTasks.length > 0 ? ` (${replacementTasks.length})` : ""}
+        </button>
+        <button
+          role="tab"
           aria-selected={tab === "versions"}
           data-testid="planner-tab-versions"
           className={`${styles["planner-tab"]} ${tab === "versions" ? styles["planner-tab-active"] : ""}`}
@@ -310,6 +351,59 @@ export function Planner({ season, onSelectTask, selectedGameId, selectedTaskId }
       ) : (
         <p>No games in this season yet. Click "+ Add Game" to create one.</p>
       ))}
+      {tab === "replacements" && (
+        <section className={styles["replacement-overview"]} data-testid="replacement-overview">
+          <div>
+            <h3>Tasks needing a replacement</h3>
+            <p>These tasks were reported as needing a new assignee.</p>
+          </div>
+          {replacementsLoading ? (
+            <p>Loading replacement requests...</p>
+          ) : replacementsError ? (
+            <p className="error">Error: {replacementsError.message}</p>
+          ) : replacementTasks.length === 0 ? (
+            <p className={styles["replacement-empty"]}>No tasks currently need a replacement.</p>
+          ) : (
+            <ul className={styles["replacement-list"]}>
+              {replacementTasks.map((task) => {
+                const date = new Date(`${task.game.date}T${task.game.time}`);
+                const formattedDate = date.toLocaleDateString("nl-BE", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                });
+                const formattedTime = date.toLocaleTimeString("nl-BE", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+                const taskLabel =
+                  task.task_type === "24_SECOND_OPERATOR"
+                    ? "24-second operator"
+                    : task.task_type.toLowerCase();
+                return (
+                  <li key={task.id}>
+                    <button
+                      className={styles["replacement-row"]}
+                      data-testid={`replacement-task-${task.id}`}
+                      onClick={() => handleOpenReplacementTask(task)}
+                    >
+                      <span className={styles["replacement-row-game"]}>
+                        {task.game.own_team.name} vs. {task.game.opponent}
+                      </span>
+                      <span className={styles["replacement-row-meta"]}>
+                        {formattedDate} · {formattedTime} · Court {task.game.court}
+                      </span>
+                      <span className={styles["replacement-row-task"]}>
+                        {taskLabel}{task.slot_number > 1 ? ` #${task.slot_number}` : ""}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
       {tab === "versions" && <VersionsPanel seasonId={season.id} seasonName={season.name} />}
       {tab === "gym" && <GymPanel season={season} />}
       {editingGameData && (

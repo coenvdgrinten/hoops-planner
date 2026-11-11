@@ -29,6 +29,19 @@ class TestTaskAssignmentSerializer:
         assert assignment.task == task
         assert assignment.player == player
 
+    def test_creating_assignment_clears_replacement_flag(self, task, player):
+        task.needs_replacement = True
+        task.save(update_fields=["needs_replacement"])
+
+        serializer = TaskAssignmentSerializer(
+            data={"task_id": task.id, "player_id": player.id}
+        )
+        assert serializer.is_valid()
+        serializer.save()
+
+        task.refresh_from_db()
+        assert task.needs_replacement is False
+
     def test_create_duplicate_assignment_raises_error(self, task, player, season):
         # Create first assignment
         TaskAssignment.objects.create(task=task, player=player)

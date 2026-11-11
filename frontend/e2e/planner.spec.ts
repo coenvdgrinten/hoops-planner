@@ -79,6 +79,79 @@ test.describe("Planner", () => {
     await expect(panel).toBeVisible({ timeout: 10_000 });
   });
 
+  test("marks a task for replacement and clears the request", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/");
+    await selectSeason(page);
+    const chip = page.getByTestId(/^task-chip-\d+$/).first();
+    const taskId = Number((await chip.getAttribute("data-testid"))?.replace("task-chip-", ""));
+    await chip.click();
+
+    const panel = page.getByTestId("assignment-panel");
+    await expect(panel.getByTestId("mark-replacement-btn")).toBeVisible({
+      timeout: 10_000,
+    });
+    await panel.getByTestId("mark-replacement-btn").click();
+
+    await expect(chip).toHaveClass(/needs-replacement/);
+    await expect(page.getByTestId("planner-tab-replacements")).toContainText("(1)");
+    await page.getByTestId("planner-tab-replacements").click();
+    const replacementRow = page.getByTestId(`replacement-task-${taskId}`);
+    await expect(replacementRow).toBeVisible();
+    await replacementRow.click();
+
+    await expect(panel.getByTestId("clear-replacement-btn")).toBeVisible();
+    await panel.getByTestId("clear-replacement-btn").click();
+    await expect(chip).not.toHaveClass(/needs-replacement/);
+    await expect(page.getByTestId("planner-tab-replacements")).not.toContainText("(1)");
+  });
+
+  test("undoes a replacement assignment on its original task after switching tasks", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto("/");
+    await selectSeason(page);
+
+    const firstChip = page.getByTestId(/^task-chip-\d+$/).first();
+    const gameCard = firstChip.locator("..").locator("..");
+    const chips = gameCard.getByTestId(/^task-chip-\d+$/);
+    const replacementChip = chips.nth(0);
+    const otherChip = chips.nth(2);
+    await expect(otherChip).toBeVisible({ timeout: 10_000 });
+
+    await otherChip.click();
+    const panel = page.getByTestId("assignment-panel");
+    const otherCandidate = panel.getByTestId(/^add-candidate-\d+$/).first();
+    await expect(otherCandidate).toBeVisible({ timeout: 10_000 });
+    await otherCandidate.click();
+    await expect(otherChip).toHaveClass(/filled/, { timeout: 10_000 });
+
+    await replacementChip.click();
+    await panel.getByTestId("mark-replacement-btn").click();
+    await expect(replacementChip).toHaveClass(/needs-replacement/);
+
+    const replacementCandidate = panel.getByTestId(/^add-candidate-\d+$/).first();
+    await expect(replacementCandidate).toBeVisible({ timeout: 10_000 });
+    await replacementCandidate.click();
+    const toast = page.getByTestId("assignment-toast");
+    await expect(toast.getByRole("button", { name: "Undo" })).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await otherChip.click();
+    await toast.getByRole("button", { name: "Undo" }).click();
+
+    await expect(replacementChip).toHaveClass(/needs-replacement/);
+    await expect(replacementChip).toHaveClass(/unfilled/);
+    await expect(otherChip).toHaveClass(/filled/);
+    await expect(otherChip).not.toHaveClass(/needs-replacement/);
+  });
+
   test("shows assigned state after adding a player", async ({ page }: { page: Page }) => {
     await page.goto("/");
     await selectSeason(page);
